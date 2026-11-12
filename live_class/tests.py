@@ -172,3 +172,22 @@ class RecordingTests(TestCase):
         self.assertEqual(cursor.offset, 20)
         self.assertTrue(commit.path.startswith('/elibrary/live_recordings/chem-live/'))
         self.assertEqual(rec.status, 'ready')
+
+
+@override_settings(STORAGES=STORAGES)
+class DemoLiveClassCommandTests(TestCase):
+    def test_creates_a_free_cbse_demo_whose_first_class_is_open_now(self):
+        from django.core.management import call_command
+        from io import StringIO
+        from . import access
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        with self.settings(MEDIA_ROOT=media):
+            call_command('create_demo_live_class', stdout=StringIO())
+            call_command('create_demo_live_class', stdout=StringIO())   # running again changes nothing
+        course = LiveClassCourse.objects.get(name__startswith='CBSE Class 10 Science')
+        self.assertTrue(course.is_free)
+        self.assertTrue(course.banner_image_desktop)
+        sessions = list(course.sessions.order_by('scheduled_datetime'))
+        self.assertEqual(len(sessions), 3)
+        self.assertEqual(access.room_state(sessions[0]), 'open')
