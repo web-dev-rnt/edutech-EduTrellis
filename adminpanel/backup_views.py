@@ -5,15 +5,21 @@ Superuser-only views for Dropbox database backup/restore management.
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect, StreamingHttpResponse
+import logging
+from urllib.parse import unquote
+
+from django.http import HttpResponseRedirect, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from . import backup_utils
 from .backup_utils import DropboxBackupManager, clear_backup_list_cache
 from .branding import default_backup_folder
 from .forms import DropboxConfigurationForm
 from .models import DropboxConfiguration
+
+logger = logging.getLogger(__name__)
 
 
 def _superuser_required(view_fn):
@@ -146,3 +152,64 @@ def backup_delete(request):
     else:
         messages.error(request, f"\u274c Delete failed: {result['message']}")
     return redirect("backup_dashboard")
+
+
+# ---------------------------------------------------------------------------
+#  Manual upload of a database file (browser sends it in pieces)
+# ---------------------------------------------------------------------------
+def _upload_error(exc, status=400):
+    payload = {"error": str(exc)}
+    if getattr(exc, "expected_offset", None) is not None:
+        payload["expected"] = exc.expected_offset
+        status = 409
+    return JsonResponse(payload, status=status)
+
+
+@_superuser_required
+@require_POST
+def backup_upload_start(request):
+    try:
+        size = int(request.headers.get("X-File-Size", ""))
+    except ValueError:
+        return JsonResponse({"error": "Missing file size."}, status=400)
+    try:
+        token = backup_utils.upload_start(
+            unquote(request.headers.get("X-File-Name", "")), size, request.body, request.user.pk,
+        )
+    except backup_utils.UploadError as exc:
+        return _upload_error(exc)
+    except Exception as exc:
+        logger.exception("Backup upload could not start")
+        return JsonResponse({"error": f"Dropbox error: {exc}"}, status=502)
+    return JsonResponse({"token": token, "chunk_bytes": backup_utils.UPLOAD_CHUNK_BYTES})
+
+
+@_superuser_required
+@require_POST
+def backup_upload_chunk(request):
+    try:
+        offset = int(request.headers.get("X-Offset", ""))
+    except ValueError:
+        return JsonResponse({"error": "Missing X-Offset header."}, status=400)
+    try:
+        size = backup_utils.upload_append(request.headers.get("X-Upload-Token", ""), request.user.pk, request.body, offset)
+    except backup_utils.UploadError as exc:
+        return _upload_error(exc)
+    except Exception as exc:
+        logger.exception("Backup upload piece failed")
+        return JsonResponse({"error": f"Dropbox error: {exc}"}, status=502)
+    return JsonResponse({"size": size})
+
+
+@_superuser_required
+@require_POST
+def backup_upload_finish(request):
+    try:
+        filename = backup_utils.upload_finish(request.headers.get("X-Upload-Token", ""), request.user.pk)
+    except backup_utils.UploadError as exc:
+        return _upload_error(exc)
+    except Exception as exc:
+        logger.exception("Backup upload could not finish")
+        return JsonResponse({"error": f"Dropbox error: {exc}"}, status=502)
+    messages.success(request, f"\u2705 Uploaded '{filename}'. Use Restore to switch the site to it.")
+    return JsonResponse({"filename": filename})

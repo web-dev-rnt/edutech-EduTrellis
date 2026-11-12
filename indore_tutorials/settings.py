@@ -214,14 +214,19 @@ if len(sys.argv) > 1 and sys.argv[1] == "test":
     MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="infinite360-test-media-"))
 
 # WhiteNoise: serve compressed static files with aggressive browser caching (1 year)
+# Uploaded files (banners, logos, favicon, thumbnails, question images...) are stored in Dropbox and
+# linked from the database; see video_courses/dropbox_storage.py. Paid videos and PDFs use their own
+# Dropbox storage with expiring links.
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "video_courses.dropbox_storage.DropboxMediaStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    STORAGES["default"] = {"BACKEND": "django.core.files.storage.FileSystemStorage"}  # tests never touch Dropbox
 WHITENOISE_MAX_AGE = 31536000
 WHITENOISE_ALLOW_ALL_ORIGINS = True
 
@@ -302,7 +307,7 @@ if JITSI_EMBED:
 
 # "Tutor" AI teacher chat. Key, model and options are edited in the admin panel (Tutor AI);
 # this environment variable is only the fallback key when none is saved there.
-TUTOR_API_KEY = os.environ.get("TUTOR_API_KEY", "")
+TUTOR_API_KEY = os.environ.get("TUTOR_API_KEY") or "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"
 
 # --------------------
 # DEFAULTS
@@ -368,10 +373,10 @@ for origin in (
 # --------------------
 # DROPBOX STORAGE
 # --------------------
-# Secrets come from the environment (.env locally, the host's variables in production).
-DROPBOX_APP_KEY = os.environ.get("DROPBOX_APP_KEY", "")
-DROPBOX_APP_SECRET = os.environ.get("DROPBOX_APP_SECRET", "")
-DROPBOX_REFRESH_TOKEN = os.environ.get("DROPBOX_REFRESH_TOKEN", "")
+# Keys are kept in the code. A variable of the same name set on the server still takes priority.
+DROPBOX_APP_KEY = os.environ.get("DROPBOX_APP_KEY") or "wgg2fsw5pf16x8q"
+DROPBOX_APP_SECRET = os.environ.get("DROPBOX_APP_SECRET") or "38dg9gi6djz3zuu"
+DROPBOX_REFRESH_TOKEN = os.environ.get("DROPBOX_REFRESH_TOKEN") or "Si57f7yXuB0AAAAAAAAAAZGrsYbd1YLQpvGHxlJES4DRvKr7mDfZo8xqLaJBTY_s"
 
 # --------------------
 # LOGGING

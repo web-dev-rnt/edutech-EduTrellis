@@ -12,6 +12,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('dropbox-file/<str:token>/', views.dropbox_file_redirect, name='dropbox_file_redirect'),
+    path('dropbox-media/<str:token>/', views.dropbox_media_redirect, name='dropbox_media_redirect'),
     path('', views.home, name='home'),
     path('daily-quiz/<slug:category>/', views.daily_quiz_api, name='daily_quiz_api'),
     path('daily-quiz/<slug:category>/submit/', views.daily_quiz_submit, name='daily_quiz_submit'),

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 AUDITED_MODULES = {"adminpanel.views", "adminpanel.backup_views", "video_courses.views", "elibrary.views",
                    "testseries.views", "live_class.views", "django.contrib.admin.options", "django.contrib.admin.sites"}
-UNAUDITED_VIEWS = {"apply_coupon", "use_coupon", "remove_coupon", "validate_coupon", "my_coupons", "live_class_join", "live_recording_chunk",
+UNAUDITED_VIEWS = {"apply_coupon", "use_coupon", "remove_coupon", "validate_coupon", "my_coupons", "live_class_join", "live_recording_chunk", "backup_upload_chunk",
                    "mark_notification_read", "mark_all_notifications_read"}
 
 

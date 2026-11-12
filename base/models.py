@@ -321,3 +321,17 @@ class DailyQuizAttempt(models.Model):
     @property
     def percentage(self):
         return round(self.score * 100 / self.total) if self.total else 0
+
+
+class DropboxFileLink(models.Model):
+    """Permanent Dropbox link for an uploaded site file (banner, logo, thumbnail...), so pages link to it directly."""
+    path = models.CharField(max_length=512, unique=True, help_text="Path of the file inside Dropbox.")
+    name = models.CharField(max_length=512, help_text="File name as stored on the model field.")
+    url = models.URLField(max_length=1024)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dropbox file link"
+
+    def __str__(self):
+        return self.name

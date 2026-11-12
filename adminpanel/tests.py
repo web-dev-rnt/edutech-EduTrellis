@@ -178,3 +178,133 @@ class BrandNameTests(TestCase):
         self.assertEqual(response.status_code, 200)
         from .branding import brand_name
         self.assertEqual(brand_name(), 'Infinite360')
+
+
+class DatabaseUploadTests(TestCase):
+    """Manual database upload: only real SQLite databases of this site are accepted or restored."""
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.mkdtemp()
+        self.admin = get_user_model().objects.create_user(
+            email='upload-admin@example.com', password='test-password', is_staff=True, is_superuser=True,
+        )
+
+    def make_db(self, tables):
+        import os
+        import sqlite3
+        path = os.path.join(self.tmp, f"{'_'.join(tables) or 'empty'}.sqlite3")
+        connection = sqlite3.connect(path)
+        for table in tables:
+            connection.execute(f'CREATE TABLE {table} (id INTEGER)')
+        connection.commit()
+        connection.close()
+        return path
+
+    def test_check_sqlite_file(self):
+        import os
+        from .backup_utils import check_sqlite_file
+
+        check_sqlite_file(self.make_db(['django_migrations', 'base_user']))
+        with self.assertRaisesMessage(ValueError, 'not a database of this site'):
+            check_sqlite_file(self.make_db(['other']))
+        junk = os.path.join(self.tmp, 'junk.sqlite3')
+        with open(junk, 'wb') as fh:
+            fh.write(b'hello world, definitely not sqlite')
+        with self.assertRaisesMessage(ValueError, 'not a SQLite database'):
+            check_sqlite_file(junk)
+
+    def test_start_rejects_non_database_files_before_contacting_dropbox(self):
+        self.client.force_login(self.admin)
+        with patch('adminpanel.backup_utils._get_dbx', side_effect=AssertionError('no Dropbox call expected')):
+            response = self.client.post('/backup/upload/start/', b'plain text', content_type='application/octet-stream',
+                                        HTTP_X_FILE_NAME='notes.sqlite3', HTTP_X_FILE_SIZE='10')
+            self.assertEqual(response.status_code, 400)
+            self.assertIn('not a SQLite database', response.json()['error'])
+            response = self.client.post('/backup/upload/start/', b'SQLite format 3\x00', content_type='application/octet-stream',
+                                        HTTP_X_FILE_NAME='photo.png', HTTP_X_FILE_SIZE='16')
+            self.assertEqual(response.status_code, 400)
+
+    def test_upload_is_superuser_only(self):
+        staff = get_user_model().objects.create_user(email='staff-only@example.com', password='x', is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.post('/backup/upload/start/', b'SQLite format 3\x00', content_type='application/octet-stream',
+                                    HTTP_X_FILE_NAME='db.sqlite3', HTTP_X_FILE_SIZE='16')
+        self.assertEqual(response.status_code, 302)
+
+    def test_upload_token_is_tied_to_the_user(self):
+        from .backup_utils import UploadError, upload_append
+        from django.core import signing
+
+        token = signing.dumps({'sid': 's', 'size': 10, 'name': 'db.sqlite3', 'uid': self.admin.pk + 1}, salt='backup-upload')
+        with self.assertRaisesMessage(UploadError, 'another account'):
+            upload_append(token, self.admin.pk, b'x', 0)
+
+
+class DropboxMediaStorageTests(TestCase):
+    """Uploads go to Dropbox; pages use the saved permanent link and never call Dropbox while rendering."""
+
+    def setUp(self):
+        import tempfile
+        from django.core.cache import cache
+        cache.clear()
+        self.media = tempfile.mkdtemp()
+        self.override = override_settings(
+            MEDIA_ROOT=self.media, DROPBOX_APP_KEY='k', DROPBOX_APP_SECRET='s', DROPBOX_REFRESH_TOKEN='t',
+        )
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+
+    def storage(self):
+        from video_courses.dropbox_storage import DropboxMediaStorage
+        return DropboxMediaStorage()
+
+    def test_direct_link(self):
+        from video_courses.dropbox_storage import direct_link
+        self.assertEqual(
+            direct_link('https://www.dropbox.com/scl/fi/abc/logo.png?rlkey=xyz&dl=0'),
+            'https://www.dropbox.com/scl/fi/abc/logo.png?rlkey=xyz&raw=1',
+        )
+
+    def test_url_uses_saved_link_without_network(self):
+        from base.models import DropboxFileLink
+        from video_courses.dropbox_storage import DropboxStorage
+
+        storage = self.storage()
+        DropboxFileLink.objects.create(path='/media/banners/a.webp', name='banners/a.webp', url='https://dl.example/a.webp?raw=1')
+        with patch.object(DropboxStorage, 'client', new_callable=lambda: property(lambda self: (_ for _ in ()).throw(AssertionError('network')))):
+            self.assertEqual(storage.url('banners/a.webp'), 'https://dl.example/a.webp?raw=1')
+            self.assertTrue(storage.url('banners/b.webp').startswith('/dropbox-media/'))
+
+    def test_without_keys_files_stay_local(self):
+        from django.core.files.base import ContentFile
+
+        with override_settings(DROPBOX_APP_KEY='', DROPBOX_APP_SECRET='', DROPBOX_REFRESH_TOKEN=''):
+            storage = self.storage()
+            name = storage.save('logos/x.png', ContentFile(b'png'))
+            self.assertTrue(storage.local.exists(name))
+            self.assertEqual(storage.url(name), f'/media/{name}')
+
+    def test_redirect_view_copies_local_file_and_saves_link(self):
+        from django.core.files.base import ContentFile
+        from base.models import DropboxFileLink
+        from video_courses.dropbox_storage import DropboxMediaStorage, DropboxStorage
+
+        storage = self.storage()
+        name = storage.local.save('banners/old.webp', ContentFile(b'old image'))
+        uploaded = []
+        link_result = type('Link', (), {'url': 'https://www.dropbox.com/scl/fi/1/old.webp?rlkey=r&dl=0'})()
+        fake_client = type('Client', (), {'sharing_create_shared_link_with_settings': lambda self, path: link_result})()
+        with patch.object(DropboxMediaStorage, '_in_dropbox', return_value=False), \
+                patch.object(DropboxStorage, '_save', side_effect=lambda _self, n, c: uploaded.append((n, c.read())) or n), \
+                patch.object(DropboxStorage, 'client', new_callable=lambda: property(lambda self: fake_client)):
+            response = self.client.get(storage.url(name))
+        self.assertEqual(uploaded, [(name, b'old image')])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], 'https://www.dropbox.com/scl/fi/1/old.webp?rlkey=r&raw=1')
+        self.assertIn('max-age=86400', response['Cache-Control'])
+        self.assertEqual(DropboxFileLink.objects.get(name=name).url, response['Location'])
+        self.assertEqual(storage.url(name), response['Location'])  # pages now link straight to Dropbox
+
+    def test_tampered_token_is_rejected(self):
+        self.assertEqual(self.client.get('/dropbox-media/abc:def/').status_code, 404)

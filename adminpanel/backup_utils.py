@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -186,10 +187,15 @@ class DropboxBackupManager:
             _, response = dbx.files_download(dropbox_path)
             data = response.content
 
-            # Write atomically: write to temp then rename
+            # Write atomically: write to temp, check it is a healthy database of this site, then rename
             tmp_path = DB_PATH + ".tmp_restore"
             with open(tmp_path, "wb") as fh:
                 fh.write(data)
+            try:
+                check_sqlite_file(tmp_path)
+            except Exception:
+                os.remove(tmp_path)
+                raise
             os.replace(tmp_path, DB_PATH)
 
             logger.info("Database restored from: %s", dropbox_path)
@@ -237,3 +243,123 @@ class DropboxBackupManager:
         except Exception as exc:
             logger.error("Delete backup failed: %s", exc)
             return {"success": False, "message": str(exc)}
+
+
+# ---------------------------------------------------------------------- #
+#  MANUAL UPLOAD of a database file, sent from the browser in pieces      #
+# ---------------------------------------------------------------------- #
+SQLITE_HEADER = b"SQLite format 3\x00"
+UPLOAD_EXTENSIONS = (".sqlite3", ".sqlite", ".db")
+UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
+MAX_UPLOAD_BYTES = 2 * 1024 ** 3
+UPLOAD_TOKEN_SALT = "backup-upload"
+UPLOAD_TOKEN_MAX_AGE = 24 * 60 * 60
+
+
+class UploadError(Exception):
+    def __init__(self, message, expected_offset=None):
+        super().__init__(message)
+        self.expected_offset = expected_offset
+
+
+def _offset_error(exc):
+    """The offset Dropbox expects, if `exc` is an "incorrect offset" upload error."""
+    error = getattr(exc, "error", None)
+    lookup = getattr(error, "get_incorrect_offset", None) if error is not None else None
+    if lookup and error.is_incorrect_offset():
+        return lookup().correct_offset
+    return None
+
+
+def upload_start(file_name: str, size: int, first_chunk: bytes, user_id: int) -> str:
+    """Check the file looks like a SQLite database and open a Dropbox upload with its first piece."""
+    from django.core import signing
+
+    file_name = os.path.basename(file_name or "").strip()
+    if not file_name.lower().endswith(UPLOAD_EXTENSIONS):
+        raise UploadError("Choose a SQLite database file (.sqlite3, .sqlite or .db).")
+    if size <= 0 or size > MAX_UPLOAD_BYTES:
+        raise UploadError("The file must be between 1 byte and 2 GB.")
+    if not first_chunk.startswith(SQLITE_HEADER):
+        raise UploadError("This file is not a SQLite database.")
+    if len(first_chunk) > UPLOAD_CHUNK_BYTES or len(first_chunk) > size:
+        raise UploadError("Upload piece is too large.")
+    dbx = _get_dbx()
+    session_id = dbx.files_upload_session_start(first_chunk).session_id
+    return signing.dumps(
+        {"sid": session_id, "size": size, "name": file_name, "uid": user_id}, salt=UPLOAD_TOKEN_SALT,
+    )
+
+
+def _upload_state(token: str, user_id: int) -> dict:
+    from django.core import signing
+
+    try:
+        state = signing.loads(token, salt=UPLOAD_TOKEN_SALT, max_age=UPLOAD_TOKEN_MAX_AGE)
+    except signing.BadSignature:
+        raise UploadError("This upload has expired. Please start again.")
+    if state["uid"] != user_id:
+        raise UploadError("This upload belongs to another account.")
+    return state
+
+
+def upload_append(token: str, user_id: int, data: bytes, offset: int) -> int:
+    """Add the piece that starts at `offset`. Returns the new uploaded size."""
+    import dropbox  # type: ignore
+
+    state = _upload_state(token, user_id)
+    if not data or len(data) > UPLOAD_CHUNK_BYTES or offset + len(data) > state["size"]:
+        raise UploadError("Upload piece has the wrong size.")
+    cursor = dropbox.files.UploadSessionCursor(session_id=state["sid"], offset=offset)
+    try:
+        _get_dbx().files_upload_session_append_v2(data, cursor)
+    except Exception as exc:
+        expected = _offset_error(exc)
+        if expected is not None:
+            raise UploadError("Out of step with Dropbox.", expected_offset=expected)
+        raise
+    return offset + len(data)
+
+
+def upload_finish(token: str, user_id: int) -> str:
+    """Save the uploaded file into the backup folder. Returns the backup's file name."""
+    import dropbox  # type: ignore
+    from dropbox.files import WriteMode  # type: ignore
+
+    from .branding import brand
+
+    state = _upload_state(token, user_id)
+    _, _, _, backup_folder = _credentials()
+    stem = re.sub(r"[^A-Za-z0-9_-]+", "_", os.path.splitext(state["name"])[0]).strip("_")[:40] or "database"
+    prefix = brand()["slug"].replace("-", "_")
+    filename = f"{prefix}_uploaded_{datetime.now():%Y%m%d_%H%M%S}_{stem}.sqlite3"
+    cursor = dropbox.files.UploadSessionCursor(session_id=state["sid"], offset=state["size"])
+    commit = dropbox.files.CommitInfo(path=f"{backup_folder}/{filename}", mode=WriteMode.add, autorename=True)
+    try:
+        metadata = _get_dbx().files_upload_session_finish(b"", cursor, commit)
+    except Exception as exc:
+        expected = _offset_error(exc)
+        if expected is not None:
+            raise UploadError("The upload is incomplete.", expected_offset=expected)
+        raise
+    clear_backup_list_cache()
+    logger.info("Uploaded database file saved as %s", metadata.path_display)
+    return metadata.name
+
+
+def check_sqlite_file(path: str) -> None:
+    """Raise ValueError unless `path` is an intact SQLite database of this site."""
+    import sqlite3
+
+    with open(path, "rb") as fh:
+        if fh.read(len(SQLITE_HEADER)) != SQLITE_HEADER:
+            raise ValueError("The backup is not a SQLite database.")
+    connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+            raise ValueError("The backup file is damaged.")
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    finally:
+        connection.close()
+    if not {"django_migrations", "base_user"} <= tables:
+        raise ValueError("The backup is not a database of this site.")

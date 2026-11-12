@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils.text import slugify
-from django.core.files.storage import default_storage
 from django.conf import settings
 from .dropbox_storage import DropboxStorage
 from base.validators import validate_video_extension
@@ -216,13 +215,15 @@ class CourseVideo(TimestampedModel):
                 file_path = None
 
                 # If local path exists (unlikely in Dropbox)
-                if hasattr(self.file, "path"):
+                try:
                     file_path = self.file.path
+                except NotImplementedError:  # remote storage (Dropbox) has no local path
+                    file_path = None
 
                 # Otherwise download temporarily
                 if not file_path:
                     tmp_name = f"_tmp_{self.pk}.media"
-                    with default_storage.open(self.file.name, "rb") as src:
+                    with self.file.storage.open(self.file.name, "rb") as src:
                         with open(tmp_name, "wb") as dst:
                             dst.write(src.read())
                     file_path = tmp_name

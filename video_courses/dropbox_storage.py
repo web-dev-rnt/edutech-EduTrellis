@@ -2,13 +2,14 @@ import hashlib
 import logging
 import posixpath
 import re
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import dropbox
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
-from django.core.files.base import ContentFile
-from django.core.files.storage import Storage
+from django.core.files.base import ContentFile, File
+from django.core.files.storage import FileSystemStorage, Storage
 from django.core import signing
 from django.urls import reverse
 from django.templatetags.static import static
@@ -180,3 +181,160 @@ class DropboxStorage(Storage):
 
     def size(self, name):
         return self.client.files_get_metadata(self._clean_path(name)).size
+
+
+SHARING_UNAVAILABLE_KEY = "dropbox-sharing-unavailable"
+
+
+@deconstructible
+class DropboxMediaStorage(DropboxStorage):
+    """Default storage for every other upload: banners, logos, favicon, thumbnails, question images and so on.
+
+    Files go to Dropbox under /media. Each one gets a permanent Dropbox link, saved in the database
+    (base.DropboxFileLink), and pages point straight at that link. Rendering a page never calls Dropbox:
+    a file without a saved link yet gets a link to /dropbox-media/<token>/, which creates the permanent
+    link on first view (or, if the Dropbox app lacks the sharing.write permission, redirects to a
+    four-hour temporary link).
+
+    Files uploaded before Dropbox was the default still sit in MEDIA_ROOT; they are copied to Dropbox the
+    first time they are viewed (or all at once with `manage.py upload_media_to_dropbox`). Without Dropbox
+    credentials, or when Dropbox is unreachable during an upload, files are kept on local disk.
+    """
+
+    BASE_PATH = "/media"
+    LINK_CACHE_SECONDS = 24 * 60 * 60
+    SHARING_RETRY_SECONDS = 10 * 60
+
+    def __init__(self):
+        super().__init__()
+        self.local = FileSystemStorage()
+
+    # -- saving ------------------------------------------------------------------------------------
+    def _save(self, name, content):
+        if not self._is_configured():
+            return self.local._save(name, content)
+        try:
+            name = super()._save(name, content)
+        except Exception as exc:
+            logger.warning("Dropbox upload failed for %s; keeping it on local disk: %s", name, exc)
+            content.seek(0)
+            return self.local._save(name, content)
+        try:
+            self.create_link(name)
+        except Exception as exc:  # the file is safely in Dropbox; the link is created on first view
+            logger.info("No permanent Dropbox link for %s yet: %s", name, exc)
+        return name
+
+    def get_available_name(self, name, max_length=None):
+        if not self._is_configured():
+            return self.local.get_available_name(name, max_length)
+        return super().get_available_name(name, max_length)
+
+    def _in_dropbox(self, name):
+        return self._is_configured() and DropboxStorage.exists(self, name)
+
+    def exists(self, name):
+        return self.local.exists(name) or self._in_dropbox(name)
+
+    def open(self, name, mode="rb"):
+        return self.local.open(name, mode) if self.local.exists(name) else super().open(name, mode)
+
+    def size(self, name):
+        if self.local.exists(name):
+            return self.local.size(name)
+        try:
+            return super().size(name)
+        except Exception:
+            return 0
+
+    def delete(self, name):
+        from base.models import DropboxFileLink
+
+        if not name:
+            return
+        self.local.delete(name)
+        if self._is_configured():
+            super().delete(name)
+        DropboxFileLink.objects.filter(path=self._clean_path(name)).delete()
+        cache.delete(self._link_cache_key(name))
+
+    # -- links ---------------------------------------------------------------------------------------
+    def _link_cache_key(self, name):
+        return "dropbox-link:" + hashlib.sha256(self._clean_path(name).encode("utf-8")).hexdigest()
+
+    def saved_link(self, name):
+        """The permanent link saved for this file, or "" (cache and database only; no network)."""
+        from base.models import DropboxFileLink
+
+        key = self._link_cache_key(name)
+        link = cache.get(key)
+        if link is None:
+            link = DropboxFileLink.objects.filter(path=self._clean_path(name)).values_list("url", flat=True).first() or ""
+            if link:
+                cache.set(key, link, self.LINK_CACHE_SECONDS)
+        return link
+
+    def url(self, name):
+        if not name:
+            return ""
+        if not self._is_configured():
+            return self.local.url(name)
+        return self.saved_link(name) or reverse(
+            "dropbox_media_redirect", kwargs={"token": signing.Signer(salt="dropbox-public-media").sign_object(str(name))}
+        )
+
+    def upload_local_copy(self, name):
+        """Copy a file that is still on local disk into Dropbox. Returns False if there is nothing to copy."""
+        if self._in_dropbox(name):
+            return True
+        if not self.local.exists(name):
+            return False
+        with self.local.open(name, "rb") as fh:
+            DropboxStorage._save(self, name, File(fh, name=name))
+        return True
+
+    def create_link(self, name):
+        """Create (or fetch) the file's permanent Dropbox link and save it in the database."""
+        from base.models import DropboxFileLink
+
+        if cache.get(SHARING_UNAVAILABLE_KEY):
+            raise PermissionError("The Dropbox app is missing the sharing.write permission.")
+        path = self._clean_path(name)
+        try:
+            link = self.client.sharing_create_shared_link_with_settings(path).url
+        except dropbox.exceptions.AuthError as exc:
+            cache.set(SHARING_UNAVAILABLE_KEY, True, self.SHARING_RETRY_SECONDS)
+            raise PermissionError("The Dropbox app is missing the sharing.write permission.") from exc
+        except dropbox.exceptions.ApiError as exc:
+            if not exc.error.is_shared_link_already_exists():
+                raise
+            existing = exc.error.get_shared_link_already_exists()
+            if existing is not None and existing.is_metadata():
+                link = existing.get_metadata().url
+            else:
+                link = self.client.sharing_list_shared_links(path=path, direct_only=True).links[0].url
+        link = direct_link(link)
+        DropboxFileLink.objects.update_or_create(path=path, defaults={"name": str(name)[:512], "url": link})
+        cache.set(self._link_cache_key(name), link, self.LINK_CACHE_SECONDS)
+        return link
+
+    def resolve(self, name):
+        """(url, permanent) for the redirect view: uploads a local-only file, then links it."""
+        link = self.saved_link(name)
+        if link:
+            return link, True
+        if not self.upload_local_copy(name):
+            return "", False
+        try:
+            return self.create_link(name), True
+        except Exception as exc:
+            logger.info("Using a temporary Dropbox link for %s: %s", name, exc)
+        return self.temporary_url(name), False
+
+
+def direct_link(link):
+    """Turn a Dropbox share-page link into one that serves the file itself (for <img>, <video>, favicons)."""
+    parts = urlsplit(link)
+    query = [(key, value) for key, value in parse_qsl(parts.query) if key not in ("dl", "raw")]
+    query.append(("raw", "1"))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))

@@ -256,6 +256,34 @@
   .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(79,70,229,.3); border-top-color: #4f46e5; border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ---- manual upload card ---- */
+  .upload-card {
+    background: #fff;
+    border: 2px dashed #c7d2fe;
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  .upload-card h3 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: #1e1b4b; }
+  .upload-card p  { margin: 0 0 16px; font-size: .88rem; color: #64748b; }
+  .upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .upload-pick {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px;
+    background: #eef2ff; color: #4338ca; font-weight: 700; font-size: .9rem; cursor: pointer;
+  }
+  .upload-pick input { display: none; }
+  .upload-file-name { font-size: .88rem; color: #334155; word-break: break-all; min-width: 0; flex: 1 1 200px; }
+  .btn-upload-db {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #fff; border: none; border-radius: 10px;
+    padding: 11px 24px; font-weight: 700; font-size: .92rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-upload-db:disabled { opacity: .55; cursor: not-allowed; }
+  .upload-progress { height: 8px; background: #eef2ff; border-radius: 999px; overflow: hidden; margin-top: 16px; }
+  .upload-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4f46e5, #7c3aed); transition: width .2s; }
+  .upload-status { margin-top: 8px; font-size: .85rem; color: #475569; }
+  .upload-status.is-error { color: #dc2626; font-weight: 600; }
+  .upload-progress[hidden], .upload-status[hidden] { display: none; }
+
   @media (max-width: 600px) {
     .backup-action-card { flex-direction: column; }
     .action-btns { flex-direction: row; }
@@ -374,6 +402,25 @@
         <span class="spinner" id="backup-spinner"></span>
       </button>
     </form>
+  </div>
+
+  <!-- Manual upload card -->
+  <div class="upload-card" id="upload-card"
+       data-start="{% url 'backup_upload_start' %}" data-chunk="{% url 'backup_upload_chunk' %}" data-finish="{% url 'backup_upload_finish' %}">
+    <h3><i class="fas fa-file-upload me-2" style="color:#6366f1;"></i>Upload a Database File</h3>
+    <p>Add a <strong>.sqlite3</strong> file from your computer (up to 2 GB) to the backups in Dropbox. It appears in the list below; click <em>Restore</em> on it to switch the site to that database.</p>
+    <div class="upload-row">
+      <label class="upload-pick">
+        <i class="fas fa-folder-open"></i> Choose file
+        <input type="file" id="upload-input" accept=".sqlite3,.sqlite,.db">
+      </label>
+      <span class="upload-file-name" id="upload-file-name">No file chosen</span>
+      <button type="button" class="btn-upload-db" id="upload-btn" disabled>
+        <i class="fas fa-cloud-upload-alt"></i> <span id="upload-btn-text">Upload to Dropbox</span>
+      </button>
+    </div>
+    <div class="upload-progress" id="upload-progress" hidden><span id="upload-bar"></span></div>
+    <div class="upload-status" id="upload-status" hidden></div>
   </div>
 
   <!-- Backups table -->
@@ -530,6 +577,84 @@
     txt.textContent = 'Uploading…';
     spin.style.display = 'inline-block';
   });
+
+  // --- Manual database upload, sent to Dropbox in pieces ---
+  (function () {
+    var card = document.getElementById('upload-card');
+    var input = document.getElementById('upload-input');
+    var btn = document.getElementById('upload-btn');
+    var btnText = document.getElementById('upload-btn-text');
+    var nameEl = document.getElementById('upload-file-name');
+    var progress = document.getElementById('upload-progress');
+    var bar = document.getElementById('upload-bar');
+    var statusEl = document.getElementById('upload-status');
+    var csrf = document.querySelector('#backup-form [name=csrfmiddlewaretoken]').value;
+
+    function mb(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
+    function setStatus(text, isError) {
+      statusEl.hidden = false;
+      statusEl.textContent = text;
+      statusEl.classList.toggle('is-error', !!isError);
+    }
+    function send(url, body, headers) {
+      headers['X-CSRFToken'] = csrf;
+      return fetch(url, { method: 'POST', body: body, headers: headers, credentials: 'same-origin' })
+        .then(function (res) {
+          return res.json().catch(function () { return { error: 'Server error (' + res.status + ').' }; })
+            .then(function (data) { data._status = res.status; return data; });
+        });
+    }
+
+    input.addEventListener('change', function () {
+      var file = input.files[0];
+      nameEl.textContent = file ? file.name + ' (' + mb(file.size) + ')' : 'No file chosen';
+      btn.disabled = !file;
+      statusEl.hidden = true;
+    });
+
+    btn.addEventListener('click', async function () {
+      var file = input.files[0];
+      if (!file) return;
+      btn.disabled = true; input.disabled = true;
+      btnText.textContent = 'Uploading…';
+      progress.hidden = false; bar.style.width = '0%';
+      setStatus('Starting upload…');
+      try {
+        var chunk = 8 * 1024 * 1024;
+        var first = file.slice(0, chunk);
+        var start = await send(card.dataset.start, first, {
+          'X-File-Name': encodeURIComponent(file.name), 'X-File-Size': String(file.size)
+        });
+        if (start.error) throw new Error(start.error);
+        chunk = start.chunk_bytes || chunk;
+        var offset = first.size, retries = 0;
+        while (offset < file.size) {
+          bar.style.width = (offset / file.size * 100).toFixed(1) + '%';
+          setStatus('Uploaded ' + mb(offset) + ' of ' + mb(file.size));
+          var res = await send(card.dataset.chunk, file.slice(offset, offset + chunk), {
+            'X-Upload-Token': start.token, 'X-Offset': String(offset)
+          });
+          if (res._status === 409 && res.expected !== undefined) { offset = res.expected; continue; }
+          if (res.error) {
+            if (res._status >= 500 && retries < 5) { retries++; await new Promise(function (r) { setTimeout(r, 2000 * retries); }); continue; }
+            throw new Error(res.error);
+          }
+          retries = 0;
+          offset = res.size;
+        }
+        bar.style.width = '100%';
+        setStatus('Saving to Dropbox…');
+        var done = await send(card.dataset.finish, '', { 'X-Upload-Token': start.token });
+        if (done.error) throw new Error(done.error);
+        setStatus('Uploaded as ' + done.filename + '. Refreshing the list…');
+        window.location.reload();
+      } catch (err) {
+        setStatus('Upload failed: ' + (err.message || err), true);
+        btn.disabled = false; input.disabled = false;
+        btnText.textContent = 'Upload to Dropbox';
+      }
+    });
+  })();
 
   // Keyboard ESC closes modals
   document.addEventListener('keydown', function(e) {

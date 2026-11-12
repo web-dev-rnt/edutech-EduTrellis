@@ -300,13 +300,13 @@ class Banner(models.Model):
         return self.title
 
     def delete(self, *args, **kwargs):
-        # Delete the image files when banner is deleted
-        if self.image:
-            if os.path.isfile(self.image.path):
-                os.remove(self.image.path)
-        if self.mobile_image:
-            if os.path.isfile(self.mobile_image.path):
-                os.remove(self.mobile_image.path)
+        # Delete the image files (from Dropbox or local disk) when the banner is deleted
+        for image in (self.image, self.mobile_image):
+            if image:
+                try:
+                    image.storage.delete(image.name)
+                except Exception:
+                    pass
         super().delete(*args, **kwargs)
 
 

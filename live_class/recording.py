@@ -10,7 +10,7 @@ import os
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.files.storage import default_storage
+from django.core.files.storage import FileSystemStorage
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
@@ -147,7 +147,7 @@ def playback_url(recording):
     """A URL the browser can stream the recording from."""
     if recording.storage == 'dropbox':
         return dropbox_storage().temporary_url(recording.file_name)
-    return default_storage.url(recording.file_name)
+    return FileSystemStorage().url(recording.file_name)  # recordings kept on local disk
 
 
 def delete(recording):

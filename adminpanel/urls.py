@@ -163,4 +163,7 @@ urlpatterns = [
     path('backup/restore/', backup_views.backup_restore, name='backup_restore'),
     path('backup/download/<str:filename>/', backup_views.backup_download, name='backup_download'),
     path('backup/delete/', backup_views.backup_delete, name='backup_delete'),
+    path('backup/upload/start/', backup_views.backup_upload_start, name='backup_upload_start'),
+    path('backup/upload/chunk/', backup_views.backup_upload_chunk, name='backup_upload_chunk'),
+    path('backup/upload/finish/', backup_views.backup_upload_finish, name='backup_upload_finish'),
 ]

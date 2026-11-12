@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Count, Sum, Prefetch, Q, Avg, F, Max, Min
 from django.core.exceptions import PermissionDenied
 from django.core import signing
+from django.utils.cache import patch_cache_control
 from django.http import (
     JsonResponse,
     FileResponse,
@@ -106,6 +107,33 @@ def dropbox_file_redirect(request, token):
     if not target_url:
         raise Http404("File is temporarily unavailable")
     return redirect(target_url)
+
+@require_GET
+def dropbox_media_redirect(request, token):
+    """Send the browser to an uploaded site file in Dropbox (see DropboxMediaStorage).
+
+    Pages normally link to the file's saved permanent Dropbox link directly; this view only runs for files
+    without one yet. It copies a file still on local disk to Dropbox, creates and saves the permanent link,
+    and redirects. If permanent links are not allowed for the Dropbox app, it uses a temporary link.
+    """
+    try:
+        name = signing.Signer(salt="dropbox-public-media").unsign_object(token)
+    except signing.BadSignature:
+        raise Http404("File link is invalid")
+
+    from video_courses.dropbox_storage import DropboxMediaStorage
+
+    try:
+        target, permanent = DropboxMediaStorage().resolve(name)
+    except Exception:
+        logger.exception("Could not load uploaded file %s from Dropbox", name)
+        target, permanent = "", False
+    if not target:
+        raise Http404("File not found")
+    response = redirect(target)
+    patch_cache_control(response, public=True, max_age=86400 if permanent else 300)
+    return response
+
 
 @require_GET
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
