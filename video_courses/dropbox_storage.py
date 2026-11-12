@@ -11,6 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile, File
 from django.core.files.storage import FileSystemStorage, Storage
 from django.core import signing
+from django.db import DatabaseError, transaction
 from django.urls import reverse
 from django.templatetags.static import static
 from django.utils.crypto import get_random_string
@@ -186,6 +187,21 @@ class DropboxStorage(Storage):
 SHARING_UNAVAILABLE_KEY = "dropbox-sharing-unavailable"
 
 
+def _links_db(query, default=None):
+    """Run a DropboxFileLink query in its own savepoint.
+
+    Files are also saved while migrations run (brand artwork), before the link table exists. A failed
+    query there must not break the migration's transaction, so it is skipped and the link is created
+    the first time the file is viewed.
+    """
+    try:
+        with transaction.atomic():
+            return query()
+    except DatabaseError as exc:
+        logger.info("Dropbox link table not available: %s", exc)
+        return default
+
+
 @deconstructible
 class DropboxMediaStorage(DropboxStorage):
     """Default storage for every other upload: banners, logos, favicon, thumbnails, question images and so on.
@@ -255,7 +271,8 @@ class DropboxMediaStorage(DropboxStorage):
         self.local.delete(name)
         if self._is_configured():
             super().delete(name)
-        DropboxFileLink.objects.filter(path=self._clean_path(name)).delete()
+        path = self._clean_path(name)
+        _links_db(lambda: DropboxFileLink.objects.filter(path=path).delete())
         cache.delete(self._link_cache_key(name))
 
     # -- links ---------------------------------------------------------------------------------------
@@ -269,7 +286,10 @@ class DropboxMediaStorage(DropboxStorage):
         key = self._link_cache_key(name)
         link = cache.get(key)
         if link is None:
-            link = DropboxFileLink.objects.filter(path=self._clean_path(name)).values_list("url", flat=True).first() or ""
+            path = self._clean_path(name)
+            link = _links_db(
+                lambda: DropboxFileLink.objects.filter(path=path).values_list("url", flat=True).first(), ""
+            ) or ""
             if link:
                 cache.set(key, link, self.LINK_CACHE_SECONDS)
         return link
@@ -314,7 +334,7 @@ class DropboxMediaStorage(DropboxStorage):
             else:
                 link = self.client.sharing_list_shared_links(path=path, direct_only=True).links[0].url
         link = direct_link(link)
-        DropboxFileLink.objects.update_or_create(path=path, defaults={"name": str(name)[:512], "url": link})
+        _links_db(lambda: DropboxFileLink.objects.update_or_create(path=path, defaults={"name": str(name)[:512], "url": link}))
         cache.set(self._link_cache_key(name), link, self.LINK_CACHE_SECONDS)
         return link
 

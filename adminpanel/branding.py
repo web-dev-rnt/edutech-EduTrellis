@@ -13,8 +13,11 @@ def brand():
     """{'name', 'full_name', 'slug'} from the saved settings, or the defaults if the table isn't ready yet."""
     name, full_name = DEFAULT_NAME, DEFAULT_FULL_NAME
     try:
+        from django.db import transaction
+
         from .models import ThemeSettings
-        theme = ThemeSettings.get_solo()
+        with transaction.atomic():  # a savepoint, so a failed lookup never breaks the caller's transaction
+            theme = ThemeSettings.get_solo()
         name = (theme.site_name or '').strip() or DEFAULT_NAME
         full_name = (theme.site_full_name or '').strip() or name
     except Exception:  # before migrations run, or the database is unavailable
