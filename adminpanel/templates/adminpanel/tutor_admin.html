@@ -1,0 +1,266 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Tutor AI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ta-wrap { max-width: 1240px; margin: 0 auto; }
+  .ta-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .ta-head h1 { margin:0; font-size:28px; display:flex; align-items:center; gap:10px; }
+  .ta-head p { color:var(--admin-muted); margin:6px 0 0; }
+  .ta-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px; font-size:12px; font-weight:800; }
+  .ta-pill.on { background:#dcfce7; color:#166534; }
+  .ta-pill.off { background:#fee2e2; color:#991b1b; }
+  .ta-pill i { font-size:8px; }
+
+  .ta-stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+  .ta-stat { background:#fff; border:1px solid var(--admin-border); border-radius:14px; padding:16px 18px; box-shadow:var(--admin-card-shadow); }
+  .ta-stat span { display:block; color:var(--admin-muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .ta-stat strong { display:block; font-size:26px; margin-top:6px; color:var(--admin-text); }
+  .ta-stat small { color:var(--admin-muted); font-size:12px; }
+
+  .ta-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr); gap:18px; align-items:start; margin-bottom:18px; }
+  .ta-card { background:#fff; border:1px solid var(--admin-border); border-radius:14px; box-shadow:var(--admin-card-shadow); overflow:hidden; }
+  .ta-card-head { padding:16px 20px; border-bottom:1px solid var(--admin-border); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ta-card-head h2 { margin:0; font-size:17px; }
+  .ta-card-body { padding:20px; }
+
+  .ta-chart { display:flex; align-items:flex-end; gap:6px; height:140px; padding-top:8px; }
+  .ta-bar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .ta-bar.zero i { background:#e5e7eb; }
+  .ta-bar i { display:block; width:100%; min-height:3px; border-radius:6px 6px 2px 2px; background:linear-gradient(180deg, var(--admin-primary), #e0a800); }
+  .ta-bar b { font-size:11px; color:var(--admin-text); }
+  .ta-bar small { font-size:10px; color:var(--admin-muted); white-space:nowrap; }
+  .ta-top { list-style:none; margin:0; padding:0; }
+  .ta-top li { display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--admin-border); font-size:14px; }
+  .ta-top li:last-child { border-bottom:0; }
+  .ta-top a { color:var(--admin-text); text-decoration:none; font-weight:600; }
+  .ta-top a:hover { color:var(--admin-accent); }
+  .ta-top small { display:block; color:var(--admin-muted); font-weight:400; }
+  .ta-count { font-weight:800; background:#f1f5f9; border-radius:999px; padding:2px 10px; height:fit-content; }
+
+  .ta-field { margin-bottom:15px; }
+  .ta-field label { display:block; font-weight:700; font-size:13px; margin-bottom:6px; }
+  .ta-field input[type=text], .ta-field input[type=url], .ta-field input[type=password], .ta-field input[type=number] {
+    width:100%; border:1px solid var(--input-border, #dfe3ec); border-radius:9px; padding:10px 12px; font-size:14px; box-sizing:border-box; }
+  .ta-field input:focus { border-color:var(--input-border-focus, #2459E0); outline:0; box-shadow:var(--admin-ring); }
+  .ta-help { color:var(--admin-muted); font-size:12px; margin-top:5px; }
+  .ta-error { color:var(--admin-danger); font-size:12px; margin-top:5px; }
+  .ta-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ta-check { display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; font-size:14px; }
+  .ta-check input { margin-top:3px; }
+  .ta-check small { display:block; color:var(--admin-muted); font-size:12px; }
+  .ta-key { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:9px; background:#f8fafc; border:1px dashed var(--admin-border); margin-bottom:8px; font-size:13px; }
+  .ta-code { font-family:Consolas, monospace; }
+  .ta-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .ta-notice { padding:11px 14px; border-radius:10px; margin-bottom:14px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:13px; }
+
+  .ta-filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; flex:1 1 520px; }
+  .ta-filters input, .ta-filters select { width:auto !important; flex:0 0 auto; margin:0 !important; border:1px solid var(--input-border, #dfe3ec); border-radius:9px; padding:8px 10px; font-size:13px; height:38px; box-sizing:border-box; }
+  .ta-filters input[type=search] { flex:1 1 220px; min-width:180px; max-width:320px; }
+  .ta-table-wrap { overflow-x:auto; }
+  .ta-table { width:100%; border-collapse:collapse; }
+  .ta-table th, .ta-table td { padding:12px 14px; border-bottom:1px solid var(--admin-border); text-align:left; font-size:13px; vertical-align:top; }
+  .ta-table th { background:#f8fafc; color:#475569; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+  .ta-table tr:last-child td { border-bottom:0; }
+  .ta-q { max-width:520px; }
+  .ta-q details summary { cursor:pointer; color:var(--admin-text); font-weight:600; list-style:none; }
+  .ta-q details summary::-webkit-details-marker { display:none; }
+  .ta-q details summary::after { content:' ▸'; color:var(--admin-muted); font-weight:400; }
+  .ta-q details[open] summary::after { content:' ▾'; }
+  .ta-reply { margin-top:8px; padding:10px 12px; border-radius:9px; background:#f8fafc; color:#334155; white-space:pre-wrap; max-height:260px; overflow:auto; font-size:12.5px; line-height:1.5; }
+  .ta-page { color:var(--admin-muted); font-size:12px; display:block; margin-top:4px; }
+  .ta-badge { display:inline-block; border-radius:999px; padding:3px 9px; font-size:11px; font-weight:800; white-space:nowrap; }
+  .ta-badge.ok { background:#dcfce7; color:#166534; }
+  .ta-badge.error { background:#fee2e2; color:#991b1b; }
+  .ta-badge.rate_limited { background:#fef3c7; color:#92400e; }
+  .ta-badge.disabled { background:#f1f5f9; color:#475569; }
+  .ta-user { white-space:nowrap; }
+  .ta-user small { display:block; color:var(--admin-muted); }
+  .ta-empty { padding:40px 20px; text-align:center; color:var(--admin-muted); }
+  .ta-pager { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-top:1px solid var(--admin-border); font-size:13px; color:var(--admin-muted); gap:10px; flex-wrap:wrap; }
+  .ta-pager div { display:flex; gap:8px; }
+
+  @media (max-width: 1100px) { .ta-grid { grid-template-columns:1fr; } }
+  @media (max-width: 760px) { .ta-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } .ta-row { grid-template-columns:1fr; } .ta-filters input { min-width:0; flex:1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ta-wrap">
+  <div class="ta-head">
+    <div>
+      <h1><i class="fas fa-robot" style="color:#e0a800;"></i> Tutor AI</h1>
+      <p>The AI teacher chat on the website: provider key, behaviour, usage and what students are asking.</p>
+    </div>
+    <span class="ta-pill {% if config.is_enabled and config.effective_key %}on{% else %}off{% endif %}">
+      <i class="fas fa-circle"></i>
+      {% if not config.is_enabled %}Turned off{% elif not config.effective_key %}No API key{% else %}Live on website{% endif %}
+    </span>
+  </div>
+
+  {% include 'message.html' %}
+
+  <div class="ta-stats">
+    <div class="ta-stat"><span>Total requests</span><strong>{{ stats.total }}</strong><small>{{ stats.today }} today · {{ stats.week }} in 7 days</small></div>
+    <div class="ta-stat"><span>Answered</span><strong>{{ stats.answered }}</strong><small>{{ stats.errors }} failed</small></div>
+    <div class="ta-stat"><span>People asking</span><strong>{{ stats.users|add:stats.guests }}</strong><small>{{ stats.users }} logged-in · {{ stats.guests }} guests</small></div>
+    <div class="ta-stat"><span>Avg. answer time</span><strong>{{ stats.avg_seconds|floatformat:1 }}s</strong><small>{{ stats.tokens }} tokens used</small></div>
+  </div>
+
+  <div class="ta-grid">
+    <div class="ta-card">
+      <div class="ta-card-head"><h2>Settings</h2><span class="ta-help" style="margin:0;">Last saved {{ config.updated_at|date:"d M Y, H:i" }}{% if config.updated_by %} by {{ config.updated_by.email }}{% endif %}</span></div>
+      <div class="ta-card-body">
+        {% if env_key_in_use %}
+          <div class="ta-notice">Using the <span class="ta-code">TUTOR_API_KEY</span> environment variable. Paste a key below to manage it from here instead.</div>
+        {% endif %}
+        <form method="post" autocomplete="off">
+          {% csrf_token %}
+          <div class="ta-field">
+            <label for="{{ form.new_api_key.id_for_label }}">API key</label>
+            {% if config.effective_key %}
+              <div class="ta-key"><span class="ta-code">{{ config.masked_key }}</span><span class="ta-help" style="margin:0;">{% if config.api_key %}Saved here{% else %}From environment{% endif %}</span></div>
+            {% endif %}
+            {{ form.new_api_key }}
+            <div class="ta-help">Get a key at build.nvidia.com. Leave blank to keep the current key. The key is never shown in full.</div>
+            {% if config.api_key %}<label class="ta-check" style="margin-top:8px;">{{ form.clear_api_key }} <span>Remove the saved key</span></label>{% endif %}
+          </div>
+          <div class="ta-field">
+            <label for="{{ form.model_name.id_for_label }}">Model</label>
+            {{ form.model_name }}
+            {% for e in form.model_name.errors %}<div class="ta-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="ta-field">
+            <label for="{{ form.api_url.id_for_label }}">API endpoint</label>
+            {{ form.api_url }}
+            {% for e in form.api_url.errors %}<div class="ta-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="ta-row">
+            <div class="ta-field">
+              <label for="{{ form.max_tokens.id_for_label }}">Max reply length (tokens)</label>
+              {{ form.max_tokens }}
+              {% for e in form.max_tokens.errors %}<div class="ta-error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="ta-field">
+              <label for="{{ form.temperature.id_for_label }}">Creativity (temperature)</label>
+              {{ form.temperature }}
+              {% for e in form.temperature.errors %}<div class="ta-error">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="ta-field">
+            <label for="{{ form.greeting.id_for_label }}">Pop-up question shown to visitors</label>
+            {{ form.greeting }}
+          </div>
+          <label class="ta-check">{{ form.is_enabled }} <span><strong>Tutor is on</strong><small>Show the chat on the website.</small></span></label>
+          <label class="ta-check">{{ form.auto_greet }} <span><strong>Ask visitors automatically</strong><small>Pop up the question above once per visit, a few seconds after the page loads.</small></span></label>
+          <label class="ta-check">{{ form.enable_thinking }} <span><strong>Deep thinking</strong><small>The model reasons before answering. Better for hard maths, but slower and uses more tokens.</small></span></label>
+          <div class="ta-actions">
+            <button class="btn btn-primary" type="submit" name="action" value="save"><i class="fas fa-save"></i> Save settings</button>
+            <button class="btn" type="submit" name="action" value="test" formnovalidate><i class="fas fa-plug"></i> Test connection</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:18px;">
+      <div class="ta-card">
+        <div class="ta-card-head"><h2>Requests, last 14 days</h2></div>
+        <div class="ta-card-body">
+          <div class="ta-chart">
+            {% for d in chart %}
+              <div class="ta-bar{% if not d.count %} zero{% endif %}" title="{{ d.day|date:'d M' }}: {{ d.count }} requests">
+                <b>{% if d.count %}{{ d.count }}{% endif %}</b>
+                <i style="height: {{ d.height }}%;"></i>
+                <small>{{ d.day|date:"d" }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="ta-card">
+        <div class="ta-card-head"><h2>Most active students</h2></div>
+        <div class="ta-card-body" style="padding-top:6px; padding-bottom:6px;">
+          {% if top_users %}
+            <ul class="ta-top">
+              {% for u in top_users %}
+                <li>
+                  <a href="?user={{ u.user__id }}#log">{% if u.user__first_name %}{{ u.user__first_name }} {{ u.user__last_name }}{% else %}{{ u.user__email }}{% endif %}<small>{{ u.user__email }}</small></a>
+                  <span class="ta-count">{{ u.n }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="ta-empty" style="padding:20px;">No logged-in student has asked yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ta-card" id="log">
+    <div class="ta-card-head">
+      <h2>What students asked</h2>
+      <form class="ta-filters" method="get" action="#log">
+        <input type="search" name="q" value="{{ search }}" placeholder="Search question, name, email, page">
+        <select name="who">
+          <option value="">Everyone</option>
+          <option value="users" {% if who == 'users' %}selected{% endif %}>Logged-in students</option>
+          <option value="guests" {% if who == 'guests' %}selected{% endif %}>Guests</option>
+        </select>
+        <select name="status">
+          <option value="">Any status</option>
+          {% for value, label in status_choices %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filter</button>
+        {% if filter_query %}<a class="btn" href="{% url 'tutor_admin' %}#log">Clear</a>{% endif %}
+        <a class="btn" href="?{{ filter_query }}{% if filter_query %}&{% endif %}export=csv"><i class="fas fa-file-csv"></i> Export CSV</a>
+      </form>
+    </div>
+    {% if page_obj.object_list %}
+      <div class="ta-table-wrap">
+        <table class="ta-table">
+          <thead><tr><th>When</th><th>Who</th><th>Question</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for item in page_obj %}
+              <tr>
+                <td style="white-space:nowrap;">{{ item.created_at|date:"d M, H:i" }}</td>
+                <td class="ta-user">
+                  {% if item.user %}
+                    <a href="?user={{ item.user_id }}#log" style="color:inherit; font-weight:600; text-decoration:none;">{{ item.user.get_full_name|default:item.user.email }}</a>
+                    <small>{{ item.user.email }}</small>
+                  {% else %}
+                    Guest<small>{{ item.ip_address|default:"" }}</small>
+                  {% endif %}
+                </td>
+                <td class="ta-q">
+                  {% if item.reply or item.error %}
+                    <details>
+                      <summary>{{ item.question|truncatechars:160 }}</summary>
+                      <div class="ta-reply">{% if item.reply %}{{ item.reply }}{% else %}Error: {{ item.error }}{% endif %}</div>
+                    </details>
+                  {% else %}
+                    {{ item.question|truncatechars:200 }}
+                  {% endif %}
+                  {% if item.page %}<span class="ta-page"><i class="fas fa-link"></i> {{ item.page }}</span>{% endif %}
+                </td>
+                <td><span class="ta-badge {{ item.status }}">{{ item.get_status_display }}</span></td>
+                <td style="white-space:nowrap;">{% if item.latency_ms %}{{ item.latency_ms|floatformat:0 }} ms{% else %}–{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="ta-pager">
+        <span>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+        <div>
+          {% if page_obj.has_previous %}<a class="btn" href="?{{ filter_query }}{% if filter_query %}&{% endif %}page={{ page_obj.previous_page_number }}#log">Previous</a>{% endif %}
+          {% if page_obj.has_next %}<a class="btn" href="?{{ filter_query }}{% if filter_query %}&{% endif %}page={{ page_obj.next_page_number }}#log">Next</a>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="ta-empty">{% if search or status or who %}No questions match these filters.{% else %}No one has asked Tutor anything yet.{% endif %}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

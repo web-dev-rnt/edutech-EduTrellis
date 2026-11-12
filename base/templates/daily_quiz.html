@@ -1,0 +1,628 @@
+{% if daily_quiz %}
+<!-- Daily Quiz: 10 new questions every day (Asia/Kolkata), same for every student.
+     Logged-in students only: scores are saved to their account and shown under My Results / My Profile. -->
+<section class="dq{% if daily_quiz.locked %} is-locked{% endif %}" id="daily-quiz" aria-labelledby="dq-title"
+         data-api="{% url 'daily_quiz_api' 'mixed' %}" data-next-in="{{ daily_quiz.next_in }}"
+         data-site="{{ seo.site_name|default:'Infinite360' }}"
+         data-locked="{{ daily_quiz.locked|yesno:'1,0' }}"
+         data-login="{% url 'login' %}?next=/%23daily-quiz" data-signup="{% url 'signup' %}?next=/%23daily-quiz"
+         data-history="{% url 'my_test_results' %}#daily-quiz"
+         data-csrf="{{ csrf_token }}">
+  <div class="dq__inner">
+    <div class="dq__head">
+      <span class="dq__eyebrow"><i class="fas fa-bolt" aria-hidden="true"></i> Daily Quiz</span>
+      <h2 id="dq-title" class="dq__title">10 questions a day. <span>Sharper every day.</span></h2>
+      <p class="dq__sub">A fresh free quiz every morning across GK, Maths, Reasoning, English, Science and Computer. You see the answer and explanation straight away. Come back daily to build your streak.</p>
+    </div>
+
+    <div class="dq__layout">
+      <aside class="dq__side" aria-label="Your daily quiz progress">
+        <div class="dq__date">
+          <span class="dq__date-day">{{ daily_quiz.date|date:"d" }}</span>
+          <span class="dq__date-rest">
+            <strong>{{ daily_quiz.date|date:"l" }}</strong>
+            <span>{{ daily_quiz.date|date:"F Y" }}</span>
+          </span>
+        </div>
+
+        <div class="dq__stats">
+          <div class="dq__stat dq__stat--streak">
+            <i class="fas fa-fire" aria-hidden="true"></i>
+            <strong data-dq="streak">0</strong>
+            <span>Day streak</span>
+          </div>
+          <div class="dq__stat">
+            <i class="fas fa-circle-check" aria-hidden="true"></i>
+            <strong data-dq="done">0/{{ daily_quiz.categories|length }}</strong>
+            <span>Done today</span>
+          </div>
+          <div class="dq__stat">
+            <i class="fas fa-trophy" aria-hidden="true"></i>
+            <strong data-dq="best">–</strong>
+            <span>Best today</span>
+          </div>
+        </div>
+
+        <p class="dq__cats-label" id="dq-cats-label">Pick a category</p>
+        <div class="dq__cats" role="tablist" aria-labelledby="dq-cats-label">
+          {% for cat in daily_quiz.categories %}
+          <button type="button" class="dq__cat{% if forloop.first %} is-active{% endif %}" role="tab"
+                  aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="dq-stage"
+                  data-cat="{{ cat.key }}" data-label="{{ cat.label }}">
+            <i class="fas fa-{{ cat.icon }}" aria-hidden="true"></i>
+            <span class="dq__cat-name">{{ cat.label }}</span>
+            <span class="dq__cat-score" data-score-for="{{ cat.key }}"></span>
+          </button>
+          {% endfor %}
+        </div>
+
+        <p class="dq__next"><i class="far fa-clock" aria-hidden="true"></i> New quiz in <strong data-dq="countdown">--:--:--</strong></p>
+        {% if daily_quiz.locked %}
+        <p class="dq__side-note"><i class="fas fa-lock" aria-hidden="true"></i> Log in to play, save your scores and build a streak.</p>
+        {% else %}
+        <a class="dq__history" href="{% url 'my_test_results' %}#daily-quiz"><i class="fas fa-chart-line" aria-hidden="true"></i> My quiz history <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        {% endif %}
+      </aside>
+
+      <div class="dq__card" id="dq-stage" role="tabpanel" aria-live="polite" tabindex="-1">
+        <noscript><p class="dq__empty">Turn on JavaScript to play the Daily Quiz.</p></noscript>
+      </div>
+    </div>
+  </div>
+  {% if not daily_quiz.locked %}
+  {{ daily_quiz.initial|json_script:"dq-initial" }}
+  {{ daily_quiz.me|json_script:"dq-me" }}
+  {% endif %}
+</section>
+
+<style>
+.dq {
+  --dq-accent: #FF9A1F;
+  --dq-ok: #16a34a;
+  --dq-bad: #dc2626;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(255, 154, 31, 0.10), transparent 38%),
+    radial-gradient(circle at 6% 92%, rgba(var(--brand-primary-rgb, 36, 89, 224), 0.08), transparent 40%),
+    #fff;
+  padding: clamp(36px, 5vw, 64px) 16px;
+  scroll-margin-top: 80px;
+}
+.dq__inner { max-width: 1120px; margin: 0 auto; }
+.dq__head { text-align: center; max-width: 780px; margin: 0 auto clamp(22px, 3vw, 34px); }
+.dq__eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+  background: rgba(255, 154, 31, 0.16); color: #b45d00;
+  font: 700 13px/1 var(--font-sans); letter-spacing: 0.4px; text-transform: uppercase;
+}
+.dq__title {
+  font-family: var(--font-sans); font-size: clamp(24px, 3.2vw, 36px); line-height: 1.2; font-weight: 800;
+  color: #14141b; letter-spacing: -0.5px; margin: 14px 0 10px;
+}
+.dq__title span {
+  background: linear-gradient(90deg, var(--brand-primary, #2459E0), #7B3FE4 55%, var(--dq-accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.dq__sub { font: 500 clamp(14px, 1.4vw, 16px)/1.6 var(--font-sans); color: #5b6474; margin: 0 auto; max-width: 660px; }
+
+.dq__layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 22px; align-items: start; }
+
+/* Left: dark ink panel like the Perform / Analyse / Improve strip */
+.dq__side {
+  background: linear-gradient(160deg, var(--brand-ink, #10142E), var(--brand-ink-2, #1E2448));
+  color: #fff; border-radius: 20px; padding: 22px; position: relative; overflow: hidden;
+  box-shadow: 0 18px 40px rgba(16, 20, 46, 0.22);
+}
+.dq__side::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: linear-gradient(90deg, var(--brand-primary, #2459E0), #7B3FE4, var(--dq-accent));
+}
+.dq__date { display: flex; align-items: center; gap: 14px; }
+.dq__date-day {
+  flex: 0 0 56px; height: 56px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff);
+  font: 800 26px/1 var(--font-sans);
+}
+.dq__date-rest strong { display: block; font: 800 17px/1.2 var(--font-sans); }
+.dq__date-rest span { display: block; font: 500 13px/1.4 var(--font-sans); color: #aab0c4; }
+
+.dq__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0; }
+.dq__stat {
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px; padding: 10px 6px; text-align: center;
+}
+.dq__stat i { color: #8FB0FF; font-size: 14px; }
+.dq__stat--streak i { color: var(--dq-accent); }
+.dq__stat strong { display: block; font: 800 19px/1.2 var(--font-sans); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.dq__stat span { display: block; font: 600 11px/1.3 var(--font-sans); color: #aab0c4; }
+
+.dq__cats-label { font: 700 12px/1 var(--font-sans); letter-spacing: .5px; text-transform: uppercase; color: #aab0c4; margin: 0 0 10px; }
+.dq__cats { display: flex; flex-direction: column; gap: 6px; }
+.dq__cat {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 12px; border: 1px solid transparent;
+  background: transparent; color: #dfe3ee; cursor: pointer;
+  font: 600 14.5px/1.2 var(--font-sans); transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+.dq__cat i { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.08); font-size: 13px; }
+.dq__cat:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.dq__cat:focus-visible { outline: 2px solid #8FB0FF; outline-offset: 2px; }
+.dq__cat.is-active { background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.28); border-color: rgba(143, 176, 255, 0.45); color: #fff; }
+.dq__cat.is-active i { background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff); }
+.dq__cat-name { flex: 1; min-width: 0; }
+.dq__cat-score { font: 800 12px/1 var(--font-sans); color: #FFB547; white-space: nowrap; }
+.dq__cat-score.is-done::before { content: '\2713  '; color: #4ade80; }
+
+.dq__next { margin: 16px 0 0; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,.14); font: 600 13px/1.4 var(--font-sans); color: #aab0c4; }
+.dq__next strong { color: #fff; font-variant-numeric: tabular-nums; }
+.dq__history {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.06); color: #fff; text-decoration: none; font: 700 13.5px/1.2 var(--font-sans);
+}
+.dq__history i:first-child { color: #8FB0FF; }
+.dq__history i:last-child { margin-left: auto; font-size: 12px; color: #aab0c4; }
+.dq__history:hover { background: rgba(var(--brand-primary-rgb, 36, 89, 224), .35); color: #fff; }
+.dq__side-note { margin: 12px 0 0; font: 600 13px/1.5 var(--font-sans); color: #FFB547; }
+.dq__side-note i { margin-right: 4px; }
+.dq__lock-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.dq__save-note { margin: 10px 0 0; font: 600 13px/1.4 var(--font-sans); color: #5b6474; min-height: 18px; }
+.dq__save-note.is-bad { color: var(--dq-bad); }
+.dq__save-note a { color: var(--brand-primary-text, #2459E0); font-weight: 800; }
+
+/* Right: the quiz card */
+.dq__card {
+  background: #fff; border: 1px solid rgba(15, 23, 42, 0.08); border-radius: 20px;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.07); padding: clamp(18px, 3vw, 30px); min-height: 440px;
+  display: flex; flex-direction: column;
+}
+.dq__card:focus { outline: none; }
+.dq__empty { color: #5b6474; font: 500 15px/1.6 var(--font-sans); margin: auto; text-align: center; }
+
+.dq__intro { margin: auto 0; text-align: center; padding: 10px 0; }
+.dq__intro-icon {
+  width: 76px; height: 76px; margin: 0 auto 16px; border-radius: 22px; display: grid; place-items: center; font-size: 30px;
+  color: #fff; background: linear-gradient(135deg, var(--brand-primary, #2459E0), #7B3FE4 60%, var(--dq-accent));
+  box-shadow: 0 14px 30px rgba(var(--brand-primary-rgb, 36, 89, 224), 0.3);
+}
+.dq__intro h3 { font: 800 clamp(20px, 2.4vw, 26px)/1.25 var(--font-sans); color: #14141b; margin: 0 0 8px; }
+.dq__intro p { font: 500 15px/1.6 var(--font-sans); color: #5b6474; margin: 0 auto 18px; max-width: 460px; }
+.dq__facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 0; list-style: none; }
+.dq__facts li { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: #f3f5fb; font: 600 13px/1 var(--font-sans); color: #303650; }
+.dq__facts i { color: var(--brand-primary-text, #2459E0); }
+
+.dq__btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer;
+  padding: 12px 24px; border-radius: 999px; border: 0; text-decoration: none;
+  font: 700 15px/1 var(--font-sans); transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.dq__btn--primary { background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff); box-shadow: 0 8px 22px rgba(var(--brand-primary-rgb, 36, 89, 224), 0.32); }
+.dq__btn--primary:hover { background: var(--brand-primary-dark, #1d49b8); color: var(--brand-on-primary, #fff); transform: translateY(-2px); }
+.dq__btn--ghost { background: #f3f5fb; color: #1E2448; }
+.dq__btn--ghost:hover { background: #e7ebf6; color: #10142E; }
+.dq__btn--accent { background: var(--dq-accent); color: #2b1600; box-shadow: 0 8px 22px rgba(255, 154, 31, 0.3); }
+.dq__btn--accent:hover { background: #f08a0c; color: #2b1600; transform: translateY(-2px); }
+.dq__btn:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), 0.45); outline-offset: 3px; }
+
+.dq__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dq__count { font: 700 14px/1 var(--font-sans); color: #5b6474; }
+.dq__count strong { color: #14141b; font-size: 16px; }
+.dq__topic { padding: 6px 11px; border-radius: 999px; background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.1); color: var(--brand-primary-text, #2459E0); font: 700 12px/1.2 var(--font-sans); }
+.dq__dots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 14px 0 20px; }
+.dq__dots span { height: 6px; border-radius: 99px; background: #e6e9f2; transition: background .3s ease; }
+.dq__dots span.is-current { background: var(--brand-primary, #2459E0); }
+.dq__dots span.is-ok { background: var(--dq-ok); }
+.dq__dots span.is-bad { background: var(--dq-bad); }
+
+.dq__q { font: 700 clamp(16px, 1.8vw, 19px)/1.55 var(--font-sans); color: #14141b; margin: 0 0 18px; overflow-wrap: anywhere; }
+.dq__q .q-code { font: 500 14px/1.5 ui-monospace, Consolas, monospace; background: #f5f7fb; border-radius: 10px; padding: 10px 12px; overflow-x: auto; white-space: pre; margin: 10px 0 0; }
+.dq__opts { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.dq__opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  padding: 12px 14px; border-radius: 14px; background: #fff; border: 1.5px solid #e3e7f0; color: #1f2433;
+  font: 600 15px/1.45 var(--font-sans); transition: border-color .2s ease, background .2s ease, transform .15s ease;
+}
+.dq__opt:hover:not(:disabled) { border-color: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.6); background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.04); }
+.dq__opt:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), 0.4); outline-offset: 2px; }
+.dq__opt:disabled { cursor: default; }
+.dq__opt-key {
+  flex: 0 0 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
+  background: #f1f3f9; color: #3b4258; font: 800 13px/1 var(--font-sans);
+}
+.dq__opt-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dq__opt-mark { font-size: 18px; }
+.dq__opt.is-ok { border-color: var(--dq-ok); background: #effaf3; color: #14532d; }
+.dq__opt.is-ok .dq__opt-key { background: var(--dq-ok); color: #fff; }
+.dq__opt.is-bad { border-color: var(--dq-bad); background: #fdf1f1; color: #7f1d1d; animation: dq-shake .35s ease; }
+.dq__opt.is-bad .dq__opt-key { background: var(--dq-bad); color: #fff; }
+.dq__opt.is-dim { opacity: .55; }
+@keyframes dq-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+.dq__feedback { margin-top: 16px; padding: 12px 14px; border-radius: 14px; font: 500 14px/1.55 var(--font-sans); }
+.dq__feedback strong { display: block; font-weight: 800; margin-bottom: 2px; }
+.dq__feedback.is-ok { background: #effaf3; color: #14532d; border-left: 4px solid var(--dq-ok); }
+.dq__feedback.is-bad { background: #fff6eb; color: #6b3a00; border-left: 4px solid var(--dq-accent); }
+.dq__actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 18px; }
+
+.dq__result { text-align: center; margin: auto 0; }
+.dq__ring {
+  --p: 0; width: 148px; height: 148px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(from 0deg, var(--brand-primary, #2459E0), #7B3FE4 calc(var(--p) * 0.6%), var(--dq-accent) calc(var(--p) * 1%), #ebeef6 0);
+}
+.dq__ring-inner { width: 118px; height: 118px; border-radius: 50%; background: #fff; display: grid; place-content: center; }
+.dq__ring-inner strong { font: 800 34px/1 var(--font-sans); color: #14141b; }
+.dq__ring-inner span { font: 600 13px/1.4 var(--font-sans); color: #5b6474; }
+.dq__result h3 { font: 800 clamp(20px, 2.4vw, 26px)/1.25 var(--font-sans); color: #14141b; margin: 0 0 6px; }
+.dq__result > p { font: 500 15px/1.6 var(--font-sans); color: #5b6474; margin: 0 auto 16px; max-width: 460px; }
+.dq__result-dots { display: flex; justify-content: center; gap: 6px; margin: 0 0 20px; }
+.dq__result-dots span { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 800 12px/1 var(--font-sans); color: #fff; background: var(--dq-ok); }
+.dq__result-dots span.is-bad { background: var(--dq-bad); }
+.dq__result-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+.dq__review-wrap { margin-top: 22px; border-top: 1px solid #edf0f6; padding-top: 14px; }
+.dq__review-wrap summary {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; list-style: none;
+  font: 700 14px/1.3 var(--font-sans); color: var(--brand-primary-text, #2459E0); padding: 6px 4px; border-radius: 8px;
+}
+.dq__review-wrap summary::-webkit-details-marker { display: none; }
+.dq__review-wrap summary::after { content: '\25BE'; transition: transform .2s ease; }
+.dq__review-wrap[open] summary::after { transform: rotate(180deg); }
+.dq__review-wrap summary:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), 0.4); }
+.dq__review { text-align: left; margin-top: 12px; display: grid; gap: 12px; }
+.dq__review-item { padding: 12px 14px; border-radius: 14px; background: #f8f9fc; border-left: 4px solid var(--dq-ok); }
+.dq__review-item.is-bad { border-left-color: var(--dq-bad); }
+.dq__review-q { font: 700 14.5px/1.5 var(--font-sans); color: #14141b; margin: 0 0 6px; overflow-wrap: anywhere; }
+.dq__review-a { font: 500 13.5px/1.5 var(--font-sans); color: #3b4258; margin: 0; }
+.dq__review-a b.ok { color: var(--dq-ok); }
+.dq__review-a b.bad { color: var(--dq-bad); }
+.dq__review-x { font: 500 13px/1.5 var(--font-sans); color: #5b6474; margin: 4px 0 0; }
+.dq__cta { margin: 20px 0 0; font: 600 14px/1.5 var(--font-sans); color: #5b6474; }
+.dq__cta a { color: var(--brand-primary-text, #2459E0); font-weight: 800; text-decoration: none; }
+.dq__cta a:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .dq__layout { grid-template-columns: 1fr; }
+  .dq__side { padding: 18px; }
+  .dq__cats { flex-direction: row; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 4px; scroll-snap-type: x proximity; }
+  .dq__cats::-webkit-scrollbar { display: none; }
+  .dq__cat { width: auto; flex: 0 0 auto; padding: 8px 12px 8px 8px; background: rgba(255,255,255,.05); scroll-snap-align: start; }
+  .dq__cat i { width: 26px; height: 26px; flex-basis: 26px; }
+  .dq__card { min-height: 0; }
+}
+@media (max-width: 480px) {
+  .dq__stats { gap: 6px; }
+  .dq__stat strong { font-size: 17px; }
+  .dq__opt { padding: 10px 12px; font-size: 14.5px; }
+  .dq__actions .dq__btn, .dq__result-actions .dq__btn { flex: 1 1 100%; }
+  .dq__result-dots { gap: 4px; }
+  .dq__result-dots span { width: 22px; height: 22px; border-radius: 6px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dq__opt, .dq__btn, .dq__dots span { transition: none; }
+  .dq__opt.is-bad { animation: none; }
+}
+</style>
+
+<script>
+(function () {
+  var root = document.getElementById('daily-quiz');
+  if (!root) return;
+  var stage = document.getElementById('dq-stage');
+  var LOCKED = root.getAttribute('data-locked') === '1';
+  var initialEl = document.getElementById('dq-initial');
+  var meEl = document.getElementById('dq-me');
+  var initial = initialEl ? JSON.parse(initialEl.textContent) : null;
+  var me = meEl ? JSON.parse(meEl.textContent) : { today: {}, streak: 0 };
+  var TODAY = initial ? initial.date : null;
+  var SITE = root.getAttribute('data-site');
+  var API = root.getAttribute('data-api').replace(/mixed\/?$/, '');
+  var CSRF = root.getAttribute('data-csrf');
+  var LOGIN_URL = root.getAttribute('data-login');
+  var SIGNUP_URL = root.getAttribute('data-signup');
+  var HISTORY_URL = root.getAttribute('data-history');
+  var SERIES_URL = '{% url "all_test_series" %}';
+  var KEYS = ['A', 'B', 'C', 'D'];
+  var quizzes = initial ? { mixed: initial } : {};
+  var catButtons = Array.prototype.slice.call(root.querySelectorAll('.dq__cat'));
+  var state = null;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function labelOf(cat) {
+    for (var i = 0; i < catButtons.length; i++) if (catButtons[i].getAttribute('data-cat') === cat) return catButtons[i].getAttribute('data-label');
+    return cat;
+  }
+  function activeCat() { return root.querySelector('.dq__cat.is-active').getAttribute('data-cat'); }
+
+  function refreshSide() {
+    var results = me.today || {}, keys = Object.keys(results), best = null;
+    keys.forEach(function (k) { var r = results[k]; if (!best || r.best / r.total > best.best / best.total) best = r; });
+    root.querySelector('[data-dq="streak"]').textContent = LOCKED ? '–' : me.streak;
+    root.querySelector('[data-dq="done"]').textContent = LOCKED ? '–' : keys.length + '/' + catButtons.length;
+    root.querySelector('[data-dq="best"]').textContent = best ? best.best + '/' + best.total : '–';
+    catButtons.forEach(function (btn) {
+      var r = results[btn.getAttribute('data-cat')], el = btn.querySelector('.dq__cat-score');
+      el.textContent = r ? r.best + '/' + r.total : '';
+      el.classList.toggle('is-done', !!r);
+    });
+  }
+
+  // Scores are worked out and saved on the server; the result screen only waits for it to show "Saved".
+  function save(cat, picks) {
+    var note = stage.querySelector('.dq__save-note');
+    fetch(API + encodeURIComponent(cat) + '/submit/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF, 'Accept': 'application/json' },
+      body: JSON.stringify({ picks: picks })
+    })
+      .then(function (r) {
+        if (r.status === 401) { location.href = LOGIN_URL; throw new Error('login'); }
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        me = { today: data.today, streak: data.streak };
+        refreshSide();
+        note = stage.querySelector('.dq__save-note');
+        if (note) {
+          note.innerHTML = '<i class="fas fa-circle-check" aria-hidden="true" style="color:#16a34a"></i> ' +
+            (data.attempts > 1 ? 'Retake saved. Your first score of ' + data.first_score + '/' + data.total + ' stays on your record. ' : 'Saved to your account. ') +
+            '<a href="' + HISTORY_URL + '">See my quiz history</a>';
+        }
+      })
+      .catch(function (err) {
+        note = stage.querySelector('.dq__save-note');
+        if (note && err.message !== 'login') {
+          note.classList.add('is-bad');
+          note.textContent = 'Couldn\'t save your score. Check your connection and retake the quiz to save it.';
+        }
+      });
+  }
+
+  // ---- views
+  function locked(cat) {
+    stage.innerHTML =
+      '<div class="dq__intro">' +
+        '<div class="dq__intro-icon"><i class="fas fa-lock" aria-hidden="true"></i></div>' +
+        '<h3>Log in to play today\'s ' + esc(labelOf(cat)) + ' Quiz</h3>' +
+        '<p>The Daily Quiz is free for registered students. Log in or create a free account to answer today\'s 10 questions, save your scores and track your streak under My Results.</p>' +
+        '<ul class="dq__facts">' +
+          '<li><i class="fas fa-list-ol" aria-hidden="true"></i> 10 questions daily</li>' +
+          '<li><i class="fas fa-lightbulb" aria-hidden="true"></i> Instant explanations</li>' +
+          '<li><i class="fas fa-fire" aria-hidden="true"></i> Daily streaks</li>' +
+          '<li><i class="fas fa-chart-line" aria-hidden="true"></i> Score history</li>' +
+        '</ul>' +
+        '<div class="dq__lock-actions">' +
+          '<a class="dq__btn dq__btn--primary" href="' + LOGIN_URL + '"><i class="fas fa-right-to-bracket" aria-hidden="true"></i> Log in to play</a>' +
+          '<a class="dq__btn dq__btn--ghost" href="' + SIGNUP_URL + '">Create free account</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function intro(cat, quiz) {
+    var done = (me.today || {})[cat];
+    if (done && done.picks && done.picks.length === quiz.questions.length) {
+      state = { cat: cat, quiz: quiz, picks: done.picks.slice(), index: quiz.questions.length };
+      return result(false);
+    }
+    stage.innerHTML =
+      '<div class="dq__intro">' +
+        '<div class="dq__intro-icon"><i class="fas fa-bolt" aria-hidden="true"></i></div>' +
+        '<h3>Today\'s ' + esc(labelOf(cat)) + ' Quiz</h3>' +
+        '<p>' + quiz.questions.length + ' quick questions picked for ' + esc(formatDate(TODAY)) + '. Answer each one to see the right answer and the explanation. Your first score is saved to your account.</p>' +
+        '<ul class="dq__facts">' +
+          '<li><i class="fas fa-list-ol" aria-hidden="true"></i> ' + quiz.questions.length + ' questions</li>' +
+          '<li><i class="far fa-clock" aria-hidden="true"></i> About 5 minutes</li>' +
+          '<li><i class="fas fa-lightbulb" aria-hidden="true"></i> Instant explanations</li>' +
+          '<li><i class="fas fa-gift" aria-hidden="true"></i> 100% free</li>' +
+        '</ul>' +
+        '<button type="button" class="dq__btn dq__btn--primary" data-act="start">Start quiz <i class="fas fa-arrow-right" aria-hidden="true"></i></button>' +
+      '</div>';
+  }
+
+  function question() {
+    var q = state.quiz.questions[state.index], n = state.quiz.questions.length;
+    var dots = '';
+    for (var i = 0; i < n; i++) {
+      var cls = i < state.index ? (state.picks[i] === state.quiz.questions[i].answer ? 'is-ok' : 'is-bad') : (i === state.index ? 'is-current' : '');
+      dots += '<span class="' + cls + '"></span>';
+    }
+    var opts = q.options.map(function (o, i) {
+      return '<li><button type="button" class="dq__opt" data-opt="' + i + '">' +
+        '<span class="dq__opt-key">' + KEYS[i] + '</span><span class="dq__opt-text">' + esc(o) + '</span></button></li>';
+    }).join('');
+    stage.innerHTML =
+      '<div class="dq__top">' +
+        '<span class="dq__count">Question <strong>' + (state.index + 1) + '</strong> of ' + n + '</span>' +
+        '<span class="dq__topic">' + esc(q.topic) + '</span>' +
+      '</div>' +
+      '<div class="dq__dots" aria-hidden="true">' + dots + '</div>' +
+      '<p class="dq__q" id="dq-q">' + q.html + '</p>' +
+      '<ul class="dq__opts" role="group" aria-labelledby="dq-q">' + opts + '</ul>' +
+      '<div data-dq="after"></div>';
+  }
+
+  function answer(choice) {
+    if (!state || state.picks.length > state.index) return;
+    var q = state.quiz.questions[state.index], ok = choice === q.answer, n = state.quiz.questions.length;
+    state.picks.push(choice);
+    stage.querySelectorAll('.dq__opt').forEach(function (btn) {
+      var i = +btn.getAttribute('data-opt');
+      btn.disabled = true;
+      if (i === q.answer) { btn.classList.add('is-ok'); btn.insertAdjacentHTML('beforeend', '<i class="fas fa-circle-check dq__opt-mark" aria-hidden="true"></i>'); }
+      else if (i === choice) { btn.classList.add('is-bad'); btn.insertAdjacentHTML('beforeend', '<i class="fas fa-circle-xmark dq__opt-mark" aria-hidden="true"></i>'); }
+      else btn.classList.add('is-dim');
+    });
+    var dot = stage.querySelectorAll('.dq__dots span')[state.index];
+    if (dot) dot.className = ok ? 'is-ok' : 'is-bad';
+    var last = state.index === n - 1;
+    stage.querySelector('[data-dq="after"]').outerHTML =
+      '<div class="dq__feedback ' + (ok ? 'is-ok' : 'is-bad') + '">' +
+        '<strong>' + (ok ? 'Correct!' : 'Not quite. The answer is ' + KEYS[q.answer] + ': ' + esc(q.options[q.answer])) + '</strong>' +
+        (q.explanation ? esc(q.explanation) : '') +
+      '</div>' +
+      '<div class="dq__actions"><button type="button" class="dq__btn dq__btn--primary" data-act="next">' +
+        (last ? 'See my score <i class="fas fa-flag-checkered" aria-hidden="true"></i>' : 'Next question <i class="fas fa-arrow-right" aria-hidden="true"></i>') +
+      '</button></div>';
+    var next = stage.querySelector('[data-act="next"]');
+    if (next) next.focus({ preventScroll: true });
+  }
+
+  function result(fresh) {
+    var quiz = state.quiz, n = quiz.questions.length, score = 0;
+    state.picks.forEach(function (p, i) { if (p === quiz.questions[i].answer) score++; });
+    var pct = Math.round(score * 100 / n);
+    var title = score === n ? 'Perfect score!' : pct >= 80 ? 'Excellent work!' : pct >= 50 ? 'Good effort!' : 'Keep practising!';
+    var msg = score === n ? 'Full marks today. You\'re exam-ready on these topics.'
+      : pct >= 50 ? 'Go through the answers you missed, then try another category.'
+      : 'Every expert started here. Go through the explanations and come back tomorrow.';
+    var dots = state.picks.map(function (p, i) {
+      return '<span class="' + (p === quiz.questions[i].answer ? '' : 'is-bad') + '" title="Q' + (i + 1) + '">' + (i + 1) + '</span>';
+    }).join('');
+    var nextCat = nextUndone();
+    stage.innerHTML =
+      '<div class="dq__result">' +
+        '<div class="dq__ring" style="--p:' + (fresh ? 0 : pct) + '"><div class="dq__ring-inner"><strong>' + score + '/' + n + '</strong><span>' + pct + '% correct</span></div></div>' +
+        '<h3>' + title + '</h3>' +
+        '<p>' + (fresh ? '' : 'You\'ve already played today\'s ' + esc(labelOf(state.cat)) + ' quiz. ') + msg + '</p>' +
+        '<div class="dq__result-dots" aria-label="' + score + ' of ' + n + ' correct">' + dots + '</div>' +
+        '<div class="dq__result-actions">' +
+          (nextCat ? '<button type="button" class="dq__btn dq__btn--primary" data-act="cat" data-cat="' + nextCat + '">Try ' + esc(labelOf(nextCat)) + ' <i class="fas fa-arrow-right" aria-hidden="true"></i></button>' : '') +
+          '<button type="button" class="dq__btn dq__btn--accent" data-act="share"><i class="fas fa-share-nodes" aria-hidden="true"></i> Challenge a friend</button>' +
+          '<button type="button" class="dq__btn dq__btn--ghost" data-act="retake"><i class="fas fa-rotate-right" aria-hidden="true"></i> Retake</button>' +
+        '</div>' +
+        '<p class="dq__save-note" role="status">' + (fresh ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Saving your score…'
+          : '<a href="' + HISTORY_URL + '">See my quiz history</a>') + '</p>' +
+        '<details class="dq__review-wrap"><summary>Review all ' + n + ' answers with explanations</summary>' +
+          '<div class="dq__review">' + review() + '</div></details>' +
+        '<p class="dq__cta">Want the full exam experience? <a href="' + SERIES_URL + '">Take a free mock test <i class="fas fa-arrow-right" aria-hidden="true"></i></a></p>' +
+      '</div>';
+    if (fresh) {
+      save(state.cat, state.picks.slice());
+      var ring = stage.querySelector('.dq__ring');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) ring.style.setProperty('--p', pct);
+      else {
+        var start = performance.now();
+        (function tick(now) {
+          var t = Math.min((now - start) / 900, 1);
+          ring.style.setProperty('--p', (pct * (1 - Math.pow(1 - t, 3))).toFixed(1));
+          if (t < 1) requestAnimationFrame(tick);
+        })(start);
+      }
+    }
+  }
+
+  function review() {
+    return state.quiz.questions.map(function (q, i) {
+      var p = state.picks[i], ok = p === q.answer;
+      return '<div class="dq__review-item' + (ok ? '' : ' is-bad') + '">' +
+        '<p class="dq__review-q">' + (i + 1) + '. ' + q.html + '</p>' +
+        '<p class="dq__review-a">' + (ok
+          ? '<b class="ok">✓ ' + esc(q.options[q.answer]) + '</b>'
+          : 'Your answer: <b class="bad">' + esc(q.options[p]) + '</b> · Correct: <b class="ok">' + esc(q.options[q.answer]) + '</b>') + '</p>' +
+        (q.explanation ? '<p class="dq__review-x">' + esc(q.explanation) + '</p>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  function nextUndone() {
+    var done = me.today || {};
+    for (var i = 0; i < catButtons.length; i++) {
+      var c = catButtons[i].getAttribute('data-cat');
+      if (c !== state.cat && !done[c]) return c;
+    }
+    return null;
+  }
+
+  function formatDate(iso) {
+    try { return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', timeZone: 'UTC' }); }
+    catch (e) { return iso; }
+  }
+
+  function share() {
+    var r = (me.today || {})[state.cat] || {};
+    var score = r.best != null ? r.best : 0;
+    var text = 'I scored ' + score + '/' + (r.total || 10) + ' in today\'s ' + labelOf(state.cat) + ' Daily Quiz on ' + SITE + '. Can you beat me?';
+    var url = location.origin + '/#daily-quiz';
+    if (navigator.share) { navigator.share({ title: SITE + ' Daily Quiz', text: text, url: url }).catch(function () {}); }
+    else window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank', 'noopener');
+  }
+
+  function selectCat(cat) {
+    catButtons.forEach(function (btn) {
+      var on = btn.getAttribute('data-cat') === cat;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on && btn.scrollIntoView && window.innerWidth <= 900) btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    state = null;
+    if (LOCKED) return locked(cat);
+    if (quizzes[cat]) return intro(cat, quizzes[cat]);
+    stage.innerHTML = '<p class="dq__empty"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Loading today\'s quiz…</p>';
+    fetch(API + encodeURIComponent(cat) + '/?d=' + TODAY, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        if (r.status === 401) { LOCKED = true; locked(cat); throw new Error('login'); }
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(function (quiz) { quizzes[cat] = quiz; if (activeCat() === cat) intro(cat, quiz); })
+      .catch(function (err) {
+        if (err.message === 'login') return;
+        stage.innerHTML = '<p class="dq__empty">Couldn\'t load this quiz. Check your connection and <button type="button" class="dq__btn dq__btn--ghost" data-act="cat" data-cat="' + esc(cat) + '">try again</button></p>';
+      });
+  }
+
+  // ---- events
+  root.addEventListener('click', function (e) {
+    var cat = e.target.closest('.dq__cat');
+    if (cat) return selectCat(cat.getAttribute('data-cat'));
+    var opt = e.target.closest('.dq__opt');
+    if (opt && !opt.disabled) return answer(+opt.getAttribute('data-opt'));
+    var act = e.target.closest('[data-act]');
+    if (!act || LOCKED) return;
+    var name = act.getAttribute('data-act'), currentCat = state ? state.cat : null;
+    if (name === 'start') {
+      var active = activeCat();
+      state = { cat: active, quiz: quizzes[active], picks: [], index: 0 };
+      question();
+    } else if (name === 'next') {
+      state.index++;
+      if (state.index >= state.quiz.questions.length) result(true); else question();
+      var first = stage.querySelector('.dq__opt, [data-act]');
+      if (first) first.focus({ preventScroll: true });
+      if (stage.getBoundingClientRect().top < 0) stage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (name === 'retake' && currentCat) {
+      state = { cat: currentCat, quiz: quizzes[currentCat], picks: [], index: 0 };
+      question();
+    } else if (name === 'cat') {
+      selectCat(act.getAttribute('data-cat'));
+    } else if (name === 'share') {
+      share();
+    }
+  });
+
+  // Keys 1-4 or A-D answer (only while the quiz has focus).
+  root.addEventListener('keydown', function (e) {
+    if (!state || state.index >= state.quiz.questions.length || e.altKey || e.ctrlKey || e.metaKey) return;
+    var k = e.key.toUpperCase(), i = '1234'.indexOf(k);
+    if (i < 0) i = KEYS.indexOf(k);
+    if (i >= 0 && state.picks.length === state.index) { e.preventDefault(); answer(i); }
+  });
+
+  // Countdown to the next quiz (midnight IST).
+  var deadline = Date.now() + (+root.getAttribute('data-next-in') || 0) * 1000;
+  var clock = root.querySelector('[data-dq="countdown"]');
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  (function tickClock() {
+    var s = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+    clock.textContent = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+    if (s === 0) { clock.textContent = 'Ready – refresh the page'; return; }
+    setTimeout(tickClock, 1000);
+  })();
+
+  refreshSide();
+  if (LOCKED) locked('mixed'); else intro('mixed', initial);
+})();
+</script>
+{% endif %}

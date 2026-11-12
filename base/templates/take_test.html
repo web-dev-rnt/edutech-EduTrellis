@@ -1,0 +1,823 @@
+{% load static %}{% load question_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ test.title }} | Infinite360</title>
+    {% include "partials/seo_meta.html" with seo_title=test.title seo_noindex=True %}
+    <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/typography.css' %}">
+    <style>
+        :root {
+            --brand: #1f2c4d;
+            --brand-dark: #14141b;
+            --gold: #2459E0;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --bg: #f3f4f8;
+            --answered: #16a34a;
+            --not-answered: #dc2626;
+            --marked: #7c3aed;
+            --not-visited: #e5e7eb;
+            --q-font: 17px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--ink); }
+        button { font-family: inherit; }
+
+        /* ── Header ── */
+        .cbt-header {
+            position: fixed; inset: 0 0 auto 0; z-index: 100; height: 68px;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            padding: 0 20px; color: #fff;
+            background: linear-gradient(135deg, #14141b 0%, #2c2c38 100%);
+            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+        }
+        .cbt-title { min-width: 0; }
+        .cbt-title h1 { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cbt-title p { font-size: 13px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cbt-tools { display: flex; gap: 6px; flex-shrink: 0; }
+        .tool-btn {
+            display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+            border: 1px solid rgba(255,255,255,.35); border-radius: 8px; background: rgba(255,255,255,.12);
+            color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .tool-btn:hover, .tool-btn.active { background: rgba(255,255,255,.28); }
+        .cbt-timer {
+            display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+            padding: 9px 18px; border-radius: 999px; background: rgba(255,255,255,.2);
+            font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        .cbt-timer small { font-size: 11px; font-weight: 600; opacity: .85; display: block; line-height: 1; }
+        .cbt-timer.warn { background: #f59e0b; }
+        .cbt-timer.danger { background: #dc2626; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: .75; } }
+        @media (prefers-reduced-motion: reduce) { .cbt-timer.danger { animation: none; } }
+        .timeup-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(20,20,27,.72); padding: 16px; }
+        .timeup-overlay[hidden] { display: none; }
+        .timeup-card { width: min(380px, 100%); padding: 28px 24px; border-radius: 16px; background: #fff; text-align: center; }
+        .timeup-card i { font-size: 30px; color: #dc2626; margin-bottom: 10px; }
+        .timeup-card h2 { font-size: 22px; margin-bottom: 6px; }
+        .timeup-card p { color: var(--muted); font-size: 14px; }
+
+        /* ── Layout ── */
+        .cbt-body { display: grid; grid-template-columns: 1fr 320px; gap: 20px; max-width: 1320px; margin: 0 auto; padding: 88px 20px 24px; }
+
+        .section-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .section-tab {
+            padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff;
+            font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+        }
+        .section-tab small { font-weight: 500; opacity: .8; }
+        .section-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+        .question-card { display: none; background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(17,24,39,.06); overflow: hidden; }
+        .question-card.current { display: block; }
+        .q-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 16px 24px; border-bottom: 1px solid var(--line); background: #fafafe;
+        }
+        .q-head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .q-number { font-size: 16px; font-weight: 800; }
+        .q-section { padding: 3px 10px; border-radius: 999px; background: #eef2ff; color: var(--brand-dark); font-size: 12px; font-weight: 700; }
+        .q-marking { display: flex; gap: 6px; }
+        .mark-chip { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .mark-plus { background: #dcfce7; color: #166534; }
+        .mark-minus { background: #fee2e2; color: #991b1b; }
+        .mark-zero { background: #f3f4f6; color: var(--muted); }
+
+        .q-body { padding: 24px; }
+        .question-text { font-size: var(--q-font); line-height: 1.7; margin-bottom: 22px; }
+        .question-text img { max-width: 100%; margin-top: 14px; border-radius: 8px; }
+        .question-text .q-code { margin: 10px 0; padding: 12px 14px; border-radius: 8px; background: #0f172a; color: #e2e8f0; font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
+        .options-container { display: grid; gap: 12px; }
+        .option {
+            display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+            background: #f8f9fb; border: 2px solid transparent; border-radius: 12px;
+            font-size: calc(var(--q-font) - 1px); cursor: pointer; transition: background .15s, border-color .15s;
+        }
+        .option:hover { background: #eef2ff; border-color: #c7d2fe; }
+        .option.selected { background: #ecfdf5; border-color: var(--answered); }
+        .option input { width: 18px; height: 18px; accent-color: var(--answered); cursor: pointer; flex-shrink: 0; }
+        .option-key {
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+            width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 1px solid var(--line);
+            font-size: 13px; font-weight: 800; color: var(--muted);
+        }
+        .option.selected .option-key { background: var(--answered); border-color: var(--answered); color: #fff; }
+        .text-answer {
+            width: 100%; padding: 14px; border: 2px solid var(--line); border-radius: 10px; font-size: 16px; font-family: inherit;
+        }
+        .text-answer:focus { outline: none; border-color: var(--brand); }
+
+        .q-actions {
+            display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+            padding: 16px 24px; border-top: 1px solid var(--line); background: #fafafe;
+        }
+        .q-actions div { display: flex; gap: 10px; flex-wrap: wrap; }
+        .act-btn {
+            display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px;
+            border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+            font-size: 14px; font-weight: 700; cursor: pointer;
+        }
+        .act-btn:hover { border-color: #c7d2fe; background: #f5f7ff; }
+        .act-btn:disabled { opacity: .45; cursor: not-allowed; }
+        .act-mark { color: var(--marked); border-color: #ddd6fe; }
+        .act-next { background: var(--answered); border-color: var(--answered); color: #fff; }
+        .act-next:hover { background: #15803d; border-color: #15803d; }
+        .shortcut-hint { margin-top: 10px; font-size: 12px; color: var(--muted); text-align: center; }
+        kbd { padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: #fff; font-size: 11px; }
+
+        /* ── Palette ── */
+        .cbt-palette {
+            position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 108px); overflow: auto;
+            background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(17,24,39,.06); padding: 18px;
+        }
+        .candidate { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+        .candidate-avatar {
+            width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: #eef2ff; color: var(--brand-dark); font-weight: 800; font-size: 17px;
+        }
+        .candidate strong { display: block; font-size: 14px; }
+        .candidate span { font-size: 12px; color: var(--muted); }
+        .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 16px; font-size: 12px; color: var(--muted); }
+        .legend div { display: flex; align-items: center; gap: 8px; }
+        .legend b { color: var(--ink); }
+        .palette-section h4 { font-size: 13px; margin: 12px 0 8px; display: flex; justify-content: space-between; }
+        .palette-section h4 span { color: var(--muted); font-weight: 500; }
+        .palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .pal-btn {
+            position: relative; height: 38px; border: 1px solid #d1d5db; border-radius: 8px;
+            background: var(--not-visited); color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer;
+        }
+        .pal-btn.not-answered, .dot.not-answered { background: var(--not-answered); border-color: var(--not-answered); color: #fff; }
+        .pal-btn.answered, .dot.answered { background: var(--answered); border-color: var(--answered); color: #fff; }
+        .pal-btn.marked, .dot.marked { background: var(--marked); border-color: var(--marked); color: #fff; border-radius: 50%; }
+        .pal-btn.answered-marked, .dot.answered-marked { background: var(--marked); border-color: var(--marked); color: #fff; border-radius: 50%; }
+        .pal-btn.answered-marked::after, .dot.answered-marked::after {
+            content: ''; position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px;
+            border-radius: 50%; background: var(--answered); border: 2px solid #fff;
+        }
+        .pal-btn.current { outline: 3px solid #fbbf24; outline-offset: 1px; }
+        .dot { position: relative; display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid #d1d5db; background: var(--not-visited); flex-shrink: 0; }
+        .submit-test-btn {
+            width: 100%; height: 46px; margin-top: 18px; border: none; border-radius: 10px; cursor: pointer;
+            background: linear-gradient(45deg, #ef4444, #dc2626); color: #fff; font-size: 15px; font-weight: 800;
+        }
+        .palette-toggle { display: none; }
+
+        /* ── Modals & panels ── */
+        .overlay { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(17,24,39,.55); }
+        .overlay.open { display: flex; }
+        .modal { width: 100%; max-width: 620px; max-height: 88vh; overflow: auto; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+        .modal-head h3 { font-size: 18px; }
+        .modal-close { border: none; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
+        .modal-body { padding: 20px 22px; font-size: 14px; line-height: 1.6; }
+        .modal-body h4 { margin: 14px 0 6px; font-size: 14px; }
+        .modal-body ul { padding-left: 20px; }
+        .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid var(--line); }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+        .info-grid div { padding: 12px; border-radius: 10px; background: #f5f7ff; text-align: center; }
+        .info-grid b { display: block; font-size: 20px; color: var(--brand-dark); }
+        .info-grid span { font-size: 12px; color: var(--muted); }
+        table.simple { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table.simple th, table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+        table.simple th { background: #f9fafb; color: var(--muted); font-weight: 700; }
+        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .summary-grid div { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+        .summary-grid b { margin-left: auto; font-size: 18px; }
+        .warn-note { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: #fff7ed; color: #9a3412; font-size: 13px; }
+
+        .notes-panel {
+            position: fixed; top: 68px; right: 0; bottom: 0; z-index: 200; width: 360px; max-width: 100%;
+            display: flex; flex-direction: column; background: #fffdf5; border-left: 1px solid #fde68a;
+            box-shadow: -8px 0 24px rgba(0,0,0,.08); transform: translateX(100%); transition: transform .2s;
+        }
+        .notes-panel.open { transform: none; }
+        .notes-panel header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #fde68a; }
+        .notes-panel textarea {
+            flex: 1; border: none; resize: none; padding: 16px; font: 15px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+            background: repeating-linear-gradient(#fffdf5, #fffdf5 25px, #fde68a 26px); outline: none;
+        }
+        .notes-panel footer { padding: 10px 16px; font-size: 12px; color: #92400e; border-top: 1px solid #fde68a; }
+
+        .calc {
+            position: fixed; z-index: 250; top: 90px; right: 360px; width: 300px; display: none;
+            background: #1f2937; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.35); color: #fff; user-select: none;
+        }
+        .calc.open { display: block; }
+        .calc.scientific { width: 380px; }
+        .calc-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: move; font-size: 13px; font-weight: 700; color: #d1d5db; }
+        .calc-head button { border: none; background: none; color: #9ca3af; font-size: 16px; cursor: pointer; }
+        .calc-display { margin: 0 12px; padding: 10px 12px; border-radius: 8px; background: #111827; text-align: right; min-height: 64px; }
+        .calc-expr { font-size: 13px; color: #9ca3af; min-height: 18px; word-break: break-all; }
+        .calc-result { font-size: 26px; font-weight: 700; word-break: break-all; }
+        .calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px; }
+        .calc.scientific .calc-keys { grid-template-columns: repeat(5, 1fr); }
+        .calc-keys button { height: 42px; border: none; border-radius: 8px; background: #374151; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+        .calc-keys button:hover { background: #4b5563; }
+        .calc-keys button.pressed { filter: brightness(1.3); transform: scale(.95); }
+        .calc-keys .op { background: #2459E0; color: var(--brand-on-primary, #fff); }
+        .calc-keys .eq { background: #16a34a; }
+        .calc-keys .fn { background: #2c2c38; font-size: 13px; }
+        .calc-keys .clr { background: #b91c1c; }
+        .calc-mode { padding: 0 12px; font-size: 12px; color: #9ca3af; display: flex; justify-content: space-between; }
+
+        @media (max-width: 980px) {
+            .cbt-body { grid-template-columns: 1fr; }
+            .cbt-palette { position: fixed; top: 68px; right: 0; bottom: 0; z-index: 150; width: 320px; max-height: none; border-radius: 0; transform: translateX(100%); transition: transform .2s; }
+            .cbt-palette.open { transform: none; }
+            .palette-toggle { display: inline-flex; }
+            .calc { right: 12px; }
+        }
+        @media (max-width: 640px) {
+            .cbt-header { height: auto; min-height: 68px; flex-wrap: wrap; padding: 10px 12px; }
+            .cbt-title { flex: 1 1 100%; order: 1; }
+            .cbt-tools { order: 3; flex-wrap: wrap; }
+            .cbt-timer { order: 2; font-size: 16px; padding: 6px 12px; }
+            .tool-btn .label { display: none; }
+            .cbt-body { padding: 130px 12px 20px; }
+            .q-body, .q-head, .q-actions { padding-left: 16px; padding-right: 16px; }
+            .act-btn { flex: 1; justify-content: center; }
+            .info-grid { grid-template-columns: 1fr 1fr; }
+            .calc, .calc.scientific { left: 8px; right: 8px; width: auto; top: 140px; }
+            .notes-panel, .cbt-palette { top: 0; }
+        }
+    </style>
+</head>
+<body>
+    <header class="cbt-header">
+        <div class="cbt-title">
+            <h1>{{ test.title }}</h1>
+            <p>{{ series.title }} · {{ questions|length }} questions · {{ total_marks }} marks</p>
+        </div>
+        <div class="cbt-tools">
+            <button type="button" class="tool-btn" onclick="openModal('instructions-modal')" title="Instructions"><i class="fa fa-circle-info"></i><span class="label">Instructions</span></button>
+            {% if test.calculator != 'none' %}
+            <button type="button" class="tool-btn" id="calc-toggle" onclick="toggleCalc()" title="Calculator (allowed in this exam)"><i class="fa fa-calculator"></i><span class="label">Calculator</span></button>
+            {% endif %}
+            <button type="button" class="tool-btn" id="notes-toggle" onclick="toggleNotes()" title="Rough notes"><i class="fa fa-pen-to-square"></i><span class="label">Rough Notes</span></button>
+            <button type="button" class="tool-btn" onclick="changeFont(-1)" title="Smaller text">A−</button>
+            <button type="button" class="tool-btn" onclick="changeFont(1)" title="Larger text">A+</button>
+            <button type="button" class="tool-btn" onclick="toggleFullscreen()" title="Full screen"><i class="fa fa-expand"></i></button>
+            <button type="button" class="tool-btn palette-toggle" onclick="document.getElementById('palette').classList.toggle('open')" title="Question palette"><i class="fa fa-table-cells"></i></button>
+        </div>
+        <div class="cbt-timer" id="timer" title="Time left">
+            <i class="fa fa-clock"></i>
+            <div><small>Time left</small><span id="time-display">--:--</span></div>
+        </div>
+    </header>
+
+    <div class="cbt-body">
+        <main>
+            {% if sections|length > 1 %}
+            <div class="section-tabs" id="section-tabs">
+                {% for section in sections %}
+                <button type="button" class="section-tab" data-section="{{ section.name }}" onclick="goTo({{ section.numbers.0 }})">
+                    {{ section.name }} <small>({{ section.numbers|length }})</small>
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form id="test-form" method="POST" action="{% url 'front_exam_submit' attempt_id=attempt.id %}">
+                {% csrf_token %}
+                {% for question in questions %}
+                <div class="question-card" id="question-{{ question.number }}" data-number="{{ question.number }}" data-section="{{ question.section }}" data-qid="{{ question.id }}">
+                    <div class="q-head">
+                        <div class="q-head-left">
+                            <span class="q-number">Question {{ question.number }}</span>
+                            {% if sections|length > 1 %}<span class="q-section">{{ question.section }}</span>{% endif %}
+                        </div>
+                        <div class="q-marking">
+                            <span class="mark-chip mark-plus">+{{ question.marks|floatformat:"-2" }} correct</span>
+                            {% if question.penalty %}<span class="mark-chip mark-minus">−{{ question.penalty|floatformat:"-2" }} wrong</span>
+                            {% else %}<span class="mark-chip mark-zero">No negative</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="q-body">
+                        <div class="question-text">
+                            {{ question.question_text|question_html }}
+                            {% if question.question_image %}<img loading="lazy" decoding="async" src="{{ question.question_image.url }}" alt="Question image">{% endif %}
+                        </div>
+
+                        <div class="options-container">
+                            {% if question.question_type == 'mcq_single' %}
+                                {% for key, option in question.options.items %}
+                                <label class="option">
+                                    <input type="radio" name="question_{{ question.id }}" value="{{ key }}">
+                                    <span class="option-key">{{ key|upper }}</span>
+                                    <span>{{ option }}</span>
+                                </label>
+                                {% endfor %}
+                            {% elif question.question_type == 'mcq_multiple' %}
+                                {% for key, option in question.options.items %}
+                                <label class="option">
+                                    <input type="checkbox" name="question_{{ question.id }}" value="{{ key }}">
+                                    <span class="option-key">{{ key|upper }}</span>
+                                    <span>{{ option }}</span>
+                                </label>
+                                {% endfor %}
+                            {% elif question.question_type == 'true_false' %}
+                                <label class="option"><input type="radio" name="question_{{ question.id }}" value="a"><span class="option-key">A</span><span>True</span></label>
+                                <label class="option"><input type="radio" name="question_{{ question.id }}" value="b"><span class="option-key">B</span><span>False</span></label>
+                            {% elif question.question_type in 'fill_blank,numerical' %}
+                                <input type="text" name="question_{{ question.id }}" placeholder="Type your answer" class="text-answer" autocomplete="off">
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="q-actions">
+                        <div>
+                            <button type="button" class="act-btn act-mark" onclick="markAndNext()"><i class="fa fa-bookmark"></i> Mark for Review &amp; Next</button>
+                            <button type="button" class="act-btn" onclick="clearResponse()"><i class="fa fa-eraser"></i> Clear Response</button>
+                        </div>
+                        <div>
+                            <button type="button" class="act-btn" onclick="goTo(current - 1)" {% if forloop.first %}disabled{% endif %}><i class="fa fa-arrow-left"></i> Previous</button>
+                            {% if forloop.last %}
+                            <button type="button" class="act-btn act-next" onclick="saveAndNext()">Save &amp; Review <i class="fa fa-flag-checkered"></i></button>
+                            {% else %}
+                            <button type="button" class="act-btn act-next" onclick="saveAndNext()">Save &amp; Next <i class="fa fa-arrow-right"></i></button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </form>
+            <p class="shortcut-hint">Shortcuts: <kbd>A</kbd>–<kbd>D</kbd> choose · <kbd>→</kbd> save &amp; next · <kbd>←</kbd> previous · <kbd>M</kbd> mark for review</p>
+        </main>
+
+        <aside class="cbt-palette" id="palette">
+            <div class="candidate">
+                <div class="candidate-avatar">{{ request.user.get_full_name|default:request.user.email|first|upper }}</div>
+                <div>
+                    <strong>{{ request.user.get_full_name|default:request.user.email }}</strong>
+                    <span>Attempt {{ attempt.attempt_number }} of {{ test.max_attempts }}</span>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div><span class="dot answered"></span>Answered <b id="count-answered">0</b></div>
+                <div><span class="dot not-answered"></span>Not answered <b id="count-not-answered">0</b></div>
+                <div><span class="dot"></span>Not visited <b id="count-not-visited">0</b></div>
+                <div><span class="dot marked"></span>Marked <b id="count-marked">0</b></div>
+                <div style="grid-column: 1 / -1;"><span class="dot answered-marked"></span>Answered &amp; marked (will be evaluated) <b id="count-answered-marked">0</b></div>
+            </div>
+
+            {% for section in sections %}
+            <div class="palette-section">
+                <h4>{{ section.name }} <span>{{ section.numbers|length }} Qs · {{ section.marks }} marks</span></h4>
+                <div class="palette-grid">
+                    {% for n in section.numbers %}
+                    <button type="button" class="pal-btn" id="pal-{{ n }}" onclick="goTo({{ n }})">{{ n }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <button type="button" class="submit-test-btn" onclick="openSubmit()"><i class="fa fa-paper-plane"></i> Submit Test</button>
+        </aside>
+    </div>
+
+    <!-- Instructions -->
+    <div class="overlay" id="instructions-modal" onclick="if (event.target === this) closeModal(this.id)">
+        <div class="modal" role="dialog" aria-labelledby="instructions-title">
+            <div class="modal-head">
+                <h3 id="instructions-title"><i class="fa fa-circle-info"></i> Instructions</h3>
+                <button class="modal-close" onclick="closeModal('instructions-modal')" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-grid">
+                    <div><b>{{ questions|length }}</b><span>Questions</span></div>
+                    <div><b>{{ total_marks }}</b><span>Total marks</span></div>
+                    <div><b>{{ test.duration_minutes }} min</b><span>Duration</span></div>
+                </div>
+                {% if sections|length > 1 %}
+                <table class="simple">
+                    <thead><tr><th>Section</th><th>Questions</th><th>Marks</th></tr></thead>
+                    <tbody>
+                        {% for section in sections %}<tr><td>{{ section.name }}</td><td>{{ section.numbers|length }}</td><td>{{ section.marks }}</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                <h4>Marking scheme</h4>
+                <ul>
+                    <li>Marks for a correct answer are shown on each question.</li>
+                    {% if negative_marking %}<li>Wrong answers carry <b>negative marks</b>, also shown on each question. Unanswered questions get zero.</li>
+                    {% else %}<li>There is <b>no negative marking</b> — attempt every question.</li>{% endif %}
+                    <li>Pass mark: {{ series.pass_percentage }}%.</li>
+                </ul>
+                {% if series.description %}<h4>About this exam</h4><p>{{ series.description }}</p>{% endif %}
+                <h4>Tools</h4>
+                <ul>
+                    {% if test.calculator == 'scientific' %}<li>A <b>scientific calculator</b> is available, as in the real exam.</li>
+                    {% elif test.calculator == 'basic' %}<li>A <b>basic calculator</b> is available, as allowed in the real exam.</li>
+                    {% else %}<li>A calculator is <b>not allowed</b> in this exam.</li>{% endif %}
+                    <li><b>Rough Notes</b> work like the rough sheet in the exam hall. They stay on this device and are not submitted.</li>
+                </ul>
+                <h4>Question palette</h4>
+                <ul>
+                    <li><span class="dot"></span> Not visited · <span class="dot not-answered"></span> Not answered · <span class="dot answered"></span> Answered</li>
+                    <li><span class="dot marked"></span> Marked for review · <span class="dot answered-marked"></span> Answered and marked — this answer <b>will</b> be evaluated.</li>
+                    <li>Your answers are saved in this browser as you go, so a page refresh will not lose them.</li>
+                    <li>The test is submitted automatically when the timer reaches zero.</li>
+                </ul>
+            </div>
+            <div class="modal-foot">
+                <button class="act-btn act-next" onclick="closeModal('instructions-modal')">I'm ready</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit summary -->
+    <div class="overlay" id="submit-modal" onclick="if (event.target === this) closeModal(this.id)">
+        <div class="modal" role="dialog" aria-labelledby="submit-title" style="max-width: 480px;">
+            <div class="modal-head">
+                <h3 id="submit-title"><i class="fa fa-paper-plane"></i> Submit test?</h3>
+                <button class="modal-close" onclick="closeModal('submit-modal')" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="summary-grid">
+                    <div><span class="dot answered"></span>Answered <b id="sum-answered">0</b></div>
+                    <div><span class="dot not-answered"></span>Not answered <b id="sum-not-answered">0</b></div>
+                    <div><span class="dot marked"></span>Marked <b id="sum-marked">0</b></div>
+                    <div><span class="dot"></span>Not visited <b id="sum-not-visited">0</b></div>
+                </div>
+                <p style="margin-top: 14px;">Time left: <b id="sum-time">--:--</b></p>
+                <p class="warn-note" id="sum-warning" hidden></p>
+            </div>
+            <div class="modal-foot">
+                <button class="act-btn" onclick="closeModal('submit-modal')">Back to test</button>
+                <button class="act-btn act-next" id="final-submit" onclick="submitTest()" style="background:#dc2626;border-color:#dc2626;">Submit now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rough notes -->
+    <aside class="notes-panel" id="notes-panel" aria-label="Rough notes">
+        <header>
+            <strong><i class="fa fa-pen-to-square"></i> Rough Notes</strong>
+            <div>
+                <button type="button" class="act-btn" style="height:32px;padding:0 10px;" onclick="clearNotes()">Clear</button>
+                <button type="button" class="modal-close" onclick="toggleNotes()" aria-label="Close">&times;</button>
+            </div>
+        </header>
+        <textarea id="notes-text" placeholder="Work out sums, jot down points or keep track of questions to revisit…"></textarea>
+        <footer>Saved on this device only — not submitted with your answers.</footer>
+    </aside>
+
+    {% if test.calculator != 'none' %}
+    <!-- Calculator -->
+    <div class="calc {% if test.calculator == 'scientific' %}scientific{% endif %}" id="calc" aria-label="Calculator">
+        <div class="calc-head" id="calc-drag">
+            <span><i class="fa fa-calculator"></i> {{ test.get_calculator_display }}</span>
+            <button type="button" onclick="toggleCalc()" aria-label="Close">&times;</button>
+        </div>
+        <div class="calc-display">
+            <div class="calc-expr" id="calc-expr"></div>
+            <div class="calc-result" id="calc-result">0</div>
+        </div>
+        {% if test.calculator == 'scientific' %}
+        <div class="calc-mode"><span>Angle: <b id="calc-angle">DEG</b></span><span id="calc-mem"></span></div>
+        <div class="calc-keys">
+            <button class="fn" data-k="deg">DEG/RAD</button><button class="fn" data-k="sin(">sin</button><button class="fn" data-k="cos(">cos</button><button class="fn" data-k="tan(">tan</button><button class="clr" data-k="C">C</button>
+            <button class="fn" data-k="asin(">sin⁻¹</button><button class="fn" data-k="acos(">cos⁻¹</button><button class="fn" data-k="atan(">tan⁻¹</button><button class="fn" data-k="π">π</button><button class="clr" data-k="back">⌫</button>
+            <button class="fn" data-k="log(">log</button><button class="fn" data-k="ln(">ln</button><button class="fn" data-k="√(">√</button><button class="fn" data-k="^2">x²</button><button class="fn" data-k="^">xʸ</button>
+            <button class="fn" data-k="e">e</button><button class="fn" data-k="(">(</button><button class="fn" data-k=")">)</button><button class="fn" data-k="!">n!</button><button class="op" data-k="÷">÷</button>
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="fn" data-k="%">%</button><button class="op" data-k="×">×</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="fn" data-k="neg">±</button><button class="op" data-k="−">−</button>
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="fn" data-k="ans">Ans</button><button class="op" data-k="+">+</button>
+            <button data-k="0" style="grid-column: span 2;">0</button><button data-k=".">.</button><button class="fn" data-k="E">EXP</button><button class="eq" data-k="=">=</button>
+        </div>
+        {% else %}
+        <div class="calc-keys">
+            <button class="clr" data-k="C">C</button><button class="clr" data-k="back">⌫</button><button class="fn" data-k="%">%</button><button class="op" data-k="÷">÷</button>
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="op" data-k="×">×</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="op" data-k="−">−</button>
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="op" data-k="+">+</button>
+            <button class="fn" data-k="√(">√</button><button data-k="0">0</button><button data-k=".">.</button><button class="eq" data-k="=">=</button>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+    (function () {
+        const TOTAL = {{ questions|length }};
+        const STORE_KEY = 'exam-{{ attempt.id }}';
+        const form = document.getElementById('test-form');
+        // Count down to a fixed deadline so throttled background tabs or a sleeping phone can't drift.
+        const deadline = Date.now() + {{ time_remaining }} * 1000;
+        let timeRemaining = {{ time_remaining }};
+        let submitting = false;
+        let state = { current: 1, visited: [1], marked: [], answers: {}, notes: '', font: 17, seenInstructions: false };
+
+        try { Object.assign(state, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (e) {}
+        const visited = new Set(state.visited);
+        const marked = new Set(state.marked);
+        function save() {
+            state.visited = [...visited];
+            state.marked = [...marked];
+            try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        const card = n => document.getElementById('question-' + n);
+        const inputs = n => card(n).querySelectorAll('input');
+        function isAnswered(n) {
+            return [...inputs(n)].some(i => (i.type === 'radio' || i.type === 'checkbox') ? i.checked : i.value.trim() !== '');
+        }
+        function statusOf(n) {
+            const answered = isAnswered(n);
+            if (marked.has(n)) return answered ? 'answered-marked' : 'marked';
+            if (answered) return 'answered';
+            return visited.has(n) ? 'not-answered' : 'not-visited';
+        }
+
+        // ── Restore answers ──
+        function readAnswer(n) {
+            const list = [...inputs(n)];
+            if (list[0] && list[0].type === 'checkbox') return list.filter(i => i.checked).map(i => i.value);
+            if (list[0] && list[0].type === 'radio') return (list.find(i => i.checked) || {}).value || '';
+            return list[0] ? list[0].value : '';
+        }
+        for (let n = 1; n <= TOTAL; n++) {
+            const saved = state.answers[card(n).dataset.qid];
+            if (saved === undefined) continue;
+            inputs(n).forEach(i => {
+                if (i.type === 'checkbox') i.checked = Array.isArray(saved) && saved.includes(i.value);
+                else if (i.type === 'radio') i.checked = i.value === saved;
+                else i.value = saved;
+            });
+        }
+        function syncSelected(n) {
+            card(n).querySelectorAll('.option').forEach(opt => {
+                opt.classList.toggle('selected', opt.querySelector('input').checked);
+            });
+        }
+
+        // ── Rendering ──
+        function render() {
+            const counts = { 'answered': 0, 'not-answered': 0, 'not-visited': 0, 'marked': 0, 'answered-marked': 0 };
+            for (let n = 1; n <= TOTAL; n++) {
+                const s = statusOf(n);
+                counts[s]++;
+                const btn = document.getElementById('pal-' + n);
+                btn.className = 'pal-btn' + (s === 'not-visited' ? '' : ' ' + s) + (n === state.current ? ' current' : '');
+                syncSelected(n);
+            }
+            Object.keys(counts).forEach(k => { const el = document.getElementById('count-' + k); if (el) el.textContent = counts[k]; });
+            const section = card(state.current).dataset.section;
+            document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t.dataset.section === section));
+            return counts;
+        }
+
+        window.goTo = function (n) {
+            if (n < 1 || n > TOTAL) return;
+            card(state.current).classList.remove('current');
+            state.current = n;
+            visited.add(n);
+            card(n).classList.add('current');
+            document.getElementById('palette').classList.remove('open');
+            save();
+            render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        window.saveAndNext = function () {
+            if (state.current < TOTAL) goTo(state.current + 1); else openSubmit();
+        };
+        window.markAndNext = function () {
+            marked.add(state.current);
+            saveAndNext();
+            save(); render();
+        };
+        window.clearResponse = function () {
+            inputs(state.current).forEach(i => { if (i.type === 'radio' || i.type === 'checkbox') i.checked = false; else i.value = ''; });
+            delete state.answers[card(state.current).dataset.qid];
+            marked.delete(state.current);
+            save(); render();
+        };
+        Object.defineProperty(window, 'current', { get: () => state.current });
+
+        form.addEventListener('input', e => {
+            const c = e.target.closest('.question-card');
+            if (!c) return;
+            const n = +c.dataset.number;
+            state.answers[c.dataset.qid] = readAnswer(n);
+            save(); render();
+        });
+
+        // ── Timer ──
+        const timerEl = document.getElementById('timer');
+        const fmt = s => {
+            const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+            return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec).padStart(2, '0');
+        };
+        function tick() {
+            timeRemaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+            document.getElementById('time-display').textContent = fmt(timeRemaining);
+            timerEl.classList.toggle('warn', timeRemaining <= 300 && timeRemaining > 60);
+            timerEl.classList.toggle('danger', timeRemaining <= 60);
+            if (timeRemaining <= 0) { clearInterval(timer); submitTest(true); }
+        }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+        const timer = setInterval(tick, 1000);
+        tick();
+
+        // ── Submit ──
+        window.openSubmit = function () {
+            const c = render();
+            document.getElementById('sum-answered').textContent = c['answered'] + c['answered-marked'];
+            document.getElementById('sum-not-answered').textContent = c['not-answered'];
+            document.getElementById('sum-marked').textContent = c['marked'] + c['answered-marked'];
+            document.getElementById('sum-not-visited').textContent = c['not-visited'];
+            document.getElementById('sum-time').textContent = fmt(Math.max(0, timeRemaining));
+            const unanswered = c['not-answered'] + c['marked'] + c['not-visited'];
+            const warning = document.getElementById('sum-warning');
+            warning.hidden = unanswered === 0;
+            warning.textContent = unanswered + ' question' + (unanswered === 1 ? ' is' : 's are') + ' still unanswered.'
+                + ({{ negative_marking|yesno:"true,false" }} ? '' : ' There is no negative marking, so it is worth attempting them.');
+            openModal('submit-modal');
+        };
+        window.submitTest = function (auto) {
+            if (submitting) return;
+            submitting = true;
+            const btn = document.getElementById('final-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting…';
+            // Never block on alert(): the answers must reach the server before the grace period ends.
+            if (auto) document.getElementById('timeup-overlay').hidden = false;
+            try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+            form.submit();
+        };
+        window.addEventListener('beforeunload', e => {
+            if (!submitting && timeRemaining > 0) { e.preventDefault(); e.returnValue = ''; }
+        });
+
+        // ── Modals, notes, font, fullscreen ──
+        window.openModal = id => document.getElementById(id).classList.add('open');
+        window.closeModal = id => document.getElementById(id).classList.remove('open');
+        const notes = document.getElementById('notes-text');
+        notes.value = state.notes || '';
+        notes.addEventListener('input', () => { state.notes = notes.value; save(); });
+        window.toggleNotes = function () {
+            const open = document.getElementById('notes-panel').classList.toggle('open');
+            document.getElementById('notes-toggle').classList.toggle('active', open);
+            if (open) notes.focus();
+        };
+        window.clearNotes = function () {
+            if (notes.value && !confirm('Clear all rough notes?')) return;
+            notes.value = ''; state.notes = ''; save();
+        };
+        function applyFont() { document.documentElement.style.setProperty('--q-font', state.font + 'px'); }
+        window.changeFont = d => { state.font = Math.min(24, Math.max(14, state.font + d)); applyFont(); save(); };
+        window.toggleFullscreen = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+        applyFont();
+
+        // ── Keyboard shortcuts ──
+        document.addEventListener('keydown', e => {
+            if (e.target.matches('textarea, input[type="text"]') || e.ctrlKey || e.metaKey || e.altKey) return;
+            if (document.querySelector('.overlay.open')) { if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open')); return; }
+            const key = e.key.toLowerCase();
+            if (['a', 'b', 'c', 'd'].includes(key)) {
+                const input = card(state.current).querySelector('input[value="' + key + '"]');
+                if (input) { input.checked = input.type === 'checkbox' ? !input.checked : true; input.dispatchEvent(new Event('input', { bubbles: true })); }
+            } else if (e.key === 'ArrowRight') saveAndNext();
+            else if (e.key === 'ArrowLeft') goTo(state.current - 1);
+            else if (key === 'm') markAndNext();
+        });
+
+        // ── Start ──
+        card(state.current).classList.add('current');
+        visited.add(state.current);
+        render();
+        if (!state.seenInstructions) { openModal('instructions-modal'); state.seenInstructions = true; save(); }
+    })();
+
+    {% if test.calculator != 'none' %}
+    // ── Calculator ──
+    (function () {
+        const calc = document.getElementById('calc');
+        const exprEl = document.getElementById('calc-expr');
+        const resultEl = document.getElementById('calc-result');
+        let expr = '', ans = 0, deg = true, justEvaluated = false;
+
+        window.toggleCalc = function () {
+            const open = calc.classList.toggle('open');
+            document.getElementById('calc-toggle').classList.toggle('active', open);
+            // On phones the header wraps to a varying height: open just below it unless the student dragged it.
+            if (open && window.innerWidth <= 768 && !calc.dataset.dragged) {
+                const header = document.querySelector('.cbt-header');
+                if (header) calc.style.top = Math.round(header.getBoundingClientRect().bottom + 8) + 'px';
+            }
+        };
+        const show = () => { exprEl.textContent = expr; };
+
+        function factorial(n) {
+            if (n < 0 || n > 170 || n !== Math.floor(n)) return NaN;
+            let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+        }
+        function evaluate(text) {
+            let js = text
+                .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')
+                .replace(/π/g, '(PI)').replace(/(\d)\(/g, '$1*(').replace(/\)(\d)/g, ')*$1')
+                .replace(/(\d+(?:\.\d+)?)!/g, 'F($1)')
+                .replace(/(\d+(?:\.\d+)?)%/g, '($1/100)')
+                .replace(/√\(/g, 'sqrt(').replace(/\^/g, '**')
+                .replace(/\be\b/g, '(EE)')
+                .replace(/asin\(/g, 'ASIN(').replace(/acos\(/g, 'ACOS(').replace(/atan\(/g, 'ATAN(')
+                .replace(/(^|[^A])sin\(/g, '$1SIN(').replace(/(^|[^A])cos\(/g, '$1COS(').replace(/(^|[^A])tan\(/g, '$1TAN(')
+                .replace(/log\(/g, 'LOG(').replace(/ln\(/g, 'LN(');
+            if (!/^[\d+\-*/().\sA-Za-z]*$/.test(js)) throw new Error('bad input');
+            const words = js.match(/[A-Za-z]+/g) || [];
+            const allowed = ['PI', 'EE', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'LOG', 'LN', 'sqrt', 'F', 'E'];
+            if (words.some(w => !allowed.includes(w))) throw new Error('bad input');
+            js = js.replace(/(\d)E(\d|-)/g, '$1e$2');
+            const r = deg ? Math.PI / 180 : 1;
+            const fn = new Function('PI', 'EE', 'SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'LOG', 'LN', 'sqrt', 'F', 'return (' + js + ');');
+            return fn(Math.PI, Math.E,
+                x => Math.sin(x * r), x => Math.cos(x * r), x => Math.tan(x * r),
+                x => Math.asin(x) / r, x => Math.acos(x) / r, x => Math.atan(x) / r,
+                Math.log10, Math.log, Math.sqrt, factorial);
+        }
+        function format(n) {
+            if (!isFinite(n)) return 'Error';
+            const rounded = parseFloat(n.toPrecision(12));
+            return Math.abs(rounded) >= 1e12 || (Math.abs(rounded) < 1e-9 && rounded !== 0) ? rounded.toExponential(6) : String(rounded);
+        }
+
+        // Physical keyboard while the calculator is open (ignored while typing in an answer box or the notes).
+        const KEYMAP = { '*': '×', 'x': '×', '/': '÷', '-': '−', '+': '+', 'Enter': '=', '=': '=', 'Backspace': 'back',
+                         'Delete': 'C', '(': '(', ')': ')', '.': '.', '%': '%', '^': '^', '!': '!' };
+        document.addEventListener('keydown', e => {
+            if (!calc.classList.contains('open') || e.ctrlKey || e.metaKey || e.altKey) return;
+            if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+            if (e.key === 'Escape') { e.preventDefault(); toggleCalc(); return; }
+            const k = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
+            const btn = k && calc.querySelector('.calc-keys [data-k="' + CSS.escape(k) + '"]');
+            if (!btn) return;
+            e.preventDefault();
+            btn.click();
+            btn.classList.add('pressed');
+            setTimeout(() => btn.classList.remove('pressed'), 120);
+        });
+
+        calc.querySelector('.calc-keys').addEventListener('click', e => {
+            const k = e.target.dataset.k;
+            if (!k) return;
+            if (k === 'C') { expr = ''; resultEl.textContent = '0'; }
+            else if (k === 'back') { expr = expr.slice(0, -1); }
+            else if (k === 'deg') { deg = !deg; document.getElementById('calc-angle').textContent = deg ? 'DEG' : 'RAD'; }
+            else if (k === 'ans') { expr += format(ans); }
+            else if (k === 'neg') { expr = expr ? '−(' + expr + ')' : '−'; }
+            else if (k === '=') {
+                if (!expr) return;
+                try {
+                    const open = (expr.match(/\(/g) || []).length - (expr.match(/\)/g) || []).length;
+                    ans = evaluate(expr + ')'.repeat(Math.max(0, open)));
+                    resultEl.textContent = format(ans);
+                } catch (err) { resultEl.textContent = 'Error'; }
+                justEvaluated = true;
+                show();
+                return;
+            } else {
+                if (justEvaluated && /^[\d.(πe√]/.test(k)) expr = '';
+                if (justEvaluated && /^[+−×÷^%!]/.test(k)) expr = format(ans);
+                expr += k;
+            }
+            justEvaluated = false;
+            show();
+        });
+
+        // Drag by the title bar
+        const handle = document.getElementById('calc-drag');
+        handle.addEventListener('pointerdown', e => {
+            if (e.target.closest('button')) return;
+            const rect = calc.getBoundingClientRect();
+            const dx = e.clientX - rect.left, dy = e.clientY - rect.top;
+            const move = ev => {
+                calc.style.left = Math.max(0, Math.min(window.innerWidth - rect.width, ev.clientX - dx)) + 'px';
+                calc.style.top = Math.max(0, Math.min(window.innerHeight - 60, ev.clientY - dy)) + 'px';
+                calc.style.right = 'auto';
+                calc.dataset.dragged = '1';
+            };
+            const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); };
+            document.addEventListener('pointermove', move);
+            document.addEventListener('pointerup', up);
+        });
+    })();
+    {% endif %}
+    </script>
+    <div class="timeup-overlay" id="timeup-overlay" role="alertdialog" aria-live="assertive" hidden>
+        <div class="timeup-card">
+            <i class="fa fa-hourglass-end"></i>
+            <h2>Time is up</h2>
+            <p>Your answers are being submitted. Please don't close this page.</p>
+        </div>
+    </div>
+</body>
+</html>

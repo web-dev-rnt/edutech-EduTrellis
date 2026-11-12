@@ -1,0 +1,182 @@
+<!-- message.html: flash message notifications (sitemsg-*), shared by the site and the admin panel -->
+{% if messages %}
+<div class="sitemsg-stack" role="region" aria-label="Notifications">
+    {% for message in messages %}
+    {% with level=message.level_tag|default:"info" %}
+    <div class="sitemsg sitemsg-{% if level == 'error' %}error{% elif level == 'warning' %}warning{% elif level == 'success' %}success{% else %}info{% endif %}"
+         role="{% if level == 'error' %}alert{% else %}status{% endif %}" data-sitemsg-id="{{ forloop.counter }}">
+        <div class="sitemsg-icon" aria-hidden="true">
+            {% if level == 'success' %}<i class="fa-solid fa-check"></i>
+            {% elif level == 'error' %}<i class="fa-solid fa-xmark"></i>
+            {% elif level == 'warning' %}<i class="fa-solid fa-exclamation"></i>
+            {% else %}<i class="fa-solid fa-info"></i>{% endif %}
+        </div>
+        <div class="sitemsg-text">
+            <div class="sitemsg-title">
+                {% if level == 'success' %}Success{% elif level == 'error' %}Something went wrong{% elif level == 'warning' %}Warning{% else %}Notice{% endif %}
+            </div>
+            <div class="sitemsg-body">{{ message }}</div>
+        </div>
+        <button type="button" class="sitemsg-close" onclick="closeSiteMsg({{ forloop.counter }})" aria-label="Dismiss notification">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="sitemsg-progress"></div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+<style>
+.sitemsg-stack {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.sitemsg {
+    --sitemsg-tone: #2563eb;
+    --sitemsg-tint: #eff6ff;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .12), 0 2px 6px rgba(15, 23, 42, .06);
+    overflow: hidden;
+    pointer-events: auto;
+    font-family: var(--font-sans, inherit);
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity .3s ease, transform .3s ease;
+}
+.sitemsg.is-visible { opacity: 1; transform: none; }
+.sitemsg.is-leaving { opacity: 0; transform: translateX(24px); }
+
+.sitemsg-success { --sitemsg-tone: #059669; --sitemsg-tint: #ecfdf5; }
+.sitemsg-error   { --sitemsg-tone: #dc2626; --sitemsg-tint: #fef2f2; }
+.sitemsg-warning { --sitemsg-tone: #d97706; --sitemsg-tint: #fffbeb; }
+.sitemsg-info    { --sitemsg-tone: #2563eb; --sitemsg-tint: #eff6ff; }
+
+.sitemsg-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--sitemsg-tint);
+    color: var(--sitemsg-tone);
+    font-size: 14px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sitemsg-tone) 22%, transparent);
+}
+
+.sitemsg-text { flex: 1; min-width: 0; padding-top: 1px; }
+.sitemsg-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.3;
+}
+.sitemsg-body {
+    margin-top: 2px;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.sitemsg-body strong { color: #111827; font-weight: 600; }
+
+.sitemsg-close {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    margin: -4px -4px 0 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 13px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background .15s ease, color .15s ease;
+}
+.sitemsg-close:hover { background: #f3f4f6; color: #374151; }
+.sitemsg-close:focus-visible { outline: 2px solid var(--sitemsg-tone); outline-offset: 1px; }
+
+.sitemsg-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--sitemsg-tone);
+    transform-origin: left;
+    animation: sitemsgCountdown 6s linear forwards;
+    opacity: .85;
+}
+.sitemsg:hover .sitemsg-progress { animation-play-state: paused; }
+@keyframes sitemsgCountdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+@media (max-width: 640px) {
+    .sitemsg-stack { top: 12px; right: 16px; left: 16px; width: auto; }
+    .sitemsg { transform: translateY(-16px); }
+    .sitemsg.is-leaving { transform: translateY(-16px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sitemsg, .sitemsg.is-leaving { transition: opacity .2s ease; transform: none; }
+    .sitemsg-progress { animation: none; }
+}
+</style>
+
+<script>
+(function () {
+    // Emoji and pictograph characters, removed so every message reads as plain text.
+    var EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}\u{2B55}\u{FE0F}]\s?/gu;
+
+    window.closeSiteMsg = function (id) {
+        var el = document.querySelector('[data-sitemsg-id="' + id + '"]');
+        if (!el || el.classList.contains('is-leaving')) return;
+        el.classList.add('is-leaving');
+        setTimeout(function () {
+            var stack = el.parentNode;
+            el.remove();
+            if (stack && !stack.querySelector('.sitemsg')) stack.remove();
+        }, 300);
+    };
+
+    function init() {
+        document.querySelectorAll('.sitemsg').forEach(function (el, index) {
+            var body = el.querySelector('.sitemsg-body');
+            body.innerHTML = body.innerHTML.replace(EMOJI, '').trim();
+
+            setTimeout(function () { el.classList.add('is-visible'); }, 60 + index * 120);
+
+            var id = el.dataset.sitemsgId;
+            var timer = setTimeout(function () { closeSiteMsg(id); }, 6000 + index * 120);
+            el.addEventListener('mouseenter', function () { clearTimeout(timer); });
+            el.addEventListener('mouseleave', function () {
+                timer = setTimeout(function () { closeSiteMsg(id); }, 2000);
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') document.querySelectorAll('.sitemsg').forEach(function (t) { closeSiteMsg(t.dataset.sitemsgId); });
+    });
+})();
+</script>
+{% endif %}

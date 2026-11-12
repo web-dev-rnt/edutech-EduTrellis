@@ -1,0 +1,715 @@
+{% load static %}
+{% load seo_tags %}
+{% load navbar_tags %}
+{% get_theme_settings as theme %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ test_series.title }} | Online Test Series | Infinite360</title>
+    {% include "partials/seo_meta.html" with seo_title=test_series.title seo_description=test_series.description seo_image=test_series.thumbnail %}
+    {% course_jsonld test_series.title test_series.description test_series.thumbnail test_series.price "INR" test_series.is_free %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/typography.css' %}">
+    {% include "partials/theme_vars.html" %}
+
+    <style>
+        :root {
+            --sd-accent: {{ test_series.color|default:"#2459E0" }};
+            --sd-ink: #111827;
+            --sd-muted: #6b7280;
+            --sd-line: #e7e9f0;
+            --sd-soft: #f6f7fb;
+            --sd-green: #059669;
+            --sd-red: #dc2626;
+            --sd-amber: #d97706;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--sd-soft); color: var(--sd-ink); line-height: 1.6; }
+        a { color: inherit; }
+
+        /* ---------- Hero ---------- */
+        .sd-hero {
+            position: relative; overflow: hidden; color: #fff;
+            background:
+                radial-gradient(circle at 85% 20%, rgba(255,255,255,.12) 0 120px, transparent 121px),
+                radial-gradient(circle at 100% 100%, rgba(255,255,255,.08) 0 220px, transparent 221px),
+                linear-gradient(135deg, var(--sd-accent), color-mix(in srgb, var(--sd-accent) 45%, #0f172a));
+        }
+        .sd-hero-inner { max-width: 1200px; margin: 0 auto; padding: 24px 24px 40px; }
+        .sd-topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+        .sd-back {
+            display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+            color: #fff; text-decoration: none; font-size: 14px; font-weight: 600;
+            transition: background .2s ease;
+        }
+        .sd-back:hover { background: rgba(255,255,255,.24); }
+        .sd-crumbs { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; font-size: 13px; opacity: .85; }
+        .sd-crumbs li + li::before { content: '/'; margin-right: 6px; opacity: .6; }
+        .sd-crumbs a { text-decoration: none; }
+        .sd-crumbs a:hover { text-decoration: underline; }
+
+        .sd-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
+        .sd-kicker {
+            display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px;
+            background: rgba(255,255,255,.16); font-size: 12.5px; font-weight: 700; letter-spacing: .02em;
+        }
+        .sd-hero h1 { margin: 14px 0 10px; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; font-weight: 800; max-width: 820px; }
+        .sd-hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .sd-hero-tag {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px;
+            background: rgba(0,0,0,.16); font-size: 13px; font-weight: 600;
+        }
+        .sd-hero-icon {
+            width: 92px; height: 92px; border-radius: 24px; display: grid; place-items: center;
+            background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25); font-size: 38px;
+        }
+        .sd-hero-thumb { width: 180px; height: 120px; object-fit: cover; border-radius: 16px; border: 3px solid rgba(255,255,255,.3); }
+
+        .sd-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px;
+            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 16px;
+        }
+        .sd-stat { padding: 14px 18px; }
+        .sd-stat + .sd-stat { border-left: 1px solid rgba(255,255,255,.18); }
+        .sd-stat strong { display: block; font-size: 24px; font-weight: 800; line-height: 1.2; }
+        .sd-stat span { font-size: 12.5px; opacity: .85; font-weight: 600; }
+
+        /* ---------- Layout ---------- */
+        .sd-main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 56px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+        .sd-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+        .sd-card { background: #fff; border: 1px solid var(--sd-line); border-radius: 18px; padding: 24px; }
+        .sd-card-title { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+        .sd-card-title i { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 14px; background: color-mix(in srgb, var(--sd-accent) 12%, #fff); color: var(--sd-accent); }
+        .sd-card-title small { margin-left: auto; font-size: 13px; color: var(--sd-muted); font-weight: 600; }
+        .sd-text { color: #374151; font-size: 15px; }
+
+        /* Pattern + marking scheme */
+        .sd-pattern {
+            margin-top: 16px; padding: 14px 16px; border-radius: 12px;
+            background: color-mix(in srgb, var(--sd-accent) 7%, #fff);
+            border: 1px solid color-mix(in srgb, var(--sd-accent) 20%, #fff);
+            font-size: 14px; color: #1f2937;
+        }
+        .sd-pattern strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--sd-accent); margin-bottom: 4px; }
+        .sd-scheme { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+        .sd-scheme-item { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--sd-line); border-radius: 12px; }
+        .sd-scheme-item i { width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; display: grid; place-items: center; font-size: 14px; }
+        .sd-scheme-item b { display: block; font-size: 15px; line-height: 1.2; }
+        .sd-scheme-item span { font-size: 12px; color: var(--sd-muted); font-weight: 600; }
+        .tone-green i { background: #ecfdf5; color: var(--sd-green); }
+        .tone-red i { background: #fef2f2; color: var(--sd-red); }
+        .tone-amber i { background: #fffbeb; color: var(--sd-amber); }
+        .tone-blue i { background: #eff6ff; color: #2563eb; }
+        .tone-grey i { background: #f3f4f6; color: #4b5563; }
+
+        /* Syllabus coverage */
+        .sd-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .sd-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--sd-muted); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--sd-line); }
+        .sd-table td { padding: 10px; border-bottom: 1px solid #f1f2f6; vertical-align: middle; }
+        .sd-table tr:last-child td { border-bottom: 0; }
+        .sd-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+        .sd-subject { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+        .sd-subject i { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 11px; background: color-mix(in srgb, var(--chip) 12%, #fff); color: var(--chip); }
+        .sd-share { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+        .sd-share-bar { flex: 1; height: 6px; border-radius: 99px; background: #eef0f4; overflow: hidden; }
+        .sd-share-bar span { display: block; height: 100%; border-radius: inherit; background: var(--chip); }
+        .sd-share em { font-style: normal; font-size: 12px; color: var(--sd-muted); width: 34px; text-align: right; }
+
+        /* Tests */
+        .sd-tests { display: flex; flex-direction: column; gap: 14px; }
+        .sd-test { border: 1px solid var(--sd-line); border-radius: 16px; padding: 18px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: start; transition: border-color .2s ease, box-shadow .2s ease; }
+        .sd-test:hover { border-color: color-mix(in srgb, var(--sd-accent) 40%, var(--sd-line)); box-shadow: 0 8px 24px rgba(17,24,39,.06); }
+        .sd-test-no {
+            width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+            font-weight: 800; font-size: 16px; background: color-mix(in srgb, var(--sd-accent) 12%, #fff); color: var(--sd-accent);
+        }
+        .sd-test.is-done .sd-test-no { background: #ecfdf5; color: var(--sd-green); }
+        .sd-test.is-demo { border: 1.5px dashed #34d399; background: linear-gradient(135deg, #f0fdf4, #fff 60%); }
+        .sd-test.is-demo .sd-test-no { background: #d1fae5; color: #047857; }
+        .sd-test.is-locked .sd-test-no { background: #f3f4f6; color: #9ca3af; }
+        .sd-test-pre { color: var(--sd-muted); font-weight: 600; }
+        .sd-type-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 16px; }
+        .sd-type-tab {
+            display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+            border: 1px solid var(--sd-line); background: #fff; color: #374151; cursor: pointer;
+            font: inherit; font-size: 13px; font-weight: 600;
+        }
+        .sd-type-tab span { padding: 0 7px; border-radius: 999px; background: #eef0f4; font-size: 11.5px; }
+        .sd-type-tab.is-active { background: var(--sd-ink); border-color: var(--sd-ink); color: #fff; }
+        .sd-type-tab.is-active span { background: rgba(255,255,255,.18); }
+        .sd-type-flag { display: inline-flex; align-items: center; gap: 5px; margin: 0 4px 4px 0; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+        .sd-type-flag.pyp { background: #fef3c7; color: #92400e; }
+        .sd-type-flag.subject { background: #eef2ff; color: #3730a3; }
+        .sd-type-flag.topic { background: #ecfdf5; color: #065f46; }
+        .sd-tests [hidden] { display: none; }
+        .sd-demo-flag { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; padding: 2px 9px; border-radius: 999px; background: #047857; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+        .sd-try { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; font-size: 13.5px; color: #065f46; text-decoration: none; }
+        .sd-try i { font-size: 16px; }
+        .sd-try b { display: block; font-size: 14px; }
+        .sd-try:hover { background: #dcfce7; }
+        .sd-test h3 { font-size: 16.5px; font-weight: 700; line-height: 1.35; }
+        .sd-test-desc { margin-top: 4px; font-size: 13.5px; color: var(--sd-muted); }
+        .sd-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .sd-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 7px; font-size: 12px; font-weight: 600; background: #f3f4f6; color: #374151; white-space: nowrap; }
+        .sd-chip i { font-size: 11px; opacity: .8; }
+        .sd-chip.green { background: #ecfdf5; color: #047857; }
+        .sd-chip.red { background: #fef2f2; color: #b91c1c; }
+        .sd-chip.blue { background: #eff6ff; color: #1d4ed8; }
+        .sd-sections { margin-top: 10px; font-size: 12.5px; color: var(--sd-muted); }
+        .sd-sections b { color: #374151; font-weight: 600; }
+        .sd-mix { display: flex; height: 5px; border-radius: 99px; overflow: hidden; margin-top: 12px; max-width: 260px; background: #eef0f4; }
+        .sd-mix span { display: block; height: 100%; }
+        .sd-mix-legend { display: flex; gap: 12px; margin-top: 5px; font-size: 11.5px; color: var(--sd-muted); }
+        .sd-mix-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+        .sd-attempt { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; color: #374151; }
+        .sd-attempt b { font-weight: 700; }
+        .sd-attempt a { color: var(--sd-accent); font-weight: 700; text-decoration: none; }
+        .sd-attempt a:hover { text-decoration: underline; }
+
+        .sd-test-action { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 150px; }
+        .sd-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 11px 18px; border-radius: 11px; border: 0; cursor: pointer;
+            font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap;
+            transition: filter .2s ease, transform .2s ease;
+        }
+        .sd-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+        .sd-btn-primary { background: var(--sd-accent); color: #fff; }
+        .sd-btn-green { background: var(--sd-green); color: #fff; }
+        .sd-btn-dark { background: var(--sd-ink); color: #fff; }
+        .sd-btn-ghost { background: #fff; color: var(--sd-ink); border: 1px solid var(--sd-line); }
+        .sd-btn[disabled] { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; transform: none; filter: none; }
+        .sd-test-note { font-size: 12px; color: var(--sd-muted); text-align: center; }
+
+        /* Interface features */
+        .sd-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .sd-feature { display: flex; gap: 12px; padding: 12px; border-radius: 12px; background: var(--sd-soft); }
+        .sd-feature i { width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; display: grid; place-items: center; background: #fff; color: var(--sd-accent); font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .sd-feature b { display: block; font-size: 14px; }
+        .sd-feature span { font-size: 12.5px; color: var(--sd-muted); }
+
+        /* Sidebar */
+        .sd-side { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 16px; }
+        .sd-buy { padding: 0; overflow: hidden; }
+        .sd-buy-top { padding: 22px 22px 18px; }
+        .sd-price { font-size: 32px; font-weight: 800; line-height: 1.1; }
+        .sd-price.is-free { color: var(--sd-green); }
+        .sd-price-note { font-size: 13px; color: var(--sd-muted); margin-top: 4px; }
+        .sd-buy .sd-btn { width: 100%; margin-top: 16px; padding: 13px 18px; font-size: 15px; }
+        .sd-includes { list-style: none; padding: 18px 22px 22px; border-top: 1px solid var(--sd-line); display: flex; flex-direction: column; gap: 10px; }
+        .sd-includes li { display: flex; gap: 10px; font-size: 14px; color: #374151; }
+        .sd-includes i { color: var(--sd-green); margin-top: 4px; font-size: 13px; width: 14px; text-align: center; }
+        .sd-includes-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sd-muted); }
+        .sd-progress-head { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; }
+        .sd-progress-head span { color: var(--sd-muted); font-weight: 600; }
+        .sd-progress { height: 8px; border-radius: 99px; background: #eef0f4; overflow: hidden; margin-top: 10px; }
+        .sd-progress span { display: block; height: 100%; background: var(--sd-green); border-radius: inherit; }
+        .sd-enrolled-flag { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #ecfdf5; color: #065f46; font-size: 14px; font-weight: 600; margin-top: 14px; }
+
+        /* Related */
+        .sd-related { max-width: 1200px; margin: 0 auto; padding: 0 24px 64px; }
+        .sd-related h2 { font-size: 20px; font-weight: 800; margin-bottom: 14px; }
+        .sd-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+        .sd-rel {
+            display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px;
+            background: #fff; border: 1px solid var(--sd-line); text-decoration: none; min-width: 0;
+            transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+        }
+        .sd-rel:hover { border-color: var(--rel); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(17,24,39,.07); }
+        .sd-rel i { width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--rel) 12%, #fff); color: var(--rel); }
+        .sd-rel div { min-width: 0; }
+        .sd-rel b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sd-rel span { font-size: 12.5px; color: var(--sd-muted); }
+
+        .sd-empty { text-align: center; padding: 40px 20px; color: var(--sd-muted); }
+        .sd-empty i { font-size: 40px; color: #d1d5db; margin-bottom: 12px; }
+        .sd-empty h3 { color: var(--sd-ink); font-size: 18px; margin-bottom: 4px; }
+
+        /* Toast used by the enrol / payment flow */
+        .sd-toast {
+            position: fixed; top: 20px; right: 20px; z-index: 99999; width: min(360px, calc(100vw - 32px));
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+            background: #fff; border: 1px solid var(--sd-line); border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(15,23,42,.14); font-size: 14px; font-weight: 600; color: var(--sd-ink);
+            animation: sdToastIn .25s ease;
+        }
+        .sd-toast i { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-size: 13px; }
+        .sd-toast.success i { background: #ecfdf5; color: var(--sd-green); }
+        .sd-toast.error i { background: #fef2f2; color: var(--sd-red); }
+        .sd-toast.warning i { background: #fffbeb; color: var(--sd-amber); }
+        .sd-toast.is-leaving { opacity: 0; transform: translateX(16px); transition: opacity .25s ease, transform .25s ease; }
+        @keyframes sdToastIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+        @media (max-width: 960px) {
+            .sd-main { grid-template-columns: 1fr; }
+            .sd-side { position: static; order: -1; }
+        }
+        @media (max-width: 640px) {
+            .sd-hero-inner { padding: 16px 16px 28px; }
+            .sd-hero-grid { grid-template-columns: 1fr; }
+            .sd-hero-art { display: none; }
+            .sd-stats { grid-template-columns: repeat(2, 1fr); }
+            .sd-stat:nth-child(3) { border-left: 0; }
+            .sd-stat:nth-child(n+3) { border-top: 1px solid rgba(255,255,255,.18); }
+            .sd-stat strong { font-size: 20px; }
+            .sd-main { padding: 20px 16px 40px; }
+            .sd-card { padding: 18px; }
+            .sd-test { grid-template-columns: auto minmax(0, 1fr); }
+            .sd-test-action { grid-column: 1 / -1; }
+            .sd-related { padding: 0 16px 48px; }
+            .sd-table .hide-sm { display: none; }
+        }
+    </style>
+</head>
+<body>
+    {% include "message.html" %}
+
+    <header class="sd-hero">
+        <div class="sd-hero-inner">
+            <div class="sd-topbar">
+                <a href="{{ back_url }}" class="sd-back"><i class="fa-solid fa-arrow-left"></i> Back</a>
+                <nav aria-label="Breadcrumb">
+                    <ol class="sd-crumbs">
+                        <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'all_test_series' %}">Test Series</a></li>
+                        {% if test_series.board %}
+                            <li><a href="{% url 'all_test_series' %}?board={{ test_series.board }}">{{ test_series.cover_kicker }}</a></li>
+                        {% elif exam_category %}
+                            <li><a href="{% url 'category_detail' slug=exam_category.slug %}">{{ test_series.exam }}</a></li>
+                        {% endif %}
+                    </ol>
+                </nav>
+            </div>
+
+            <div class="sd-hero-grid">
+                <div>
+                    <span class="sd-kicker">
+                        <i class="fa-solid fa-{{ test_series.icon }}"></i>
+                        {% if test_series.board %}{{ test_series.cover_kicker }} &middot; {{ test_series.cover_title }}{% if test_series.cover_sub %} {{ test_series.cover_sub }}{% endif %}{% elif test_series.exam %}{{ test_series.exam }} Pattern Mock{% else %}Test Series{% endif %}
+                    </span>
+                    <h1>{{ test_series.title }}</h1>
+                    <div class="sd-hero-tags">
+                        <span class="sd-hero-tag"><i class="fa-solid fa-signal"></i> {{ test_series.get_difficulty_display }} level</span>
+                        {% if max_penalty %}
+                            <span class="sd-hero-tag"><i class="fa-solid fa-minus"></i> Negative marking</span>
+                        {% endif %}
+                        {% if calculator_tests %}
+                            <span class="sd-hero-tag"><i class="fa-solid fa-calculator"></i> On-screen calculator</span>
+                        {% endif %}
+                        <span class="sd-hero-tag"><i class="fa-solid fa-tag"></i> {{ price_display }}</span>
+                        {% if demo_test and not test_series.is_free %}
+                            <span class="sd-hero-tag"><i class="fa-solid fa-gift"></i> Free demo test</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sd-hero-art" aria-hidden="true">
+                    {% if test_series.thumbnail %}
+                        <img loading="lazy" decoding="async" src="{{ test_series.thumbnail.url }}" alt="" class="sd-hero-thumb">
+                    {% else %}
+                        <div class="sd-hero-icon"><i class="fa-solid fa-{{ test_series.icon }}"></i></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="sd-stats">
+                <div class="sd-stat"><strong>{{ paid_tests|length }}</strong><span>Test{{ paid_tests|length|pluralize }}{% if demo_test %} + free demo{% endif %}</span></div>
+                <div class="sd-stat"><strong>{{ total_questions }}</strong><span>Questions</span></div>
+                <div class="sd-stat"><strong>{{ total_marks }}</strong><span>Total marks</span></div>
+                <div class="sd-stat"><strong>{{ total_minutes }}<small style="font-size: 14px;"> min</small></strong><span>Practice time</span></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="sd-main">
+        <div class="sd-col">
+            {% if test_series.description or exam_category.description %}
+            <section class="sd-card">
+                <h2 class="sd-card-title"><i class="fa-solid fa-circle-info"></i> About this test series</h2>
+                {% if test_series.description %}<p class="sd-text">{{ test_series.description }}</p>{% endif %}
+                {% if exam_category.description and exam_category.description not in test_series.description %}
+                    <div class="sd-pattern"><strong>Real exam pattern</strong>{{ exam_category.description }}</div>
+                {% endif %}
+
+                <div class="sd-scheme">
+                    {% with first=paid_tests.0 %}
+                    <div class="sd-scheme-item tone-green">
+                        <i class="fa-solid fa-plus"></i>
+                        <div><b>{% if first.marks_range %}+{{ first.marks_range }}{% else %}-{% endif %}</b><span>Marks per correct</span></div>
+                    </div>
+                    {% endwith %}
+                    <div class="sd-scheme-item {% if max_penalty %}tone-red{% else %}tone-grey{% endif %}">
+                        <i class="fa-solid fa-minus"></i>
+                        <div><b>{% if max_penalty %}&minus;{{ max_penalty|floatformat:"-2" }}{% else %}None{% endif %}</b><span>{% if max_penalty %}Per wrong answer{% else %}Negative marking{% endif %}</span></div>
+                    </div>
+                    <div class="sd-scheme-item tone-amber">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                        <div><b>{{ test_series.pass_percentage }}%</b><span>Pass mark</span></div>
+                    </div>
+                    <div class="sd-scheme-item {% if calculator_tests %}tone-blue{% else %}tone-grey{% endif %}">
+                        <i class="fa-solid fa-calculator"></i>
+                        <div>
+                            <b>{% if calculator_tests %}{{ calculator_tests.0.get_calculator_display|cut:" calculator" }}{% else %}Not allowed{% endif %}</b>
+                            <span>Calculator</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            {% if subjects %}
+            <section class="sd-card">
+                <h2 class="sd-card-title"><i class="fa-solid fa-book-open"></i> Syllabus coverage <small>{{ subjects|length }} subject{{ subjects|length|pluralize }}</small></h2>
+                <table class="sd-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th class="num">Questions</th>
+                            <th class="num hide-sm">Marks</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in subjects %}
+                        <tr style="--chip: {{ s.color }};">
+                            <td><span class="sd-subject"><i class="fa-solid fa-{{ s.icon|default:'book' }}"></i>{{ s.name }}</span></td>
+                            <td class="num">{{ s.questions }}</td>
+                            <td class="num hide-sm">{{ s.marks }}</td>
+                            <td>
+                                <div class="sd-share">
+                                    <div class="sd-share-bar"><span style="width: {% widthratio s.questions total_questions 100 %}%;"></span></div>
+                                    <em>{% widthratio s.questions total_questions 100 %}%</em>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+            {% endif %}
+
+            <section class="sd-card">
+                <h2 class="sd-card-title"><i class="fa-solid fa-list-check"></i> Tests in this series <small>{{ paid_tests|length }} test{{ paid_tests|length|pluralize }}{% if demo_test %} + 1 free demo{% endif %}</small></h2>
+                {% if paper_tabs|length > 1 %}
+                <div class="sd-type-tabs" role="group" aria-label="Filter tests by type">
+                    <button type="button" class="sd-type-tab is-active" data-type="all" aria-pressed="true">All <span>{{ tests|length }}</span></button>
+                    {% for key, label, count in paper_tabs %}
+                        <button type="button" class="sd-type-tab" data-type="{{ key }}" aria-pressed="false">{{ label }}s <span>{{ count }}</span></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="sd-tests">
+                    {% for test in tests %}
+                    <article data-type="{% if test.is_demo %}demo{% else %}{{ test.paper_type }}{% endif %}" class="sd-test {% if test.is_demo %}is-demo{% elif not test.unlocked %}is-locked{% endif %} {% if test.user_attempts %}is-done{% endif %}">
+                        <div class="sd-test-no">
+                            {% if test.user_attempts %}<i class="fa-solid fa-check"></i>
+                            {% elif test.is_demo %}<i class="fa-solid fa-gift"></i>
+                            {% elif not test.unlocked %}<i class="fa-solid fa-lock"></i>
+                            {% else %}{{ test.number }}{% endif %}
+                        </div>
+
+                        <div>
+                            {% if test.is_demo and not test_series.is_free %}<span class="sd-demo-flag"><i class="fa-solid fa-gift"></i> Free demo</span>{% endif %}
+                            {% if test.paper_type == 'pyp' and not test.is_demo %}
+                                <span class="sd-type-flag pyp"><i class="fa-solid fa-clock-rotate-left"></i> {% if test.exam_year %}Previous year paper {{ test.exam_year }}{% else %}Previous year pattern{% endif %}</span>
+                            {% elif test.paper_type == 'subject' and not test.is_demo %}
+                                <span class="sd-type-flag subject"><i class="fa-solid fa-book"></i> Sectional test</span>
+                            {% elif test.paper_type == 'topic' and not test.is_demo %}
+                                <span class="sd-type-flag topic"><i class="fa-solid fa-bullseye"></i> Topic-wise test</span>
+                            {% endif %}
+                            <h3>{% if not test.is_demo %}<span class="sd-test-pre">Test {{ test.number }} &middot;</span> {% endif %}{{ test.title }}</h3>
+                            {% if test.description %}<p class="sd-test-desc">{{ test.description }}</p>{% endif %}
+
+                            <div class="sd-chips">
+                                <span class="sd-chip"><i class="fa-regular fa-clock"></i> {{ test.duration_minutes }} min</span>
+                                <span class="sd-chip"><i class="fa-regular fa-circle-question"></i> {{ test.question_count }} Qs</span>
+                                <span class="sd-chip"><i class="fa-regular fa-star"></i> {{ test.total_marks }} marks</span>
+                                {% if test.penalty %}
+                                    <span class="sd-chip red"><i class="fa-solid fa-minus"></i> {{ test.penalty|floatformat:"-2" }} per wrong</span>
+                                {% else %}
+                                    <span class="sd-chip green"><i class="fa-solid fa-shield-halved"></i> No negative</span>
+                                {% endif %}
+                                {% if test.calculator != 'none' %}
+                                    <span class="sd-chip blue"><i class="fa-solid fa-calculator"></i> {{ test.get_calculator_display }}</span>
+                                {% endif %}
+                                <span class="sd-chip"><i class="fa-solid fa-rotate-right"></i> {{ test.max_attempts }} attempt{{ test.max_attempts|pluralize }}</span>
+                            </div>
+
+                            {% if test.sections|length > 1 %}
+                                <p class="sd-sections">
+                                    {% for section in test.sections %}<b>{{ section.name }}</b> {{ section.questions }}{% if not forloop.last %} &middot; {% endif %}{% endfor %}
+                                </p>
+                            {% endif %}
+
+                            {% if test.question_count %}
+                                <div class="sd-mix" aria-hidden="true">
+                                    <span style="width: {% widthratio test.easy_count test.question_count 100 %}%; background: #10b981;"></span>
+                                    <span style="width: {% widthratio test.medium_count test.question_count 100 %}%; background: #f59e0b;"></span>
+                                    <span style="width: {% widthratio test.hard_count test.question_count 100 %}%; background: #ef4444;"></span>
+                                </div>
+                                <div class="sd-mix-legend">
+                                    <span><i style="background: #10b981;"></i>Easy {{ test.easy_count }}</span>
+                                    <span><i style="background: #f59e0b;"></i>Medium {{ test.medium_count }}</span>
+                                    <span><i style="background: #ef4444;"></i>Hard {{ test.hard_count }}</span>
+                                </div>
+                            {% endif %}
+
+                            {% if test.user_attempts %}
+                                <div class="sd-attempt">
+                                    <span><i class="fa-solid fa-trophy" style="color: var(--sd-amber);"></i> Best <b>{{ test.best_score|floatformat:"-2" }}/{{ test.total_marks }}</b> ({{ test.best_percentage|floatformat:0 }}%)</span>
+                                    <span>{{ test.user_attempts }} of {{ test.max_attempts }} attempt{{ test.max_attempts|pluralize }} used</span>
+                                    <a href="{% url 'front_exam_result' attempt_id=test.last_attempt.id %}">Last result <i class="fa-solid fa-arrow-right"></i></a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="sd-test-action">
+                            {% if not user.is_authenticated %}
+                                <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="sd-btn {% if test.is_demo %}sd-btn-green{% else %}sd-btn-dark{% endif %}">
+                                    <i class="fa-solid fa-right-to-bracket"></i> {% if test.is_demo %}Login to try free{% else %}Login to start{% endif %}
+                                </a>
+                            {% elif not test.unlocked %}
+                                <button type="button" class="sd-btn sd-btn-dark" data-enroll><i class="fa-solid fa-lock-open"></i> Buy to unlock</button>
+                                <span class="sd-test-note">Unlocks all {{ paid_tests|length }} test{{ paid_tests|length|pluralize }}</span>
+                            {% elif not test.is_available %}
+                                <button class="sd-btn" disabled><i class="fa-regular fa-calendar"></i> Not open yet</button>
+                            {% elif test.can_attempt %}
+                                <a href="{% url 'front_exam_start' test_id=test.id %}" class="sd-btn {% if test.user_attempts %}sd-btn-ghost{% elif test.is_demo %}sd-btn-green{% else %}sd-btn-primary{% endif %}">
+                                    <i class="fa-solid {% if test.user_attempts %}fa-rotate-right{% else %}fa-play{% endif %}"></i>
+                                    {% if test.user_attempts %}Retake test{% elif test.is_demo %}Start free demo{% else %}Start test{% endif %}
+                                </a>
+                            {% else %}
+                                <a href="{% url 'front_exam_result' attempt_id=test.last_attempt.id %}" class="sd-btn sd-btn-green"><i class="fa-solid fa-chart-column"></i> View result</a>
+                                <span class="sd-test-note">All attempts used</span>
+                            {% endif %}
+                            {% if test.start_time or test.end_time %}
+                                <span class="sd-test-note">
+                                    {% if test.start_time %}Opens {{ test.start_time|date:"j M, g:i A" }}{% endif %}
+                                    {% if test.end_time %}{% if test.start_time %}<br>{% endif %}Closes {{ test.end_time|date:"j M, g:i A" }}{% endif %}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% empty %}
+                    <div class="sd-empty">
+                        <i class="fa-solid fa-clipboard-question"></i>
+                        <h3>No tests yet</h3>
+                        <p>Tests for this series are being prepared. Please check back soon.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="sd-card">
+                <h2 class="sd-card-title"><i class="fa-solid fa-desktop"></i> What you get in the exam window</h2>
+                <div class="sd-features">
+                    <div class="sd-feature"><i class="fa-solid fa-table-cells"></i><div><b>Question palette</b><span>Answered, not answered, marked for review and not visited, colour-coded like the real CBT.</span></div></div>
+                    <div class="sd-feature"><i class="fa-solid fa-layer-group"></i><div><b>Section-wise navigation</b><span>Jump between sections with the marks for each question shown.</span></div></div>
+                    {% if calculator_tests %}
+                    <div class="sd-feature"><i class="fa-solid fa-calculator"></i><div><b>{{ calculator_tests.0.get_calculator_display }}</b><span>On-screen, as the real exam provides it.</span></div></div>
+                    {% endif %}
+                    <div class="sd-feature"><i class="fa-solid fa-pen-to-square"></i><div><b>Rough notes</b><span>A scratch pad for working out answers during the test.</span></div></div>
+                    <div class="sd-feature"><i class="fa-solid fa-floppy-disk"></i><div><b>Auto-save</b><span>Answers survive a refresh, and the test submits itself when time runs out.</span></div></div>
+                    <div class="sd-feature"><i class="fa-solid fa-chart-pie"></i><div><b>Detailed result</b><span>Score, rank, percentile, section-wise accuracy and answer review.</span></div></div>
+                </div>
+            </section>
+        </div>
+
+        <aside class="sd-side">
+            <div class="sd-card sd-buy">
+                <div class="sd-buy-top">
+                    <div class="sd-price {% if test_series.is_free %}is-free{% endif %}">{{ price_display }}</div>
+                    <p class="sd-price-note">
+                        {% if test_series.is_free %}Full access to every test at no cost.{% else %}One-time payment for all {{ paid_tests|length }} test{{ paid_tests|length|pluralize }}, valid for 1 year.{% endif %}
+                    </p>
+
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="sd-btn sd-btn-dark"><i class="fa-solid fa-right-to-bracket"></i> Login to enrol</a>
+                    {% elif is_purchased %}
+                        <div class="sd-enrolled-flag"><i class="fa-solid fa-circle-check"></i> You are enrolled in this series</div>
+                    {% else %}
+                        <button type="button" class="sd-btn sd-btn-primary" data-enroll>
+                            {% if test_series.is_free %}<i class="fa-solid fa-bolt"></i> Enrol for free{% else %}<i class="fa-solid fa-cart-shopping"></i> Buy now &middot; {{ price_display }}{% endif %}
+                        </button>
+                    {% endif %}
+
+                    {% if demo_test and not is_purchased and not test_series.is_free %}
+                        <a class="sd-try" href="{% if user.is_authenticated %}{% url 'front_exam_start' test_id=demo_test.id %}{% else %}{% url 'login' %}?next={{ request.get_full_path|urlencode }}{% endif %}">
+                            <i class="fa-solid fa-gift"></i>
+                            <span><b>Not sure yet? Try the free demo</b>{{ demo_test.question_count }} questions, {{ demo_test.duration_minutes }} minutes, no payment needed.</span>
+                        </a>
+                    {% endif %}
+                </div>
+
+                {% if user.is_authenticated and tests %}
+                <div class="sd-buy-top" style="border-top: 1px solid var(--sd-line);">
+                    <div class="sd-progress-head">Your progress <span>{{ attempted_tests }} / {{ tests|length }} tests</span></div>
+                    <div class="sd-progress"><span style="width: {{ progress_pct }}%;"></span></div>
+                </div>
+                {% endif %}
+
+                <ul class="sd-includes">
+                    <li class="sd-includes-title">This series includes</li>
+                    <li><i class="fa-solid fa-check"></i> {{ paid_tests|length }} test{{ paid_tests|length|pluralize }}, {{ total_questions }} questions</li>
+                    {% for key, label, count in paper_tabs %}<li><i class="fa-solid fa-check"></i> {{ count }} {{ label|lower }}{{ count|pluralize }}</li>{% endfor %}
+                    {% if demo_test %}<li><i class="fa-solid fa-check"></i> 1 free demo test to try first</li>{% endif %}
+                    {% if subjects %}<li><i class="fa-solid fa-check"></i> {{ subjects|length }} subject{{ subjects|length|pluralize }} covered</li>{% endif %}
+                    <li><i class="fa-solid fa-check"></i> Real exam timing and marking scheme</li>
+                    {% if tests.0.allow_review %}<li><i class="fa-solid fa-check"></i> Answer review with explanations</li>{% endif %}
+                    {% if calculator_tests %}<li><i class="fa-solid fa-check"></i> {{ calculator_tests.0.get_calculator_display }} in the exam</li>{% endif %}
+                    <li><i class="fa-solid fa-check"></i> Rank, percentile and section analysis</li>
+                </ul>
+            </div>
+        </aside>
+    </main>
+
+    {% if related_series %}
+    <section class="sd-related">
+        <h2>{% if test_series.board %}More from {{ test_series.cover_kicker }}{% else %}Similar exams{% endif %}</h2>
+        <div class="sd-related-grid">
+            {% for s in related_series %}
+                <a href="{% url 'front_exam_series_detail' pk=s.pk %}" class="sd-rel" style="--rel: {{ s.color }};" title="{{ s.title }}">
+                    <i class="fa-solid fa-{{ s.icon }}"></i>
+                    <div>
+                        <b>{% if s.board %}{{ s.cover_title }}{% if s.cover_sub %} {{ s.cover_sub }}{% endif %}{% else %}{{ s.cover_title }}{% endif %}</b>
+                        <span>{{ s.get_difficulty_display }} &middot; {% if s.is_free %}Free{% else %}&#8377;{{ s.price|floatformat:0 }}{% endif %}</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+    <script>
+        (function () {
+            var IS_FREE = {% if test_series.is_free %}true{% else %}false{% endif %};
+            var ICONS = { success: 'fa-check', error: 'fa-xmark', warning: 'fa-exclamation' };
+
+            function getCsrf() {
+                var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+                return match ? decodeURIComponent(match[1]) : '';
+            }
+
+            function showToast(message, type) {
+                type = type || 'success';
+                var toast = document.createElement('div');
+                toast.className = 'sd-toast ' + type;
+                toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+                var icon = document.createElement('i');
+                icon.className = 'fa-solid ' + (ICONS[type] || 'fa-info');
+                var text = document.createElement('span');
+                text.textContent = message;
+                toast.append(icon, text);
+                document.body.appendChild(toast);
+                setTimeout(function () {
+                    toast.classList.add('is-leaving');
+                    setTimeout(function () { toast.remove(); }, 250);
+                }, 3500);
+            }
+
+            // Filter the test list by paper type; the free demo stays visible under every filter.
+            var typeTabs = document.querySelectorAll('.sd-type-tab');
+            typeTabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    typeTabs.forEach(function (t) {
+                        t.classList.toggle('is-active', t === tab);
+                        t.setAttribute('aria-pressed', t === tab ? 'true' : 'false');
+                    });
+                    document.querySelectorAll('.sd-test[data-type]').forEach(function (card) {
+                        var type = card.dataset.type;
+                        card.hidden = !(tab.dataset.type === 'all' || type === 'demo' || type === tab.dataset.type);
+                    });
+                });
+            });
+
+            var enrollBtns = Array.prototype.slice.call(document.querySelectorAll('[data-enroll]'));
+            if (!enrollBtns.length) return;
+            var idleLabels = enrollBtns.map(function (btn) { return btn.innerHTML; });
+
+            function busy() {
+                enrollBtns.forEach(function (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (IS_FREE ? 'Enrolling...' : 'Processing...');
+                });
+            }
+
+            function reset() {
+                enrollBtns.forEach(function (btn, i) {
+                    btn.disabled = false;
+                    btn.innerHTML = idleLabels[i];
+                });
+            }
+
+            function handlePaymentSuccess(response) {
+                fetch("{% url 'payment_handler' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        showToast('Payment successful. Your tests are unlocked.', 'success');
+                        setTimeout(function () { window.location.reload(); }, 1800);
+                    } else {
+                        showToast('Payment verification failed: ' + (data.error || 'unknown error'), 'error');
+                        reset();
+                    }
+                })
+                .catch(function () { showToast('Could not confirm the payment. Please contact support.', 'error'); reset(); });
+            }
+
+            function enroll() {
+                busy();
+
+                fetch('/payment/create/test_series/{{ test_series.id }}/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json' }
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) {
+                        showToast(data.error || 'Something went wrong. Please try again.', 'error');
+                        reset();
+                        return;
+                    }
+                    if (data.is_free) {
+                        showToast('You are enrolled. Loading your tests...', 'success');
+                        setTimeout(function () { window.location.reload(); }, 1400);
+                        return;
+                    }
+                    try {
+                        new Razorpay({
+                            key: data.razorpay_merchant_key,
+                            amount: data.amount,
+                            currency: data.currency,
+                            order_id: data.razorpay_order_id,
+                            name: 'Test Series Enrollment',
+                            description: data.course_name,
+                            prefill: { name: data.user_name || '', email: data.user_email || '', contact: data.user_phone || '' },
+                            handler: handlePaymentSuccess,
+                            modal: { ondismiss: function () { showToast('Payment cancelled.', 'warning'); reset(); } },
+                            theme: { color: '{{ theme.primary_color|default:"#D4AF37" }}' }
+                        }).open();
+                    } catch (err) {
+                        showToast('Could not open the payment window. Please try again.', 'error');
+                        reset();
+                    }
+                })
+                .catch(function () { showToast('Network error. Please try again.', 'error'); reset(); });
+            }
+
+            enrollBtns.forEach(function (btn) { btn.addEventListener('click', enroll); });
+        })();
+    </script>
+</body>
+</html>

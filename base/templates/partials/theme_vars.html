@@ -1,0 +1,15 @@
+{% load navbar_tags %}{% get_theme_settings as theme %}
+<!-- Site theme color, admin-configurable under Customize Website > Theme Color -->
+<style>
+  :root {
+    --brand-primary: {{ theme.primary_color|default:"#2459E0" }};
+    --brand-primary-dark: {{ theme.primary_color_dark|default:"#1d49b8" }};
+    --brand-primary-rgb: {{ theme.primary_color_rgb|default:"36, 89, 224" }};
+    /* Readable brand color for text on white, and the text color to put on a primary background */
+    --brand-primary-text: {{ theme.primary_color_text|default:"#2459E0" }};
+    --brand-on-primary: {{ theme.primary_color_on|default:"#ffffff" }};
+    /* Deep navy ink tones from the logo, used for dark hero panels */
+    --brand-ink: #10142E;
+    --brand-ink-2: #1E2448;
+  }
+</style>

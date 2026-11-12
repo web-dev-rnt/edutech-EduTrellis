@@ -1,0 +1,8 @@
+{# The button under a live-class session card: Join while live, open the room before, watch the recording after. #}
+{% if session.room_state == 'open' %}
+  <a class="session-action is-live" href="{% url 'live_class_join' session.pk %}"><span class="live-dot" aria-hidden="true"></span> Join now</a>
+{% elif session.room_state == 'upcoming' %}
+  <a class="session-action" href="{% url 'live_class_join' session.pk %}"><i class="far fa-clock" aria-hidden="true"></i> Class room</a>
+{% elif session.recordings_ready %}
+  <a class="session-action" href="{% url 'live_class_join' session.pk %}"><i class="fas fa-play" aria-hidden="true"></i> Watch recording</a>
+{% endif %}

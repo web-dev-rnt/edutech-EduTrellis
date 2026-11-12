@@ -1,0 +1,9 @@
+from django.apps import AppConfig
+
+
+class AdminpanelConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'adminpanel'
+
+    def ready(self):
+        from . import signals  # noqa: F401  (registers audit-log receivers)

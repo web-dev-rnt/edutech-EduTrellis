@@ -1,0 +1,50 @@
+{% comment %}
+Board / Class / Stream selects for the test series form. Used by the public "All Test Series" filters.
+Expects board_choices, grade_choices, stream_choices, exam_choices and optionally `test_series`.
+{% endcomment %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div>
+        <label for="exam">Competitive Exam</label>
+        <p>
+            <select id="exam" name="exam">
+                <option value="">— Not an exam series —</option>
+                {% for name in exam_choices %}
+                <option value="{{ name }}" {% if test_series.exam == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </p>
+    </div>
+    <div>
+        <label for="board">Board</label>
+        <p>
+            <select id="board" name="board">
+                <option value="">— Not set —</option>
+                {% for value, label in board_choices %}
+                <option value="{{ value }}" {% if test_series.board == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </p>
+    </div>
+    <div>
+        <label for="grade">Class</label>
+        <p>
+            <select id="grade" name="grade">
+                <option value="">— Not set —</option>
+                {% for value, label in grade_choices %}
+                <option value="{{ value }}" {% if test_series.grade == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </p>
+    </div>
+    <div>
+        <label for="stream">Stream <small style="color:#6b7280;">(Class 11–12)</small></label>
+        <p>
+            <select id="stream" name="stream">
+                <option value="">— None —</option>
+                {% for value, label in stream_choices %}
+                <option value="{{ value }}" {% if test_series.stream == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </p>
+    </div>
+</div>

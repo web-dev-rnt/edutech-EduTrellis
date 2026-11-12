@@ -1,0 +1,775 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search results for "{{ query }}" | Infinite360{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Search" seo_noindex=True %}{% endblock %}
+
+{% block content %}
+<style>
+    .search-results-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    
+    .search-header {
+        margin-bottom: 30px;
+    }
+    
+    .search-header h1 {
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .search-info {
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .search-query {
+        color: var(--brand-primary-text);
+        font-weight: 600;
+    }
+    
+    .results-section {
+        margin-bottom: 50px;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e5e5e5;
+    }
+    
+    .section-header h2 {
+        font-size: 22px;
+        color: #333;
+        margin: 0;
+    }
+    
+    .section-count {
+        background: var(--brand-primary);
+        color: var(--brand-on-primary, #fff);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .course-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+    
+    .course-card {
+        background: white;
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .course-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        text-decoration: none;
+    }
+    
+    .course-thumbnail {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #14141b 0%, #2c2c38 100%);
+        display: block;
+    }
+    
+    /* Placeholder for images that haven't loaded */
+    .course-thumbnail[data-src] {
+        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        position: relative;
+    }
+    
+    .course-thumbnail[data-src]::after {
+        content: '📚';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 48px;
+        opacity: 0.3;
+    }
+    
+    .course-content {
+        padding: 16px;
+    }
+    
+    .course-type-badge {
+        display: inline-block;
+        background: #e8f0fe;
+        color: #1967d2;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .course-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0 0 8px 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .course-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .course-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .course-price {
+        font-size: 18px;
+        color: var(--brand-primary-text);
+        font-weight: 700;
+    }
+    
+    .bundle-price-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .original-price {
+        text-decoration: line-through;
+        font-size: 14px;
+        color: #999;
+        font-weight: 500;
+    }
+    
+    .discount-badge {
+        background: #4caf50;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .no-results i {
+        font-size: 64px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+    
+    .no-results h3 {
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .no-results p {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .back-home-btn {
+        display: inline-block;
+        padding: 12px 24px;
+        background: var(--brand-primary);
+        color: var(--brand-on-primary, #fff);
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: background 0.3s;
+    }
+    
+    .back-home-btn:hover {
+        background: var(--brand-primary-dark);
+        text-decoration: none;
+    }
+
+    /* ===== Test Series result cards (matches the homepage "Explore Our Test Series" design) ===== */
+    .ts-result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 20px;
+    }
+
+    .ts-result-card {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #f0dcc4;
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .ts-result-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+        text-decoration: none;
+    }
+
+    .ts-result-card.ts-result-purchased {
+        border-color: var(--brand-primary);
+    }
+
+    .ts-result-enrolled {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #16a34a;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 2;
+    }
+
+    .ts-result-img {
+        position: relative;
+        height: 130px;
+        background-color: #eef1fa;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .ts-result-price {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        color: #fff;
+    }
+
+    .ts-result-free {
+        background: #16a34a;
+    }
+
+    .ts-result-paid {
+        background: var(--brand-primary);
+    }
+
+    .ts-result-body {
+        padding: 14px 16px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+    }
+
+    .ts-result-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .ts-result-sub {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .ts-result-sub .ts-free-count {
+        color: #16a34a;
+        font-weight: 600;
+    }
+
+    .ts-result-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: var(--brand-primary-text);
+        font-weight: 600;
+    }
+
+    .ts-result-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        font-size: 12px;
+        color: #4b5563;
+        margin: 2px 0 6px 0;
+    }
+
+    .ts-result-info span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .ts-result-btn {
+        margin-top: auto;
+        width: 100%;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #14141b 0%, #2c2c38 100%);
+    }
+
+    .ts-result-btn.ts-result-btn-free {
+        background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    }
+
+    .ts-result-btn.ts-result-btn-purchased {
+        background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    }
+
+    @media (max-width: 768px) {
+        .course-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .search-header h1 {
+            font-size: 22px;
+        }
+
+        .search-results-container {
+            margin: 20px auto;
+        }
+
+        /* 3 small cards per row on mobile */
+        .ts-result-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .ts-result-img {
+            height: 60px;
+        }
+
+        .ts-result-price {
+            font-size: 9px;
+            padding: 2px 6px;
+            bottom: 4px;
+            left: 4px;
+        }
+
+        .ts-result-enrolled {
+            font-size: 8px;
+            padding: 2px 6px;
+            top: 4px;
+            right: 4px;
+        }
+
+        .ts-result-enrolled span {
+            display: none;
+        }
+
+        .ts-result-body {
+            padding: 8px;
+            gap: 3px;
+        }
+
+        .ts-result-title {
+            font-size: 11px;
+            -webkit-line-clamp: 2;
+        }
+
+        .ts-result-sub,
+        .ts-result-tag {
+            font-size: 9px;
+        }
+
+        .ts-result-info {
+            display: none;
+        }
+
+        .ts-result-btn {
+            font-size: 10px;
+            padding: 6px 4px;
+        }
+    }
+</style>
+
+{% include "partials/series_card_css.html" %}
+<style>
+    .sx-hero {
+        background:
+            radial-gradient(circle at 88% 0%, rgba(var(--brand-primary-rgb), .16) 0 220px, transparent 221px),
+            linear-gradient(135deg, #f7f4ea, #f8f9fd 65%);
+        border-bottom: 1px solid #eef0f4;
+    }
+    .sx-hero-inner { max-width: 1200px; margin: 0 auto; padding: 36px 20px 24px; }
+    .sx-hero h1 { margin: 0 0 14px; font-size: clamp(24px, 3.2vw, 32px); font-weight: 800; color: #111827; line-height: 1.2; }
+    .sx-hero h1 span { color: var(--brand-primary-text); }
+    .sx-form {
+        display: flex; align-items: center; gap: 10px; max-width: 720px; padding: 6px 6px 6px 16px;
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 6px 20px rgba(17, 24, 39, .06);
+    }
+    .sx-form:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 4px rgba(var(--brand-primary-rgb), .15); }
+    .sx-form i { color: #9ca3af; }
+    .sx-form input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: #111827; padding: 8px 0; }
+    .sx-form button {
+        border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer;
+        background: #111827; color: #fff; font: inherit; font-size: 14px; font-weight: 700;
+    }
+    .sx-summary { margin: 12px 0 0; font-size: 14.5px; color: #4b5563; }
+    .sx-summary strong { color: #111827; }
+    .sx-corrected { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(var(--brand-primary-rgb), .12); font-size: 13px; }
+    .sx-corrected i { color: var(--brand-primary-text); }
+    .sx-corrected a { color: #111827; font-weight: 700; text-decoration: none; }
+    .sx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .sx-chip {
+        display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px;
+        border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer; text-decoration: none !important;
+        font: inherit; font-size: 13px; font-weight: 600; transition: border-color .15s ease, background .15s ease;
+    }
+    .sx-chip em { font-style: normal; padding: 0 7px; border-radius: 999px; background: #eef0f4; font-size: 11.5px; }
+    .sx-chip:hover { border-color: var(--brand-primary); }
+    .sx-chip.is-active { background: #111827; border-color: #111827; color: #fff; }
+    .sx-chip.is-active em { background: rgba(255,255,255,.18); }
+
+    .search-results-container { margin-top: 28px; }
+    .sx-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .sx-section-head h2 { margin: 0; font-size: 21px; font-weight: 800; color: #111827; }
+    .sx-section-head .sx-count { padding: 2px 10px; border-radius: 999px; background: #111827; color: #fff; font-size: 13px; font-weight: 700; }
+    .sx-section-head a { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--brand-primary-text); text-decoration: none; }
+    .sx-section-head a:hover { text-decoration: underline; }
+
+    .sx-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .sx-cat {
+        display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px;
+        background: #fff; border: 1px solid #e7e9f0; text-decoration: none !important; color: #111827; min-width: 0;
+        transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+    }
+    .sx-cat:hover { border-color: var(--cat); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(17,24,39,.07); }
+    .sx-cat-icon { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; font-size: 16px; }
+    .sx-cat-text { min-width: 0; display: flex; flex-direction: column; }
+    .sx-cat-text b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sx-cat-text span { font-size: 12.5px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .sx-empty { text-align: center; padding: 48px 20px 56px; }
+    .sx-empty-icon { width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 22px; display: grid; place-items: center; font-size: 28px; background: #f3f4f6; color: #9ca3af; }
+    .sx-empty h3 { margin: 0 0 6px; font-size: 20px; color: #111827; }
+    .sx-empty p { margin: 0 0 18px; color: #6b7280; }
+    .sx-popular { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .results-section[hidden] { display: none; }
+    @media (max-width: 640px) {
+        .sx-hero-inner { padding: 22px 16px 18px; }
+        .sx-form button { padding: 10px 14px; }
+        .sx-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .sx-chip { flex-shrink: 0; }
+        .sx-cat-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<section class="sx-hero">
+    <div class="sx-hero-inner">
+        <h1>{% if query %}Results for <span>&ldquo;{{ query }}&rdquo;</span>{% else %}Search courses and exams{% endif %}</h1>
+        <form class="sx-form" action="{% url 'search_results' %}" method="get" role="search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" name="q" value="{{ query }}" placeholder="Try 'JEE Main', 'Bihar Class 10' or 'Olympiad'" aria-label="Search" autocomplete="off">
+            <button type="submit">Search</button>
+        </form>
+        {% if query %}
+            <p class="sx-summary">
+                {% if total_results %}<strong>{{ total_results }}</strong> result{{ total_results|pluralize }} found{% else %}No results found{% endif %}
+                {% if corrected %}<span class="sx-corrected"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Showing results for <a href="?q={{ corrected|urlencode }}">{{ corrected }}</a></span>{% endif %}
+            </p>
+            {% if total_results %}
+            <div class="sx-chips" role="group" aria-label="Filter results by type">
+                <button type="button" class="sx-chip is-active" data-filter="all" aria-pressed="true">All <em>{{ total_results }}</em></button>
+                {% if test_series_count %}<button type="button" class="sx-chip" data-filter="test-series" aria-pressed="false"><i class="fa-solid fa-list-check"></i> Test series <em>{{ test_series_count }}</em></button>{% endif %}
+                {% if category_count %}<button type="button" class="sx-chip" data-filter="categories" aria-pressed="false"><i class="fa-solid fa-folder"></i> Exams <em>{{ category_count }}</em></button>{% endif %}
+                {% if video_course_count %}<button type="button" class="sx-chip" data-filter="video" aria-pressed="false"><i class="fa-solid fa-circle-play"></i> Video <em>{{ video_course_count }}</em></button>{% endif %}
+                {% if live_course_count %}<button type="button" class="sx-chip" data-filter="live" aria-pressed="false"><i class="fa-solid fa-video"></i> Live <em>{{ live_course_count }}</em></button>{% endif %}
+                {% if elibrary_course_count %}<button type="button" class="sx-chip" data-filter="elibrary" aria-pressed="false"><i class="fa-solid fa-book"></i> E-library <em>{{ elibrary_course_count }}</em></button>{% endif %}
+                {% if product_bundles %}<button type="button" class="sx-chip" data-filter="bundles" aria-pressed="false"><i class="fa-solid fa-cube"></i> Bundles <em>{{ product_bundles|length }}</em></button>{% endif %}
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</section>
+
+<div class="search-results-container">
+    {% if total_results > 0 %}
+        <!-- Test Series Section -->
+        {% if test_series %}
+        <div class="results-section" data-section="test-series">
+            <div class="sx-section-head">
+                <h2>Test series</h2>
+                <span class="sx-count">{{ test_series_count }}</span>
+                <a href="{{ test_series_url }}">{% if test_series_more %}See all {{ test_series_count }} with filters{% else %}Open in catalogue{% endif %} &rsaquo;</a>
+            </div>
+            <div class="sc-grid">
+                {% for series in test_series %}
+                    {% include "partials/series_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Categories Section -->
+        {% if categories %}
+        <div class="results-section" data-section="categories">
+            <div class="sx-section-head">
+                <h2>Exams &amp; categories</h2>
+                <span class="sx-count">{{ category_count }}</span>
+            </div>
+            <div class="sx-cat-grid">
+                {% for category in categories %}
+                <a href="{% url 'category_detail' category.slug %}" class="sx-cat" style="--cat: {{ category.icon_color }};">
+                    <span class="sx-cat-icon" style="background: rgba({{ category.icon_color_rgb }}, 0.12); color: {{ category.icon_color }};">
+                        <i class="fa fa-{{ category.icon|default:'graduation-cap' }}"></i>
+                    </span>
+                    <span class="sx-cat-text">
+                        <b>{{ category.name }}</b>
+                        <span>{{ category.description|default:"Browse courses and tests"|truncatechars:60 }}</span>
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Product Bundles Section -->
+        {% if product_bundles %}
+        <div class="results-section" data-section="bundles">
+            <div class="section-header">
+                <h2>Product Bundles</h2>
+                <span class="section-count">{{ product_bundles|length }}</span>
+            </div>
+            <div class="course-grid">
+                {% for bundle in product_bundles %}
+                <a href="{% url 'product_bundle_detail' bundle.slug %}" class="course-card">
+                    {% if bundle.thumbnail %}
+                        <img src="{{ bundle.thumbnail.url }}" 
+                             alt="{{ bundle.title }}" 
+                             class="course-thumbnail"
+                             loading="lazy"
+                             onerror="this.style.background='linear-gradient(135deg, #f57c00 0%, #ff9800 100%)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<i class=\'fa fa-cube\' style=\'font-size:64px;color:white;opacity:0.9\'></i>'; this.onerror=null;">
+                    {% else %}
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-cube" style="font-size: 64px; color: white; opacity: 0.9;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="course-content">
+                        <span class="course-type-badge" style="background: #fff3e0; color: #f57c00;">
+                            <i class="fa fa-cube"></i> Bundle
+                        </span>
+                        <h3 class="course-title">{{ bundle.title }}</h3>
+                        <div class="course-meta">
+                            <span><i class="fa fa-graduation-cap"></i> {{ bundle.total_courses }} Course{% if bundle.total_courses != 1 %}s{% endif %}</span>
+                            <span><i class="fa fa-tag"></i> {{ bundle.discount_percent|floatformat:0 }}% OFF</span>
+                        </div>
+                        <div class="bundle-price-wrapper">
+                            <div class="course-price">₹{{ bundle.bundle_price }}</div>
+                            <span class="original-price">₹{{ bundle.original_price }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Video Courses Section -->
+        {% if video_courses %}
+        <div class="results-section" data-section="video">
+            <div class="section-header">
+                <h2>Video Courses</h2>
+                <span class="section-count">{{ video_course_count }}</span>
+            </div>
+            <div class="course-grid">
+                {% for course in video_courses %}
+                <a href="{% url 'video_course_detail' course.pk %}" class="course-card">
+                    {% if course.thumbnail %}
+                        <img src="{{ course.thumbnail.url }}" 
+                             alt="{{ course.name }}" 
+                             class="course-thumbnail"
+                             loading="lazy"
+                             onerror="this.style.background='linear-gradient(135deg, #1967d2 0%, #4285f4 100%)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<i class=\'fa fa-play-circle\' style=\'font-size:64px;color:white;opacity:0.9\'></i>'; this.onerror=null;">
+                    {% else %}
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #1967d2 0%, #4285f4 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-play-circle" style="font-size: 64px; color: white; opacity: 0.9;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="course-content">
+                        <span class="course-type-badge">Video Course</span>
+                        <h3 class="course-title">{{ course.name }}</h3>
+                        <div class="course-meta">
+                            <span><i class="fa fa-book"></i> {{ course.category.name|default:"General" }}</span>
+                            {% if course.total_hours %}
+                            <span><i class="fa fa-clock"></i> {{ course.total_hours }}h</span>
+                            {% endif %}
+                        </div>
+                        <div class="course-price">₹{{ course.selling_price }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Live Classes Section -->
+        {% if live_courses %}
+        <div class="results-section" data-section="live">
+            <div class="section-header">
+                <h2>Live Classes</h2>
+                <span class="section-count">{{ live_course_count }}</span>
+            </div>
+            <div class="course-grid">
+                {% for course in live_courses %}
+                <a href="{% url 'live_class_detail' course.pk %}" class="course-card">
+                    {% if course.banner_image_desktop %}
+                        <img src="{{ course.banner_image_desktop.url }}" 
+                             alt="{{ course.name }}" 
+                             class="course-thumbnail"
+                             loading="lazy"
+                             onerror="this.style.background='linear-gradient(135deg, #f57c00 0%, #ff9800 100%)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<i class=\'fa fa-video-camera\' style=\'font-size:64px;color:white;opacity:0.9\'></i>'; this.onerror=null;">
+                    {% else %}
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-video-camera" style="font-size: 64px; color: white; opacity: 0.9;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="course-content">
+                        <span class="course-type-badge" style="background: #fef3e8; color: #f57c00;">Live Class</span>
+                        <h3 class="course-title">{{ course.name }}</h3>
+                        <div class="course-meta">
+                            <span><i class="fa fa-book"></i> {{ course.category_name }}</span>
+                            {% if course.language %}
+                            <span><i class="fa fa-language"></i> {{ course.language }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="course-price">₹{{ course.current_price }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- E-Library Section -->
+        {% if elibrary_courses %}
+        <div class="results-section" data-section="elibrary">
+            <div class="section-header">
+                <h2>E-Library</h2>
+                <span class="section-count">{{ elibrary_course_count }}</span>
+            </div>
+            <div class="course-grid">
+                {% for course in elibrary_courses %}
+                <a href="{% url 'course_detail' course.pk %}" class="course-card">
+                    {% if course.cover_image %}
+                        <img src="{{ course.cover_image.url }}" 
+                             alt="{{ course.title }}" 
+                             class="course-thumbnail"
+                             loading="lazy"
+                             onerror="this.style.background='linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%)'; this.style.display='flex'; this.style.alignItems='center'; this.style.justifyContent='center'; this.innerHTML='<i class=\'fa fa-book\' style=\'font-size:64px;color:white;opacity:0.9\'></i>'; this.onerror=null;">
+                    {% else %}
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fa fa-book" style="font-size: 64px; color: white; opacity: 0.9;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="course-content">
+                        <span class="course-type-badge" style="background: #f3e5f5; color: #7b1fa2;">E-Library</span>
+                        <h3 class="course-title">{{ course.title }}</h3>
+                        <div class="course-meta">
+                            <span><i class="fa fa-book"></i> {{ course.category.name|default:"General" }}</span>
+                            {% if course.total_pdfs %}
+                            <span><i class="fa fa-file-pdf"></i> {{ course.total_pdfs }} PDF{% if course.total_pdfs != 1 %}s{% endif %}</span>
+                            {% endif %}
+                        </div>
+                        <div class="course-price">₹{{ course.current_price }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- No Results Found -->
+        <div class="sx-empty">
+            <div class="sx-empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+            {% if query %}
+                <h3>Nothing matched &ldquo;{{ query }}&rdquo;</h3>
+                <p>Check the spelling, use fewer words, or try one of these popular searches.</p>
+            {% else %}
+                <h3>What do you want to prepare for?</h3>
+                <p>Search for an exam, board, class or subject, or start with a popular search.</p>
+            {% endif %}
+            <div class="sx-popular">
+                {% for term in popular_searches %}
+                    <a class="sx-chip" href="{% url 'search_results' %}?q={{ term|urlencode }}">{{ term }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+(function () {
+    var chips = document.querySelectorAll('.sx-chip[data-filter]');
+    var sections = document.querySelectorAll('.results-section[data-section]');
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            var filter = chip.dataset.filter;
+            chips.forEach(function (c) {
+                c.classList.toggle('is-active', c === chip);
+                c.setAttribute('aria-pressed', c === chip ? 'true' : 'false');
+            });
+            sections.forEach(function (section) {
+                section.hidden = filter !== 'all' && section.dataset.section !== filter;
+            });
+        });
+    });
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,981 @@
+{% load static %}
+
+
+<!-- Dynamic Navbar -->
+<div class="main-navbar">
+    <div class="navbar-logo-wrapper">
+        <a href="{% url 'home' %}">
+            {% if navbar_settings and navbar_settings.logo %}
+                <img src="{{ navbar_settings.logo.url }}" alt="Logo">
+            {% else %}
+                <img src="{% static 'img/mainlogo.png' %}" alt="Logo">
+            {% endif %}
+        </a>
+    </div>
+
+    <div class="navbar-search-box">
+        <i class="fa fa-search"></i>
+        <input 
+            type="text" 
+            id="navbarSearchInput"
+            placeholder="{% if navbar_settings %}{{ navbar_settings.search_placeholder }}{% else %}Search courses...{% endif %}"
+            autocomplete="off"
+        >
+        <div class="navbar-search-suggestions" id="navbarSearchSuggestions" role="listbox" aria-label="Search suggestions"></div>
+    </div>
+
+    <div class="navbar-actions-wrapper">
+        <div class="navbar-dropdown">
+            <button class="navbar-link-btn navbar-explore-btn" type="button" aria-haspopup="true"><i class="fa-solid fa-compass" aria-hidden="true"></i> Explore Exams <span class="fa-solid fa-chevron-down navbar-caret" aria-hidden="true"></span></button>
+            <div class="navbar-dropdown-content exam-menu" id="examMenu">
+                {% if navbar_category_groups %}
+                <div class="exam-menu-top">
+                    <label class="exam-menu-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" id="examMenuSearch" placeholder="Search exams, boards, olympiads..." aria-label="Search exams" autocomplete="off">
+                    </label>
+                </div>
+                <div class="exam-menu-body">
+                    <div class="exam-menu-groups" role="tablist" aria-label="Exam categories">
+                        {% for group in navbar_category_groups %}
+                            <button type="button" class="exam-menu-group {% if forloop.first %}is-active{% endif %}" role="tab"
+                                    data-group="{{ group.key }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                                <i class="fa-solid fa-{{ group.icon }}"></i>
+                                <span>{{ group.label }}</span>
+                                <em>{{ group.categories|length }}</em>
+                            </button>
+                        {% endfor %}
+                    </div>
+                    <div class="exam-menu-panels">
+                        {% for group in navbar_category_groups %}
+                            <div class="exam-menu-panel" data-group="{{ group.key }}" role="tabpanel" {% if not forloop.first %}hidden{% endif %}>
+                                <div class="exam-menu-panel-title">{{ group.label }}</div>
+                                <div class="exam-menu-grid">
+                                    {% for category in group.categories %}
+                                        <a href="{% url 'category_detail' category.slug %}" class="exam-menu-link" data-name="{{ category.name|lower }}">
+                                            <span class="exam-menu-icon" style="background: rgba({{ category.icon_color_rgb }}, 0.12); color: {{ category.icon_color }};">
+                                                <i class="fa fa-{{ category.icon|default:'graduation-cap' }}"></i>
+                                            </span>
+                                            <span class="exam-menu-name">{{ category.name }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <p class="exam-menu-empty" id="examMenuEmpty" hidden>No exam matches your search.</p>
+                    </div>
+                </div>
+                <div class="exam-menu-foot">
+                    <a href="{% url 'all_test_series' %}" class="exam-menu-foot-link"><i class="fa-solid fa-layer-group"></i> All test series</a>
+                    <a href="{% url 'all_test_series' %}?paper=pyp" class="exam-menu-foot-link"><i class="fa-solid fa-clock-rotate-left"></i> Previous year papers</a>
+                    <a href="{% url 'all_test_series' %}?paper=subject" class="exam-menu-foot-link"><i class="fa-solid fa-book"></i> Subject-wise tests</a>
+                </div>
+                {% else %}
+                    <div class="navbar-dropdown-empty">
+                        <i class="fa fa-folder-open" style="font-size: 32px; color: #ddd; margin-bottom: 8px;"></i>
+                        <p>No categories available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <button class="navbar-link-btn" id="openCouponModalBtn" type="button"><i class="fa-solid fa-ticket" aria-hidden="true"></i> Apply Coupon</button>
+        
+        <!-- DESKTOP NOTIFICATIONS - ALWAYS VISIBLE -->
+        <div class="navbar-notification-wrapper">
+            <button class="navbar-notification-btn" id="notificationBtn" type="button" title="Notifications" aria-label="Notifications">
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                <span class="navbar-notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </button>
+            <div class="navbar-notifications-dropdown" id="notificationsDropdown">
+                <div class="notifications-header">
+                    <h3>Notifications</h3>
+                    {% if user.is_authenticated %}
+                    <button class="mark-all-read-btn" id="markAllReadBtn">Mark all as read</button>
+                    {% endif %}
+                </div>
+                <div class="notifications-list" id="notificationsList">
+                    {% if user.is_authenticated %}
+                    <div class="notifications-loading" aria-busy="true" aria-label="Loading notifications"><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div></div>
+                    {% else %}
+                    <div class="notifications-not-logged-in">
+                        <i class="fa fa-lock"></i>
+                        <p>You're not logged in.<br>Please login to view notifications.</p>
+                        <a href="{{ login_url }}" class="notifications-login-btn">Login Now</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- MOBILE NOTIFICATIONS - ALWAYS VISIBLE -->
+        <button class="navbar-mobile-notification-btn" id="mobileNotificationBtn" type="button" aria-label="Notifications">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span class="navbar-notification-badge" id="mobileNotificationBadge" style="display: none;">0</span>
+        </button>
+        
+        {% if user.is_authenticated %}
+        <div class="navbar-dropdown navbar-user-dropdown">
+            <button class="navbar-link-btn navbar-user-profile-btn" aria-label="Account menu for {{ user.get_full_name|default:user.email }}">
+                {% if request.user.profile_image and request.user.profile_image.name %}
+                    <img src="{{ request.user.profile_image.url }}" class="navbar-user-avatar" alt="">
+                {% else %}
+                    <span class="navbar-user-avatar navbar-user-initial" aria-hidden="true">{{ user.first_name|default:user.email|first|upper }}</span>
+                {% endif %}
+                <span class="navbar-user-name">Welcome, {{ user.first_name|default:"User" }}</span>
+                <span class="fa fa-caret-down" aria-hidden="true"></span>
+            </button>
+            <div class="navbar-dropdown-content user-menu">
+                <a href="{% url 'profile_edit' %}">
+                    <i class="fa fa-user"></i> Edit Profile
+                </a>
+                <a href="{% url 'my_purchases' %}">
+                    <i class="fa fa-shopping-bag"></i> My Purchases
+                </a>
+                <a href="{% url 'my_test_results' %}">
+                    <i class="fa fa-chart-line"></i> My Results
+                </a>
+                <a href="#" id="viewCouponsBtn">
+                    <i class="fa fa-ticket"></i> My Coupons
+                </a>
+                {% if user.is_staff or user.is_superuser %}
+                    <a href="{% url 'admindashboard' %}">
+                        <i class="fa fa-dashboard"></i> Admin Dashboard
+                    </a>
+                {% endif %}
+                <a href="{% url 'logout_user' %}">
+                    <i class="fa fa-sign-out"></i> Log Out
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <a href="{{ login_url }}" class="navbar-login-btn"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Log In</a>
+        <button class="navbar-signup-btn" onclick="window.location.href='{{ signup_url|escapejs }}'">Sign Up</button>
+        {% endif %}
+
+        {% if navbar_settings %}
+            <a href="{{ navbar_settings.get_contact_url }}" 
+               class="navbar-phone-link" 
+               target="_blank" 
+               rel="noopener noreferrer">
+                <i class="{{ navbar_settings.get_contact_icon }}"></i>
+                <span class="navbar-phone-text">
+                    {{ navbar_settings.contact_number }}<br>
+                    <span style="font-size: 12px;">{{ navbar_settings.contact_hours }}</span>
+                </span>
+            </a>
+        {% else %}
+            <a href="https://wa.me/918296893895?text=Hello"
+               class="navbar-phone-link" 
+               target="_blank" 
+               rel="noopener noreferrer">
+                <i class="fab fa-whatsapp"></i>
+                <span class="navbar-phone-text">
+                    82968 93895<br>
+                    <span style="font-size: 12px;">(10 AM to 8 PM)</span>
+                </span>
+            </a>
+        {% endif %}
+
+        <button class="navbar-mobile-toggle" id="navbarMobileToggle" type="button" aria-label="Open menu" aria-controls="navbarMobileMenu" aria-expanded="false">
+            <i class="fa-solid fa-bars-staggered" aria-hidden="true"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Mobile Notification Dropdown -->
+<div class="navbar-notifications-dropdown" id="mobileNotificationsDropdown" style="position: fixed; top: 60px; right: 10px; z-index: 10002;">
+    <div class="notifications-header">
+        <h3>Notifications</h3>
+        {% if user.is_authenticated %}
+        <button class="mark-all-read-btn" id="mobileMarkAllReadBtn">Mark all as read</button>
+        {% endif %}
+    </div>
+    <div class="notifications-list" id="mobileNotificationsList">
+        {% if user.is_authenticated %}
+        <div class="notifications-loading" aria-busy="true" aria-label="Loading notifications"><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div><div class="notif-skeleton"><span class="sk sk-icon"></span><span class="sk-lines"><span class="sk sk-line w40"></span><span class="sk sk-line w90"></span><span class="sk sk-line w70"></span></span></div></div>
+        {% else %}
+        <div class="notifications-not-logged-in">
+            <i class="fa fa-lock"></i>
+            <p>You're not logged in.<br>Please login to view notifications.</p>
+            <a href="{{ login_url }}" class="notifications-login-btn">Login Now</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Mobile Menu -->
+<div class="navbar-mobile-overlay" id="navbarMobileOverlay"></div>
+<aside class="navbar-mobile-menu mnav" id="navbarMobileMenu" aria-label="Menu" aria-hidden="true">
+    <div class="mnav-head">
+        <a href="{% url 'home' %}" class="mnav-logo">
+            {% if navbar_settings and navbar_settings.logo %}
+                <img src="{{ navbar_settings.logo.url }}" alt="Infinite360">
+            {% else %}
+                <img src="{% static 'img/mainlogo.png' %}" alt="Infinite360">
+            {% endif %}
+        </a>
+        <button class="mnav-close" id="navbarMobileClose" type="button" aria-label="Close menu">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <div class="mnav-body">
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile_edit' %}" class="mnav-profile">
+                {% if request.user.profile_image and request.user.profile_image.name %}
+                    <img src="{{ request.user.profile_image.url }}" alt="">
+                {% else %}
+                    <span class="mnav-initial" aria-hidden="true">{{ user.first_name|default:user.email|first|upper }}</span>
+                {% endif %}
+                <span>
+                    <strong>{{ user.get_full_name|default:user.first_name|default:"My account" }}</strong>
+                    <small>{{ user.email }}</small>
+                </span>
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+            </a>
+        {% else %}
+            <div class="mnav-welcome">
+                <strong>Start practising today</strong>
+                <span>Log in to take tests, track results and use coupons.</span>
+                <div class="mnav-auth">
+                    <a href="{{ login_url }}" class="mnav-btn mnav-btn--ghost"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Log In</a>
+                    <a href="{{ signup_url }}" class="mnav-btn mnav-btn--primary"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Sign Up</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <nav class="mnav-section" aria-label="Test series">
+            <p class="mnav-label">Test Series</p>
+            <a href="{% url 'all_test_series' %}" class="mnav-link">
+                <i class="fa-solid fa-layer-group" style="--c: 37, 99, 235;" aria-hidden="true"></i><span>All test series</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+            </a>
+            <a href="{% url 'all_test_series' %}?paper=pyp" class="mnav-link">
+                <i class="fa-solid fa-clock-rotate-left" style="--c: 234, 88, 12;" aria-hidden="true"></i><span>Previous year papers</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+            </a>
+            <a href="{% url 'all_test_series' %}?paper=subject" class="mnav-link">
+                <i class="fa-solid fa-book" style="--c: 22, 163, 74;" aria-hidden="true"></i><span>Subject-wise tests</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+            </a>
+        </nav>
+
+        {% if navbar_category_groups %}
+        <div class="mnav-section">
+            <p class="mnav-label">Explore Exams</p>
+            <div class="mnav-groups">
+                {% for group in navbar_category_groups %}
+                    <details class="mnav-group" {% if forloop.first %}open{% endif %}>
+                        <summary>
+                            <i class="fa-solid fa-{{ group.icon }}" aria-hidden="true"></i>
+                            <span>{{ group.label }}</span>
+                            <em>{{ group.categories|length }}</em>
+                            <i class="fa-solid fa-chevron-down mnav-caret" aria-hidden="true"></i>
+                        </summary>
+                        <div class="mnav-chips">
+                            {% for category in group.categories %}
+                                <a href="{% url 'category_detail' category.slug %}" class="mnav-chip">
+                                    <span style="background: rgba({{ category.icon_color_rgb }}, 0.12); color: {{ category.icon_color }};"><i class="fa fa-{{ category.icon|default:'graduation-cap' }}" aria-hidden="true"></i></span>
+                                    {{ category.name }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <nav class="mnav-section" aria-label="Account">
+            <p class="mnav-label">{% if user.is_authenticated %}My Account{% else %}Offers{% endif %}</p>
+            {% if user.is_authenticated %}
+                <a href="{% url 'my_purchases' %}" class="mnav-link">
+                    <i class="fa-solid fa-bag-shopping" style="--c: 124, 58, 237;" aria-hidden="true"></i><span>My purchases</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+                </a>
+                <a href="{% url 'my_test_results' %}" class="mnav-link">
+                    <i class="fa-solid fa-chart-line" style="--c: 22, 163, 74;" aria-hidden="true"></i><span>My results</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+                </a>
+                <button type="button" id="mobileViewCouponsBtn" class="mnav-link">
+                    <i class="fa-solid fa-ticket" style="--c: 219, 39, 119;" aria-hidden="true"></i><span>My coupons</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+                </button>
+            {% endif %}
+            <button type="button" id="mobileApplyCouponBtn" class="mnav-link">
+                <i class="fa-solid fa-tag" style="--c: 202, 138, 4;" aria-hidden="true"></i><span>Apply coupon</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+            </button>
+            {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'admindashboard' %}" class="mnav-link">
+                    <i class="fa-solid fa-gauge" style="--c: 71, 85, 105;" aria-hidden="true"></i><span>Admin dashboard</span><i class="fa-solid fa-chevron-right mnav-arrow" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+
+    <div class="mnav-foot">
+        {% if navbar_settings %}
+            <a href="{{ navbar_settings.get_contact_url }}" class="mnav-contact" target="_blank" rel="noopener noreferrer">
+                <i class="{{ navbar_settings.get_contact_icon }}" aria-hidden="true"></i>
+                <span><strong>{{ navbar_settings.contact_number }}</strong><small>Chat with us {{ navbar_settings.contact_hours }}</small></span>
+            </a>
+        {% else %}
+            <a href="https://wa.me/918296893895?text=Hello" class="mnav-contact" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-whatsapp" aria-hidden="true"></i>
+                <span><strong>82968 93895</strong><small>Chat with us (10 AM to 8 PM)</small></span>
+            </a>
+        {% endif %}
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout_user' %}" class="mnav-logout"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Log out</a>
+        {% endif %}
+    </div>
+</aside>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Notification System - Works for both logged-in and anonymous users
+    const notificationBtn = document.getElementById('notificationBtn');
+    const mobileNotificationBtn = document.getElementById('mobileNotificationBtn');
+    const notificationsDropdown = document.getElementById('notificationsDropdown');
+    const mobileNotificationsDropdown = document.getElementById('mobileNotificationsDropdown');
+    const notificationsList = document.getElementById('notificationsList');
+    const mobileNotificationsList = document.getElementById('mobileNotificationsList');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const mobileNotificationBadge = document.getElementById('mobileNotificationBadge');
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    const mobileMarkAllReadBtn = document.getElementById('mobileMarkAllReadBtn');
+    
+    const isAuthenticated = {{ user.is_authenticated|lower }};
+    let isDesktopOpen = false;
+    let isMobileOpen = false;
+    
+    // Desktop notification toggle
+    if (notificationBtn) {
+        notificationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            isDesktopOpen = !isDesktopOpen;
+            notificationsDropdown.classList.toggle('active', isDesktopOpen);
+            if (isDesktopOpen) {
+                closeHoverDropdowns();
+                if (isAuthenticated) loadNotifications('desktop');
+            }
+        });
+    }
+
+    // Mobile notification toggle
+    if (mobileNotificationBtn) {
+        mobileNotificationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            isMobileOpen = !isMobileOpen;
+            mobileNotificationsDropdown.classList.toggle('active', isMobileOpen);
+            if (isMobileOpen) {
+                closeHoverDropdowns();
+                if (isAuthenticated) loadNotifications('mobile');
+            }
+        });
+    }
+    
+    // Prevent closing when clicking inside dropdowns
+    [notificationsDropdown, mobileNotificationsDropdown].forEach(dropdown => {
+        if (dropdown) {
+            dropdown.addEventListener('click', e => e.stopPropagation());
+        }
+    });
+    
+    // Load notifications (only for authenticated users)
+    function loadNotifications(type) {
+        if (!isAuthenticated) return;
+        
+        const targetList = type === 'mobile' ? mobileNotificationsList : notificationsList;
+        
+        fetch('{% url "notifications_list" %}')
+            .then(r => r.json())
+            .then(data => {
+                updateBadges(data.unread_count);
+                if (data.notifications.length === 0) {
+                    targetList.innerHTML = '<div class="notifications-empty"><span class="notifications-empty-icon"><i class="fa fa-bell"></i></span><strong>You\'re all caught up</strong><p>New announcements, offers and results will show up here.</p></div>';
+                } else {
+                    renderNotifications(data.notifications, targetList);
+                }
+            })
+            .catch(() => {
+                targetList.innerHTML = '<div class="notifications-empty"><i class="fa fa-exclamation-triangle"></i><p>Error loading</p></div>';
+            });
+    }
+    
+    // Update badge
+    function updateBadges(count) {
+        [notificationBadge, mobileNotificationBadge].forEach(badge => {
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Render notifications
+    const NOTIFICATION_ICONS = {
+        announcement: 'fa-bullhorn', offer: 'fa-tag', free_live_class: 'fa-video',
+        course_update: 'fa-book-open', test_result: 'fa-chart-line',
+    };
+    function notifText(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+    function renderNotifications(notifications, targetList) {
+        let html = '';
+        notifications.forEach(n => {
+            const isAdmin = n.is_admin || n.source === 'admin';
+            const type = String(n.type || 'announcement');
+            const icon = NOTIFICATION_ICONS[type] || 'fa-bell';
+            html += `
+                <div class="notification-item ${n.is_read ? '' : 'unread'} ${isAdmin ? 'admin-notification' : ''}"
+                     data-id="${notifText(n.id)}"
+                     data-link="${notifText(n.link || '#')}"
+                     data-is-admin="${isAdmin}" role="button" tabindex="0">
+                    <span class="notification-icon ${notifText(type)}"><i class="fa ${icon}"></i></span>
+                    <div class="notification-body">
+                        <div class="notification-top">
+                            <span class="notification-type-badge ${notifText(type)}">${notifText(type.replace(/_/g, ' '))}</span>
+                            ${isAdmin ? '<span class="notification-official"><i class="fa fa-circle-check"></i> Official</span>' : ''}
+                        </div>
+                        <p class="notification-title">${notifText(n.title)}</p>
+                        <p class="notification-message">${notifText(n.message)}</p>
+                        <p class="notification-time"><i class="fa fa-clock"></i> ${notifText(n.created_at)}</p>
+                    </div>
+                </div>
+            `;
+        });
+        targetList.innerHTML = html;
+        
+        // Click handlers
+        targetList.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const link = this.getAttribute('data-link');
+
+                if (this.classList.contains('unread')) {
+                    markAsRead(id, link, this);
+                } else if (link && link !== '#') {
+                    window.location.href = link;
+                }
+            });
+        });
+    }
+    
+    // Mark single notification as read
+    function markAsRead(id, link, element) {
+        fetch(`/notifications/${id}/read/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(r => {
+            if (r.ok) {
+                element.classList.remove('unread');
+                const current = parseInt(notificationBadge.textContent) || 0;
+                if (current > 0) {
+                    updateBadges(current - 1);
+                }
+                if (link && link !== '#') {
+                    setTimeout(() => window.location.href = link, 300);
+                }
+            }
+        });
+    }
+    
+    // Mark all as read
+    [markAllReadBtn, mobileMarkAllReadBtn].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                fetch('{% url "mark_all_notifications_read" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                }).then(r => {
+                    if (r.ok) {
+                        document.querySelectorAll('.notification-item.unread').forEach(item => {
+                            item.classList.remove('unread');
+                        });
+                        updateBadges(0);
+                    }
+                });
+            });
+        }
+    });
+    
+    // Close on outside click
+    document.addEventListener('click', function(e) {
+        if (notificationsDropdown && !notificationsDropdown.contains(e.target) && !notificationBtn.contains(e.target)) {
+            notificationsDropdown.classList.remove('active');
+            isDesktopOpen = false;
+        }
+        if (mobileNotificationsDropdown && !mobileNotificationsDropdown.contains(e.target) && !mobileNotificationBtn.contains(e.target)) {
+            mobileNotificationsDropdown.classList.remove('active');
+            isMobileOpen = false;
+        }
+    });
+    
+    // Load initial count and refresh periodically (only for authenticated users)
+    if (isAuthenticated) {
+        setTimeout(() => {
+            fetch('{% url "notifications_list" %}')
+                .then(r => r.json())
+                .then(data => updateBadges(data.unread_count));
+        }, 500);
+        
+        setInterval(() => {
+            fetch('{% url "notifications_list" %}')
+                .then(r => r.json())
+                .then(data => updateBadges(data.unread_count));
+        }, 60000);
+    }
+
+    // ===== Explore Exams / User Profile dropdowns =====
+    // Click-toggle (works on touch too) plus hover-with-grace-period on desktop, so
+    // a normal mouse move from the button down into the menu doesn't lose hover in the gap.
+    // Also ensures only one navbar dropdown (these two, or Notifications) is open at a time.
+    function closeHoverDropdowns(exceptWrapper) {
+        document.querySelectorAll('.navbar-dropdown.dropdown-open').forEach(function(el) {
+            if (el !== exceptWrapper) el.classList.remove('dropdown-open');
+        });
+    }
+
+    function closeNotificationDropdowns() {
+        if (notificationsDropdown) notificationsDropdown.classList.remove('active');
+        if (mobileNotificationsDropdown) mobileNotificationsDropdown.classList.remove('active');
+        isDesktopOpen = false;
+        isMobileOpen = false;
+    }
+
+    // Desktop mice get hover-to-open; touch devices get tap-to-toggle. Checking this up
+    // front avoids a click right after a hover-open immediately toggling itself shut again.
+    const supportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    document.querySelectorAll('.navbar-dropdown').forEach(function(wrapper) {
+        const trigger = wrapper.querySelector(':scope > button, :scope > a');
+        let closeTimer = null;
+
+        function openThis() {
+            clearTimeout(closeTimer);
+            closeHoverDropdowns(wrapper);
+            closeNotificationDropdowns();
+            wrapper.classList.add('dropdown-open');
+        }
+        function closeThis() {
+            wrapper.classList.remove('dropdown-open');
+        }
+        function scheduleClose() {
+            clearTimeout(closeTimer);
+            closeTimer = setTimeout(closeThis, 350);
+        }
+
+        if (supportsHover) {
+            wrapper.addEventListener('mouseenter', openThis);
+            wrapper.addEventListener('mouseleave', scheduleClose);
+        }
+        wrapper.addEventListener('click', function(e) { e.stopPropagation(); });
+
+        if (trigger) {
+            trigger.addEventListener('click', function(e) {
+                const isRealLink = trigger.tagName === 'A' && trigger.getAttribute('href') && trigger.getAttribute('href') !== '#';
+                if (isRealLink) return;
+                e.preventDefault();
+                if (supportsHover) {
+                    // Hover already opens it; a click (e.g. via keyboard) should just affirm that.
+                    openThis();
+                } else if (wrapper.classList.contains('dropdown-open')) {
+                    closeThis();
+                } else {
+                    openThis();
+                }
+            });
+        }
+    });
+
+    document.addEventListener('click', function() {
+        closeHoverDropdowns();
+    });
+
+    // Mobile menu
+    const mobileToggle = document.getElementById('navbarMobileToggle');
+    const mobileMenu = document.getElementById('navbarMobileMenu');
+    const mobileOverlay = document.getElementById('navbarMobileOverlay');
+    const mobileClose = document.getElementById('navbarMobileClose');
+    
+    function closeMobileMenu() {
+        if (!mobileMenu.classList.contains('active')) return;
+        mobileMenu.classList.remove('active');
+        mobileOverlay.classList.remove('active');
+        mobileMenu.setAttribute('aria-hidden', 'true');
+        if (mobileToggle) { mobileToggle.setAttribute('aria-expanded', 'false'); mobileToggle.focus(); }
+        document.body.style.overflow = '';
+    }
+    
+    if (mobileToggle) {
+        mobileToggle.addEventListener('click', () => {
+            mobileMenu.classList.add('active');
+            mobileOverlay.classList.add('active');
+            mobileMenu.setAttribute('aria-hidden', 'false');
+            mobileToggle.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => mobileClose && mobileClose.focus(), 50);
+        });
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileMenu(); });
+    
+    if (mobileClose) mobileClose.addEventListener('click', closeMobileMenu);
+    if (mobileOverlay) mobileOverlay.addEventListener('click', closeMobileMenu);
+    
+    // Mobile coupon buttons
+    const mobileApply = document.getElementById('mobileApplyCouponBtn');
+    const mobileView = document.getElementById('mobileViewCouponsBtn');
+    
+    if (mobileApply) {
+        mobileApply.addEventListener('click', () => {
+            closeMobileMenu();
+            document.getElementById('openCouponModalBtn')?.click();
+        });
+    }
+    
+    if (mobileView) {
+        mobileView.addEventListener('click', () => {
+            closeMobileMenu();
+            document.getElementById('viewCouponsBtn')?.click();
+        });
+    }
+    
+    // Search functionality
+    const searchInput = document.getElementById('navbarSearchInput');
+    const suggestionsDiv = document.getElementById('navbarSearchSuggestions');
+    const TYPE_ICONS = {
+        'Category': 'fa-folder-open', 'Test Series': 'fa-file-signature', 'Video Course': 'fa-circle-play',
+        'Live Class': 'fa-video', 'E-Library': 'fa-book-open', 'Bundle': 'fa-layer-group',
+    };
+    let searchTimeout;
+    let latestRequest = 0;
+    let activeIndex = -1;
+
+    const goToSearch = (q) => { window.location.href = `/search/?q=${encodeURIComponent(q)}`; };
+    const suggestionLinks = () => Array.from(suggestionsDiv.querySelectorAll('.navbar-suggestion-item'));
+
+    function setActive(index) {
+        const links = suggestionLinks();
+        links.forEach(a => a.classList.remove('is-active'));
+        activeIndex = links.length ? (index + links.length) % links.length : -1;
+        if (activeIndex >= 0) {
+            links[activeIndex].classList.add('is-active');
+            links[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    if (searchInput) {
+        searchInput.setAttribute('role', 'combobox');
+        searchInput.setAttribute('aria-controls', 'navbarSearchSuggestions');
+        searchInput.setAttribute('aria-autocomplete', 'list');
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            clearTimeout(searchTimeout);
+            activeIndex = -1;
+
+            if (query.length < 2) {
+                suggestionsDiv.classList.remove('active');
+                return;
+            }
+
+            suggestionsDiv.innerHTML = '<div class="navbar-search-loading"><span class="navbar-search-spinner"></span> Searching...</div>';
+            suggestionsDiv.classList.add('active');
+
+            searchTimeout = setTimeout(() => fetchSuggestions(query), 220);
+        });
+
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2 && suggestionsDiv.innerHTML) suggestionsDiv.classList.add('active');
+        });
+
+        searchInput.addEventListener('keydown', function(e) {
+            const open = suggestionsDiv.classList.contains('active');
+            if (e.key === 'ArrowDown' && open) { e.preventDefault(); setActive(activeIndex + 1); }
+            else if (e.key === 'ArrowUp' && open) { e.preventDefault(); setActive(activeIndex - 1); }
+            else if (e.key === 'Escape') { suggestionsDiv.classList.remove('active'); }
+            else if (e.key === 'Enter' && this.value.trim()) {
+                e.preventDefault();
+                const links = suggestionLinks();
+                if (open && activeIndex >= 0 && links[activeIndex]) window.location.href = links[activeIndex].href;
+                else goToSearch(this.value.trim());
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (searchInput && !searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.classList.remove('active');
+        }
+    });
+
+    suggestionsDiv?.addEventListener('click', function(e) {
+        const chip = e.target.closest('[data-search]');
+        if (!chip) return;
+        e.preventDefault();
+        searchInput.value = chip.dataset.search;
+        goToSearch(chip.dataset.search);
+    });
+
+    function fetchSuggestions(query) {
+        const requestId = ++latestRequest;
+        fetch(`/api/search-suggestions/?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(data => {
+                // Ignore slow responses for text the user has already changed.
+                if (requestId === latestRequest) displaySuggestions(data, query);
+            })
+            .catch(() => {
+                if (requestId === latestRequest) {
+                    suggestionsDiv.innerHTML = '<div class="navbar-no-suggestions">Search failed. Please try again.</div>';
+                }
+            });
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
+    // Bold the parts of a name that match the typed (or corrected) words.
+    function highlight(name, words) {
+        let html = escapeHtml(name);
+        words.filter(w => w.length >= 2 || /^\d+$/.test(w)).forEach(word => {
+            const safe = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const boundary = /^\d+$/.test(word) ? '(?!\\d)' : '';
+            html = html.replace(new RegExp(`(^|[^\\w>])(${safe}${boundary})`, 'gi'), '$1<mark>$2</mark>');
+        });
+        return html;
+    }
+
+    function iconBox(type) {
+        const typeClass = type.toLowerCase().replace(/\s+/g, '-');
+        return `<div class="navbar-suggestion-thumbnail navbar-suggestion-icon ${typeClass}"><i class="fa ${TYPE_ICONS[type] || 'fa-book'}"></i></div>`;
+    }
+
+    function chips(list) {
+        return list.map(q => `<button type="button" class="navbar-search-chip" data-search="${escapeHtml(q)}">${escapeHtml(q)}</button>`).join('');
+    }
+
+    function displaySuggestions(data, query) {
+        const suggestions = data.suggestions || [];
+        const corrected = data.corrected;
+        const words = (corrected || query).toLowerCase()
+            .replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2')
+            .split(/[^a-z0-9]+/).filter(Boolean);
+        activeIndex = -1;
+
+        if (suggestions.length === 0) {
+            const popular = data.popular || [];
+            suggestionsDiv.innerHTML = `
+                <div class="navbar-no-suggestions">
+                    <div class="navbar-no-suggestions-icon"><i class="fa fa-magnifying-glass"></i></div>
+                    <strong>No results for "${escapeHtml(query)}"</strong>
+                    <span>Check the spelling or try a broader term.</span>
+                    ${popular.length ? `<div class="navbar-search-chips"><small>Popular searches</small>${chips(popular)}</div>` : ''}
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        if (corrected) {
+            html += `<button type="button" class="navbar-search-corrected" data-search="${escapeHtml(corrected)}">
+                        <i class="fa fa-wand-magic-sparkles"></i> Showing results for <strong>${escapeHtml(corrected)}</strong>
+                     </button>`;
+        }
+        suggestions.forEach(item => {
+            const typeClass = item.type.toLowerCase().replace(/\s+/g, '-');
+            const thumb = item.thumbnail
+                ? `<img src="${escapeHtml(item.thumbnail)}" alt="" class="navbar-suggestion-thumbnail" loading="lazy" data-type="${escapeHtml(item.type)}">`
+                : iconBox(item.type);
+            const isFree = item.price === 'Free';
+
+            html += `
+                <a href="${escapeHtml(item.url)}" class="navbar-suggestion-item" role="option">
+                    ${thumb}
+                    <div class="navbar-suggestion-content">
+                        <p class="navbar-suggestion-name">${highlight(item.name, words)}</p>
+                        <div class="navbar-suggestion-meta">
+                            <span class="navbar-suggestion-type ${typeClass}">${escapeHtml(item.type)}</span>
+                            ${item.category && item.category !== item.type ? `<span class="navbar-suggestion-category">${escapeHtml(item.category)}</span>` : ''}
+                            ${item.price ? `<span class="navbar-suggestion-price ${isFree ? 'is-free' : ''}">${escapeHtml(item.price)}</span>` : ''}
+                        </div>
+                    </div>
+                    <i class="fa fa-arrow-right navbar-suggestion-arrow"></i>
+                </a>
+            `;
+        });
+
+        html += `<a href="/search/?q=${encodeURIComponent(query)}" class="navbar-view-all-results">See all results for "${escapeHtml(query)}" <i class="fa fa-arrow-right"></i></a>
+                 <div class="navbar-search-hint"><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate <kbd>Enter</kbd> open <kbd>Esc</kbd> close</div>`;
+        suggestionsDiv.innerHTML = html;
+        // Broken thumbnails fall back to the type icon.
+        suggestionsDiv.querySelectorAll('img.navbar-suggestion-thumbnail').forEach(img => {
+            img.addEventListener('error', () => { img.outerHTML = iconBox(img.dataset.type); }, { once: true });
+        });
+    }
+
+    // Sticky navbar. On phones the search row hides while scrolling down and returns on scroll up.
+    const navbarEl = document.querySelector('.main-navbar');
+    const navSearchInput = document.getElementById('navbarSearchInput');
+    const phoneNav = window.matchMedia('(max-width: 768px)');
+    let lastScrollY = window.scrollY;
+    const syncNavHeight = () => {
+        if (navbarEl) document.documentElement.style.setProperty('--mobile-nav-h', navbarEl.offsetHeight + 'px');
+    };
+    window.addEventListener('scroll', () => {
+        if (!navbarEl) return;
+        const y = window.scrollY;
+        navbarEl.classList.toggle('scrolled', y > 50);
+        if (phoneNav.matches && Math.abs(y - lastScrollY) > 6) {
+            const searching = document.activeElement === navSearchInput;
+            navbarEl.classList.toggle('nav-search-hidden', y > lastScrollY && y > 120 && !searching);
+            lastScrollY = y;
+        }
+    }, { passive: true });
+    if (navbarEl) {
+        navbarEl.addEventListener('transitionend', syncNavHeight);
+        if (window.ResizeObserver) new ResizeObserver(syncNavHeight).observe(navbarEl);
+        syncNavHeight();
+    }
+});
+</script>
+
+<style>
+    /* Explore Exams mega menu */
+    .navbar-dropdown-content.exam-menu {
+        width: min(780px, calc(100vw - 32px)); min-width: 0; max-height: none; overflow: hidden;
+        padding: 0; border-radius: 16px; border-color: #e7e9f0;
+        box-shadow: 0 20px 50px rgba(17, 24, 39, .16);
+    }
+    .navbar-dropdown.dropdown-open .exam-menu { display: flex; flex-direction: column; }
+    .exam-menu [hidden] { display: none !important; }
+    .exam-menu-top { padding: 12px; border-bottom: 1px solid #eef0f4; background: #fafbfc; }
+    .exam-menu-search {
+        display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px;
+        border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: text;
+    }
+    .exam-menu-search i { color: #9ca3af; font-size: 13px; }
+    .exam-menu-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; color: #111827; }
+    .exam-menu-search:focus-within { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .15); }
+
+    .exam-menu-body { display: grid; grid-template-columns: 220px 1fr; height: min(420px, 60vh); }
+    .exam-menu-groups { overflow-y: auto; padding: 8px; border-right: 1px solid #eef0f4; background: #fafbfc; }
+    .exam-menu-group {
+        width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-bottom: 2px;
+        border: 0; border-radius: 9px; background: transparent; cursor: pointer; text-align: left;
+        font: inherit; font-size: 13.5px; font-weight: 600; color: #374151;
+    }
+    .exam-menu-group i { width: 16px; text-align: center; color: #9ca3af; font-size: 13px; }
+    .exam-menu-group span { flex: 1; min-width: 0; }
+    .exam-menu-group em { font-style: normal; font-size: 11px; font-weight: 700; color: #6b7280; background: #eef0f4; padding: 1px 7px; border-radius: 999px; }
+    .exam-menu-group:hover { background: #fff; color: #111827; }
+    .exam-menu-group.is-active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(17, 24, 39, .08); }
+    .exam-menu-group.is-active i { color: var(--brand-primary-text); }
+
+    .exam-menu-panels { overflow-y: auto; padding: 14px 16px; }
+    .exam-menu-panel + .exam-menu-panel { margin-top: 16px; }
+    .exam-menu-panel-title { margin-bottom: 10px; font-size: 11.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; }
+    .exam-menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 6px; }
+    .navbar-dropdown-content.exam-menu a.exam-menu-link {
+        display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px;
+        border: 1px solid transparent; font-size: 13.5px; font-weight: 600; color: #1f2937;
+    }
+    .navbar-dropdown-content.exam-menu a.exam-menu-link:hover { background: #fff8f0; border-color: #f3e8d6; color: #111827; }
+    .exam-menu-icon { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; display: grid; place-items: center; font-size: 13px; }
+    .exam-menu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .exam-menu-empty { margin: 24px 0; text-align: center; color: #6b7280; font-size: 14px; }
+
+    .exam-menu-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 16px; border-top: 1px solid #eef0f4; background: #fafbfc; }
+    .navbar-dropdown-content.exam-menu a.exam-menu-foot-link {
+        display: inline-flex; align-items: center; gap: 7px; padding: 4px 0; background: none;
+        font-size: 13px; font-weight: 700; color: #374151;
+    }
+    .navbar-dropdown-content.exam-menu a.exam-menu-foot-link:hover { background: none; color: var(--brand-primary-text); }
+    .exam-menu-foot-link i { color: var(--brand-primary-text); }
+
+    .exam-menu.is-searching .exam-menu-body { grid-template-columns: 1fr; }
+    .exam-menu.is-searching .exam-menu-groups { display: none; }
+
+    @media (max-width: 720px) {
+        .exam-menu-body { grid-template-columns: 1fr; height: min(460px, 65vh); }
+        .exam-menu-groups { display: flex; gap: 4px; overflow-x: auto; border-right: 0; border-bottom: 1px solid #eef0f4; }
+        .exam-menu-group { width: auto; flex-shrink: 0; margin: 0; }
+        .exam-menu-group em { display: none; }
+    }
+</style>
+
+<script>
+(function () {
+    var menu = document.getElementById('examMenu');
+    if (!menu || !menu.querySelector('.exam-menu-group')) return;
+    var groups = Array.prototype.slice.call(menu.querySelectorAll('.exam-menu-group'));
+    var panels = Array.prototype.slice.call(menu.querySelectorAll('.exam-menu-panel'));
+    var search = document.getElementById('examMenuSearch');
+    var empty = document.getElementById('examMenuEmpty');
+    var activeKey = groups[0].dataset.group;
+
+    function showGroup(key) {
+        activeKey = key;
+        groups.forEach(function (g) {
+            var on = g.dataset.group === key;
+            g.classList.toggle('is-active', on);
+            g.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        panels.forEach(function (p) { p.hidden = p.dataset.group !== key; });
+        menu.querySelector('.exam-menu-panels').scrollTop = 0;
+    }
+
+    function filter(raw) {
+        var query = raw.trim().toLowerCase();
+        menu.classList.toggle('is-searching', !!query);
+        var total = 0;
+        panels.forEach(function (panel) {
+            var shown = 0;
+            panel.querySelectorAll('.exam-menu-link').forEach(function (link) {
+                var hit = !query || link.dataset.name.indexOf(query) !== -1;
+                link.hidden = !hit;
+                if (hit) shown++;
+            });
+            panel.hidden = query ? shown === 0 : panel.dataset.group !== activeKey;
+            total += shown;
+        });
+        empty.hidden = total > 0;
+    }
+
+    groups.forEach(function (g) {
+        // Desktop: hovering a section previews it; a click works everywhere.
+        g.addEventListener('mouseenter', function () { if (!search.value) showGroup(g.dataset.group); });
+        g.addEventListener('click', function () {
+            search.value = '';
+            filter('');
+            showGroup(g.dataset.group);
+        });
+    });
+    search.addEventListener('input', function () { filter(search.value); });
+
+    // Keep the menu inside the window wherever the Explore Exams button sits.
+    var wrapper = menu.closest('.navbar-dropdown');
+    function fitToWindow() {
+        if (!wrapper.classList.contains('dropdown-open')) return;
+        menu.style.left = '0px';
+        var rect = menu.getBoundingClientRect();
+        var shift = 0;
+        if (rect.right > window.innerWidth - 16) shift = window.innerWidth - 16 - rect.right;
+        if (rect.left + shift < 16) shift = 16 - rect.left;
+        menu.style.left = shift + 'px';
+    }
+    new MutationObserver(fitToWindow).observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', fitToWindow);
+})();
+</script>

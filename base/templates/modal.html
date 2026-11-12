@@ -1,0 +1,74 @@
+<!-- Apply Coupon Modal -->
+<div id="couponModal" class="coupon-modal" aria-hidden="true" role="dialog" aria-labelledby="couponModalTitle">
+    <div class="coupon-modal__backdrop" data-close="apply"></div>
+    <div class="coupon-modal__dialog" role="document">
+        <button class="coupon-modal__close" type="button" aria-label="Close" data-close="apply">
+            <span class="fa fa-times"></span>
+        </button>
+
+        <div class="coupon-modal__header">
+            <div class="coupon-modal__icon"><span class="fa fa-ticket"></span></div>
+            <div class="coupon-modal__header-text">
+                <h3 id="couponModalTitle" class="coupon-modal__title">Apply Coupon</h3>
+                <p class="coupon-modal__subtitle">Enter a valid coupon to unlock discounts</p>
+            </div>
+        </div>
+
+        {% if user.is_authenticated %}
+        <form id="couponForm" class="coupon-form" novalidate>
+            {% csrf_token %}
+            <label for="couponCode" class="coupon-form__label">Coupon Code</label>
+            <div class="coupon-form__row">
+                <input
+                    type="text"
+                    id="couponCode"
+                    name="coupon"
+                    class="coupon-form__input"
+                    placeholder="e.g. SAVE20"
+                    maxlength="32"
+                    required
+                    autocomplete="off"
+                />
+                <button type="submit" class="coupon-form__apply">Apply</button>
+            </div>
+            <div class="coupon-form__helper">Only one coupon can be applied per order.</div>
+            <div class="coupon-form__message" id="couponMessage" role="status" aria-live="polite"></div>
+        </form>
+        {% else %}
+        <div class="coupon-login-message">
+            <div class="coupon-login-message__icon">
+                <i class="fa fa-lock"></i>
+            </div>
+            <h4 class="coupon-login-message__title">Login Required</h4>
+            <p class="coupon-login-message__text">You need to be logged in to apply coupons and get amazing discounts on your purchases.</p>
+            <a href="{{ login_url }}" class="coupon-login-message__button">
+                <i class="fa fa-sign-in"></i> Login Now
+            </a>
+            <p class="coupon-login-message__signup">
+                Don't have an account? <a href="{{ signup_url }}">Sign up here</a>
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<!-- View Coupons Modal -->
+<div id="viewCouponsModal" class="coupon-modal" aria-hidden="true" role="dialog">
+    <div class="coupon-modal__backdrop" data-close="view-coupons"></div>
+    <div class="coupon-modal__dialog coupon-modal__dialog--large" role="document">
+        <button class="coupon-modal__close" type="button" aria-label="Close" data-close="view-coupons">
+            <span class="fa fa-times"></span>
+        </button>
+
+        <div class="coupon-modal__header">
+            <div class="coupon-modal__icon"><span class="fa fa-gift"></span></div>
+            <div class="coupon-modal__header-text">
+                <h3 class="coupon-modal__title">My Available Coupons</h3>
+                <p class="coupon-modal__subtitle">Your saved coupons and discounts</p>
+            </div>
+        </div>
+
+        <div class="coupon-list" id="couponsList">
+            <!-- Coupons will be loaded here -->
+        </div>
+    </div>
+</div>

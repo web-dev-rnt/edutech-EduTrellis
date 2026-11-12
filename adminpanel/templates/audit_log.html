@@ -1,0 +1,93 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<style>
+  .al-wrap { padding: 24px; max-width: 1280px; }
+  .al-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .al-head h1 { margin: 0 0 4px; font-size: 1.6rem; font-weight: 800; color: #14141b; }
+  .al-head p { margin: 0; color: var(--admin-muted); font-size: 14px; }
+  .al-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+  .al-stat { padding: 10px 16px; border: 1px solid var(--admin-border); border-radius: 12px; background: #fff; min-width: 150px; }
+  .al-stat strong { display: block; font-size: 1.35rem; color: #14141b; }
+  .al-stat span { font-size: 12px; color: var(--admin-muted); font-weight: 600; }
+  .al-stat.warn strong { color: #dc2626; }
+  .al-card { background: #fff; border: 1px solid var(--admin-border); border-radius: 14px; overflow: hidden; }
+  .al-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--admin-border); }
+  .al-filters input, .al-filters select { height: 38px; padding: 0 12px; border: 1px solid var(--input-border); border-radius: 9px; font: inherit; font-size: 14px; }
+  .al-filters input { flex: 1 1 260px; min-width: 0; width: auto !important; margin: 0 !important; }
+  .al-filters select { flex: 0 0 180px; width: 180px !important; margin: 0 !important; }
+  .al-filters button { flex: 0 0 auto; width: auto !important; margin: 0 !important; }
+  .al-filters button { height: 38px; padding: 0 18px; border: 0; border-radius: 9px; background: var(--admin-primary); color: #fff; font-weight: 700; cursor: pointer; }
+  .al-table-wrap { overflow-x: auto; }
+  .al-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .al-table th { text-align: left; padding: 11px 14px; background: #f8f9fb; color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  .al-table td { padding: 10px 14px; border-top: 1px solid #f1f2f5; vertical-align: top; }
+  .al-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: #374151; word-break: break-all; }
+  .al-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #eef0f4; color: #4b5563; }
+  .al-badge.create { background: #e6f7ee; color: #15803d; }
+  .al-badge.update { background: #e8f0fe; color: #1d4ed8; }
+  .al-badge.delete { background: #fde8e8; color: #b91c1c; }
+  .al-badge.login { background: rgba(36, 89, 224,.18); color: #1A3FB0; }
+  .al-badge.login_failed { background: #fff1e6; color: #c2410c; }
+  .al-muted { color: #9ca3af; }
+  .al-empty { padding: 48px 16px; text-align: center; color: var(--admin-muted); }
+  .al-empty i { display: block; font-size: 28px; color: #d1d5db; margin-bottom: 10px; }
+  .al-pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--admin-border); font-size: 13px; color: var(--admin-muted); }
+  .al-pager a { padding: 7px 12px; border: 1px solid var(--admin-border); border-radius: 8px; color: #14141b; font-weight: 600; }
+</style>
+
+<div class="al-wrap">
+  <div class="al-head">
+    <div>
+      <h1><i class="fas fa-shield-halved" style="color: var(--admin-primary-text);"></i> Audit Log</h1>
+      <p>Every change made in the admin area, staff logins and failed login attempts.</p>
+    </div>
+    <div class="al-stats">
+      <div class="al-stat"><strong>{{ changes_24h }}</strong><span>Admin changes (24h)</span></div>
+      <div class="al-stat {% if failed_logins_24h > 20 %}warn{% endif %}"><strong>{{ failed_logins_24h }}</strong><span>Failed logins (24h)</span></div>
+    </div>
+  </div>
+
+  <div class="al-card">
+    <form class="al-filters" method="get">
+      <input type="search" name="q" value="{{ query }}" placeholder="Search by email, page or IP" aria-label="Search audit log">
+      <select name="action" aria-label="Action">
+        <option value="">All actions</option>
+        {% for value, label in actions %}<option value="{{ value }}" {% if value == action %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <button type="submit">Filter</button>
+    </form>
+
+    {% if page_obj.object_list %}
+    <div class="al-table-wrap">
+      <table class="al-table">
+        <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Page</th><th>Result</th><th>IP</th></tr></thead>
+        <tbody>
+          {% for entry in page_obj %}
+          <tr>
+            <td style="white-space:nowrap;">{{ entry.created_at|date:"d M Y, H:i" }}</td>
+            <td>{{ entry.user_email|default:"—" }}</td>
+            <td><span class="al-badge {{ entry.action }}">{{ entry.get_action_display }}</span></td>
+            <td class="al-path">{{ entry.method }} {{ entry.path }}{% if entry.view_name %}<div class="al-muted">{{ entry.view_name }}</div>{% endif %}</td>
+            <td>{{ entry.status_code|default:"—" }}</td>
+            <td class="al-muted">{{ entry.ip_address|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="al-pager">
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} entries</span>
+      <span>
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&amp;action={{ action|urlencode }}&amp;q={{ query|urlencode }}">Newer</a>{% endif %}
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&amp;action={{ action|urlencode }}&amp;q={{ query|urlencode }}">Older</a>{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <div class="al-empty"><i class="fas fa-clipboard-check"></i>No activity recorded{% if query or action %} for this filter{% endif %} yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

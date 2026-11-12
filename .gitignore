@@ -1,0 +1,14 @@
+.venv/
+.env
+__pycache__/
+*.py[cod]
+staticfiles/
+backups/
+base/secrets/
+*.pem
+
+# Local database: holds user accounts and is over GitHub's 100 MB limit. Production uses DATABASE_URL;
+# build the test content on a new database with: python manage.py build_test_content
+db.sqlite3
+*.sqlite3
+*.sqlite3-journal

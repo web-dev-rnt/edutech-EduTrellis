@@ -1,0 +1,118 @@
+<!DOCTYPE html>    
+{% load static %}
+{% load banner_tags %}
+{% load navbar_tags %}
+{% load developer_popup_tags %}
+{% load seo_tags %}
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+
+  <title>{% block title %}{{ seo.title }}{% endblock %}</title>
+  {% block seo_meta %}{% include "partials/seo_meta.html" %}{% endblock %}
+  {% site_jsonld %}
+
+  {% get_theme_settings as theme %}
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="{{ theme.primary_color|default:"#2459E0" }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Infinite360">
+  <meta name="application-name" content="Infinite360">
+  <meta name="msapplication-TileColor" content="{{ theme.primary_color|default:"#2459E0" }}">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="msapplication-TileImage" content="{% static 'img/icon-192.png' %}">
+  
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="{% url 'manifest1' %}">
+  
+  <!-- Dynamic Favicon using template tag -->
+  {% get_favicon_url as favicon_url %}
+  {% if favicon_url %}
+      <link rel="icon" type="image/png" sizes="32x32" href="{{ favicon_url }}">
+      <link rel="icon" type="image/png" sizes="16x16" href="{{ favicon_url }}">
+      <link rel="shortcut icon" type="image/png" href="{{ favicon_url }}">
+      <link rel="apple-touch-icon" href="{{ favicon_url }}">
+      <link rel="apple-touch-icon" sizes="152x152" href="{{ favicon_url }}">
+      <link rel="apple-touch-icon" sizes="180x180" href="{{ favicon_url }}">
+      <link rel="apple-touch-icon" sizes="167x167" href="{{ favicon_url }}">
+  {% else %}
+      <link rel="icon" type="image/png" href="{% static 'img/icon-192.png' %}">
+      <link rel="shortcut icon" type="image/png" href="{% static 'img/icon-192.png' %}">
+      <link rel="apple-touch-icon" href="{% static 'img/icon-192.png' %}">
+  {% endif %}
+  
+  <!-- Self-hosted icons and typography. -->
+  <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/typography.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/home-components.css' %}">
+
+  {% include "partials/theme_vars.html" %}
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <!-- Developer Info Popup (Dynamic) -->
+    {% render_developer_popup %}
+
+    {% block navbard %}
+    {% include "navbar.html" %}
+    {% include "modal.html" %}
+    {% include "message.html" %}
+    {% endblock navbard %}
+
+    <main id="main-content" tabindex="-1">
+    {% block content %}
+    {% render_banner_slider %}
+
+    <!-- Test series stats, Perform / Analyse / Improve steps and call to action -->
+    {% render_stats_section %}
+
+    <!-- Daily Quiz: 10 fresh questions a day per category -->
+    {% include "daily_quiz.html" %}
+
+    {% include "video_course.html" %}
+    {% include "live_class.html" %}
+    {% include "test_series.html" %}
+    {% include "e_library.html" %}
+    {% include "product_bundle.html" %}
+
+    {% render_about_us_section %}
+
+    {% render_contact_section %}
+
+    {% include "tutor_widget.html" %}
+
+    {% endblock content %}
+    </main>
+
+    {% block footer %}
+    <!-- Footer -->
+    {% render_footer_section %}
+    {% endblock footer %}
+
+  <!-- PWA Install Button (shown dynamically on supported browsers) -->
+  <button id="pwa-install-btn" aria-label="Install Infinite360 App">
+    <i class="fa fa-download"></i>
+    <span>Install App</span>
+  </button>
+
+  <!-- iOS Install Banner (shown on iOS devices) -->
+  <div class="ios-install-banner" id="ios-install-banner">
+    <div class="ios-install-content">
+      <h3>📱 Install Infinite360</h3>
+      <p>Tap <i class="fa fa-share"></i> then "Add to Home Screen"</p>
+    </div>
+    <button class="ios-install-close" id="ios-install-close" aria-label="Close banner">×</button>
+  </div>
+
+  <!-- JavaScript files -->
+  <script src="{% static 'js/javascript.js' %}"></script>
+  <script src="{% static 'js/home-components.js' %}"></script>
+  <script src="{% static 'js/pwainstall.js' %}"></script>
+
+</body>
+</html>

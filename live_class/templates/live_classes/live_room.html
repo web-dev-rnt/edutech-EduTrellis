@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ session.class_name }} · Live Class | {{ seo.site_name|default:"Infinite360" }}{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title=session.class_name seo_noindex=True %}{% endblock %}
+
+{% block content %}
+<section class="lr" id="live-room"
+         data-state="{{ state }}" data-opens-at="{{ opens_at|date:'c' }}" data-starts-at="{{ session.scheduled_datetime|date:'c' }}"
+         data-ends-at="{{ session.ends_at|date:'c' }}">
+  <div class="lr__inner">
+    <a class="lr__back" href="{% url 'live_class_detail' course.pk %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> {{ course.name }}</a>
+
+    <header class="lr__hero">
+      <div class="lr__hero-main">
+        <span class="lr__badge lr__badge--{{ real_state }}" data-lr="badge">
+          {% if real_state == 'open' %}<span class="lr__dot"></span> Live now{% elif real_state == 'upcoming' %}<i class="far fa-clock" aria-hidden="true"></i> Upcoming{% else %}<i class="fas fa-circle-check" aria-hidden="true"></i> Class ended{% endif %}
+        </span>
+        <h1>{{ session.class_name }}</h1>
+        <ul class="lr__meta">
+          {% if session.subject %}<li><i class="fas fa-book-open" aria-hidden="true"></i> {{ session.subject }}</li>{% endif %}
+          <li><i class="far fa-calendar" aria-hidden="true"></i> {{ session.scheduled_datetime|date:"D, d M Y" }}</li>
+          <li><i class="far fa-clock" aria-hidden="true"></i> {{ session.scheduled_datetime|time:"g:i A" }} – {{ session.ends_at|time:"g:i A" }}</li>
+          <li><i class="fas fa-hourglass-half" aria-hidden="true"></i> {{ session.duration_minutes }} min</li>
+        </ul>
+      </div>
+      {% if is_moderator %}<span class="lr__role"><i class="fas fa-chalkboard-user" aria-hidden="true"></i> You are the teacher</span>{% endif %}
+    </header>
+
+    {% if not user.is_authenticated %}
+      <div class="lr__card lr__center">
+        <div class="lr__icon"><i class="fas fa-lock" aria-hidden="true"></i></div>
+        <h2>Log in to join this class</h2>
+        <p>Live classes are for registered students. Log in, or create a free account, to join and watch recordings.</p>
+        <div class="lr__actions">
+          <a class="lr__btn lr__btn--primary" href="{{ login_url }}"><i class="fas fa-right-to-bracket" aria-hidden="true"></i> Log in</a>
+          <a class="lr__btn lr__btn--ghost" href="{% url 'signup' %}?next={{ request.get_full_path|urlencode }}">Create free account</a>
+        </div>
+      </div>
+
+    {% elif not has_access %}
+      <div class="lr__card lr__center">
+        <div class="lr__icon"><i class="fas fa-ticket" aria-hidden="true"></i></div>
+        <h2>Enroll to join this class</h2>
+        <p>This class is part of <strong>{{ course.name }}</strong>. Enroll in the course to join live and watch the recordings.</p>
+        <div class="lr__actions">
+          <a class="lr__btn lr__btn--primary" href="{% url 'live_class_detail' course.pk %}">View course &amp; enroll <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </div>
+
+    {% elif state == 'upcoming' %}
+      <div class="lr__card lr__center">
+        <div class="lr__icon"><i class="far fa-clock" aria-hidden="true"></i></div>
+        <h2>Class starts in</h2>
+        <div class="lr__countdown" data-lr="countdown" aria-live="polite">--:--:--</div>
+        <p>The room opens 15 minutes before the class. This page will open it for you automatically, so keep it open.</p>
+        <ul class="lr__tips">
+          <li><i class="fas fa-headphones" aria-hidden="true"></i> Use earphones for clear sound</li>
+          <li><i class="fas fa-wifi" aria-hidden="true"></i> A steady internet connection helps</li>
+          <li><i class="fas fa-mobile-screen" aria-hidden="true"></i> Works on phone, tablet and laptop</li>
+        </ul>
+      </div>
+
+    {% elif state == 'ended' %}
+      <div class="lr__card lr__center">
+        <div class="lr__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></div>
+        <h2>This class has ended</h2>
+        <p>{% if recordings %}Watch the recording below.{% else %}The recording will appear here once the teacher has saved it.{% endif %}</p>
+      </div>
+
+    {% else %}
+      {% if jitsi_embed %}
+        <div class="lr__stage">
+          <div id="jitsi-container" class="lr__jitsi" aria-label="Live class video"></div>
+          <p class="lr__status" data-lr="status" role="status">Connecting to the class…</p>
+        </div>
+      {% else %}
+        <div class="lr__card lr__join">
+          <div class="lr__join-main">
+            <h2>{% if is_moderator %}Start the class{% else %}The class is live{% endif %}</h2>
+            <p>{% if is_moderator %}The class opens in a new tab on Jitsi Meet (free, no time limit). Keep this tab open to record the class.{% else %}Tap the button to join. It opens in a new tab, in your browser, with no app or sign-up needed.{% endif %}</p>
+            <a class="lr__btn lr__btn--primary lr__btn--big" href="{{ join_url }}" target="_blank" rel="noopener" data-lr="join">
+              <i class="fas fa-video" aria-hidden="true"></i> {% if is_moderator %}Start class{% else %}Join class now{% endif %}
+            </a>
+          </div>
+          <ol class="lr__steps">
+            {% if is_moderator %}
+              <li><strong>Click "Start class".</strong> Jitsi opens in a new tab.</li>
+              <li><strong>Click "I am the host" and sign in</strong> with Google or GitHub. This is a one-time step that makes you the moderator. Students wait in the lobby until you do.</li>
+              <li><strong>Come back here and press "Start recording"</strong> to save the class to Dropbox.</li>
+            {% else %}
+              <li><strong>Allow camera and microphone</strong> when your browser asks.</li>
+              <li>Your name is filled in for you. Press <strong>Join meeting</strong>.</li>
+              <li>If you see "waiting for the host", the class will start as soon as your teacher arrives.</li>
+            {% endif %}
+          </ol>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {% if is_moderator %}
+      <div class="lr__card lr__recorder" id="recorder"
+           data-start-url="{% url 'live_recording_start' session.pk %}" data-csrf="{{ csrf_token }}"
+           data-embed="{{ jitsi_embed|yesno:'1,0' }}">
+        <div class="lr__recorder-head">
+          <div>
+            <h2><i class="fas fa-circle-dot" aria-hidden="true"></i> Class recording</h2>
+            <p>Saved straight to {% if dropbox_ready %}Dropbox{% else %}the server (Dropbox is not connected){% endif %} while you teach, so nothing is lost if your browser closes.{% if session.enable_auto_recording %} <strong>This class is set to be recorded.</strong>{% endif %}</p>
+          </div>
+          <div class="lr__rec-stats" aria-live="polite">
+            <span data-rec="timer">0:00</span>
+            <span data-rec="saved">0 MB saved</span>
+          </div>
+        </div>
+        <div class="lr__actions lr__actions--left">
+          <button type="button" class="lr__btn lr__btn--rec" data-rec="start"><i class="fas fa-circle" aria-hidden="true"></i> Start recording</button>
+          <button type="button" class="lr__btn lr__btn--ghost" data-rec="stop" hidden><i class="fas fa-stop" aria-hidden="true"></i> Stop &amp; save</button>
+        </div>
+        <p class="lr__rec-note" data-rec="note">
+          {% if jitsi_embed %}When asked, choose <strong>this tab</strong> and keep "share tab audio" ticked.{% else %}When asked, choose the <strong>Jitsi Meet tab</strong> and tick <strong>"Also share tab audio"</strong> so students' voices are recorded. Your microphone is added automatically.{% endif %}
+          Works in Chrome or Edge on a laptop or desktop.
+        </p>
+      </div>
+    {% endif %}
+
+    {% if recordings %}
+      <div class="lr__card">
+        <h2 class="lr__h2"><i class="fas fa-film" aria-hidden="true"></i> Class recordings</h2>
+        <div class="lr__recs">
+          {% for rec in recordings %}
+            <article class="lr__rec">
+              <video controls preload="none" playsinline src="{% url 'live_recording_play' rec.pk %}"></video>
+              <div class="lr__rec-info">
+                <strong>{{ rec.title|default:session.class_name }}</strong>
+                <span>{{ rec.duration_display }} · {{ rec.created_at|date:"d M Y, g:i A" }}{% if is_moderator %} · {{ rec.size_mb }} MB{% endif %}</span>
+              </div>
+              {% if is_moderator %}
+                <form method="post" action="{% url 'live_recording_delete' rec.pk %}" onsubmit="return confirm('Delete this recording from Dropbox? Students will no longer see it.');">
+                  {% csrf_token %}
+                  <button type="submit" class="lr__icon-btn" aria-label="Delete recording"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                </form>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.lr { padding: clamp(18px, 3vw, 34px) 16px 48px; background: radial-gradient(circle at 90% 0, rgba(var(--brand-primary-rgb, 36, 89, 224), .07), transparent 40%), #f7f8fc; min-height: 70vh; }
+.lr__inner { max-width: 1100px; margin: 0 auto; display: grid; gap: 16px; }
+.lr__back { display: inline-flex; align-items: center; gap: 8px; width: fit-content; color: #4b5368; font: 700 14px/1.3 var(--font-sans); text-decoration: none; }
+.lr__back:hover { color: var(--brand-primary-text, #2459E0); }
+
+.lr__hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: clamp(18px, 3vw, 26px); border-radius: 20px; color: #fff; position: relative; overflow: hidden;
+  background: radial-gradient(circle at 100% 0, rgba(255, 154, 31, .25), transparent 45%), linear-gradient(135deg, var(--brand-ink, #10142E), var(--brand-ink-2, #1E2448));
+}
+.lr__hero::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--brand-primary, #2459E0), #7B3FE4, #FF9A1F); }
+.lr__hero h1 { margin: 10px 0 8px; font: 800 clamp(22px, 3vw, 30px)/1.2 var(--font-sans); color: #fff; }
+.lr__meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; color: #c9ccd6; font: 600 14px/1.4 var(--font-sans); }
+.lr__meta i { color: #8FB0FF; margin-right: 4px; }
+.lr__badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font: 800 12px/1 var(--font-sans); letter-spacing: .4px; text-transform: uppercase; }
+.lr__badge--open { background: rgba(239, 68, 68, .18); color: #fecaca; }
+.lr__badge--upcoming { background: rgba(255, 154, 31, .18); color: #FFB547; }
+.lr__badge--ended { background: rgba(255, 255, 255, .12); color: #d1d5e0; }
+.lr__dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: lr-pulse 1.4s infinite; }
+@keyframes lr-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .7); } 50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } }
+.lr__role { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: rgba(255,255,255,.1); font: 700 13px/1 var(--font-sans); }
+
+.lr__card { background: #fff; border: 1px solid rgba(15, 23, 42, .08); border-radius: 20px; padding: clamp(18px, 3vw, 28px); box-shadow: 0 12px 32px rgba(15, 23, 42, .06); }
+.lr__center { text-align: center; }
+.lr__card h2, .lr__h2 { margin: 0 0 8px; font: 800 clamp(19px, 2.2vw, 24px)/1.25 var(--font-sans); color: #14141b; }
+.lr__card p { margin: 0 auto 16px; color: #5b6474; font: 500 15px/1.6 var(--font-sans); max-width: 560px; }
+.lr__icon { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 18px; display: grid; place-items: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, var(--brand-primary, #2459E0), #7B3FE4 60%, #FF9A1F); }
+.lr__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.lr__actions--left { justify-content: flex-start; }
+.lr__btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 22px; border-radius: 999px; border: 0; cursor: pointer; text-decoration: none; font: 700 15px/1 var(--font-sans); transition: transform .2s ease, background .2s ease; }
+.lr__btn--primary { background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff); box-shadow: 0 8px 22px rgba(var(--brand-primary-rgb, 36, 89, 224), .3); }
+.lr__btn--primary:hover { background: var(--brand-primary-dark, #1d49b8); color: var(--brand-on-primary, #fff); transform: translateY(-2px); }
+.lr__btn--ghost { background: #f1f3f9; color: #1E2448; }
+.lr__btn--ghost:hover { background: #e5e9f4; color: #10142E; }
+.lr__btn--rec { background: #dc2626; color: #fff; }
+.lr__btn--rec:hover { background: #b91c1c; color: #fff; }
+.lr__btn--big { padding: 16px 30px; font-size: 17px; }
+.lr__btn:disabled { opacity: .6; cursor: progress; transform: none; }
+.lr__btn[hidden] { display: none; }
+.lr__btn:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), .45); outline-offset: 3px; }
+
+.lr__countdown { font: 800 clamp(34px, 7vw, 54px)/1.1 var(--font-sans); color: #14141b; font-variant-numeric: tabular-nums; margin: 6px 0 14px; letter-spacing: -1px; }
+.lr__tips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lr__tips li { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 999px; background: #f3f5fb; color: #303650; font: 600 13px/1.2 var(--font-sans); }
+.lr__tips i { color: var(--brand-primary-text, #2459E0); }
+
+.lr__join { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; align-items: center; }
+.lr__join p { margin-left: 0; }
+.lr__steps { margin: 0; padding: 16px 18px 16px 36px; border-radius: 16px; background: #f7f9fe; color: #303650; font: 500 14px/1.6 var(--font-sans); display: grid; gap: 8px; }
+.lr__steps strong { color: #14141b; }
+
+.lr__stage { background: #0f1222; border-radius: 20px; overflow: hidden; position: relative; }
+.lr__jitsi { width: 100%; height: min(78vh, 760px); min-height: 420px; }
+.lr__jitsi iframe { display: block; }
+.lr__status { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 12px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font: 600 12.5px/1.3 var(--font-sans); }
+.lr__status:empty { display: none; }
+
+.lr__recorder { border-color: rgba(220, 38, 38, .2); }
+.lr__recorder-head { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.lr__recorder-head h2 { font-size: 19px; }
+.lr__recorder-head h2 i { color: #dc2626; }
+.lr__recorder-head p { margin: 0; max-width: 640px; }
+.lr__rec-stats { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.lr__rec-stats span { padding: 8px 12px; border-radius: 10px; background: #f3f5fb; font: 800 14px/1 var(--font-sans); color: #14141b; font-variant-numeric: tabular-nums; }
+.lr__recorder.is-recording .lr__rec-stats span:first-child { background: #fee2e2; color: #b91c1c; }
+.lr__rec-note { margin: 12px 0 0 !important; max-width: none !important; font-size: 13.5px !important; }
+.lr__rec-note.is-bad { color: #b91c1c !important; font-weight: 700 !important; }
+.lr__rec-note.is-ok { color: #15803d !important; font-weight: 700 !important; }
+
+.lr__recs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+.lr__rec { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: start; padding: 10px; border-radius: 16px; background: #f7f9fe; }
+.lr__rec video { grid-column: 1 / -1; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #0f1222; }
+.lr__rec-info strong { display: block; font: 700 14.5px/1.35 var(--font-sans); color: #14141b; }
+.lr__rec-info span { font: 500 12.5px/1.4 var(--font-sans); color: #6b7280; }
+.lr__icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 0; background: #fee2e2; color: #b91c1c; cursor: pointer; }
+.lr__icon-btn:hover { background: #fecaca; }
+
+@media (max-width: 760px) {
+  .lr__join { grid-template-columns: 1fr; }
+  .lr__join .lr__btn--big { width: 100%; }
+  .lr__jitsi { height: calc(100dvh - 150px); min-height: 360px; }
+  .lr__stage { margin: 0 -16px; border-radius: 0; }
+  .lr__actions .lr__btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .lr__dot { animation: none; } .lr__btn { transition: none; } }
+</style>
+
+<script>
+(function () {
+  var root = document.getElementById('live-room');
+  if (!root) return;
+  var state = root.getAttribute('data-state');
+
+  // ---- countdown until the room opens, then reload into the open room
+  var countdown = root.querySelector('[data-lr="countdown"]');
+  if (countdown && state === 'upcoming') {
+    var opens = new Date(root.getAttribute('data-opens-at')).getTime();
+    var starts = new Date(root.getAttribute('data-starts-at')).getTime();
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    (function tick() {
+      var now = Date.now();
+      if (now >= opens) { location.reload(); return; }
+      var s = Math.max(0, Math.round((starts - now) / 1000));
+      var d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+      countdown.textContent = (d ? d + 'd ' : '') + pad(h) + ':' + pad(m) + ':' + pad(s % 60);
+      setTimeout(tick, 1000);
+    })();
+  }
+
+  {% if can_join and jitsi_embed %}
+  // ---- embedded meeting (self-hosted Jitsi)
+  var status = root.querySelector('[data-lr="status"]');
+  var script = document.createElement('script');
+  script.src = 'https://{{ jitsi_domain }}/external_api.js';
+  script.onload = function () {
+    try {
+      window.jitsiAPI = new JitsiMeetExternalAPI('{{ jitsi_domain }}', {
+        roomName: '{{ room_name }}',
+        parentNode: document.getElementById('jitsi-container'),
+        width: '100%', height: '100%',
+        userInfo: { displayName: '{{ display_name|escapejs }}', email: '{{ user_email|escapejs }}' },
+        configOverwrite: {
+          subject: '{{ session.class_name|escapejs }}',
+          prejoinConfig: { enabled: true },
+          disableDeepLinking: true,
+          startWithAudioMuted: {{ is_moderator|yesno:'false,true' }},
+          startWithVideoMuted: {{ is_moderator|yesno:'false,true' }},
+          enableWelcomePage: false, enableClosePage: false
+        },
+        interfaceConfigOverwrite: { MOBILE_APP_PROMO: false, SHOW_CHROME_EXTENSION_BANNER: false }
+      });
+      jitsiAPI.addEventListeners({
+        videoConferenceJoined: function () { status.textContent = ''; },
+        readyToClose: function () { location.href = '{% url "live_class_detail" course.pk %}'; }
+      });
+      status.textContent = '';
+    } catch (e) { status.textContent = 'Could not start the video. Please refresh the page.'; }
+  };
+  script.onerror = function () { status.textContent = 'Could not reach the video server. Check your connection and refresh.'; };
+  document.head.appendChild(script);
+  {% endif %}
+
+  // ---- teacher: record the class and stream it into Dropbox
+  var box = document.getElementById('recorder');
+  if (!box) return;
+  var startBtn = box.querySelector('[data-rec="start"]'), stopBtn = box.querySelector('[data-rec="stop"]');
+  var note = box.querySelector('[data-rec="note"]'), timerEl = box.querySelector('[data-rec="timer"]'), savedEl = box.querySelector('[data-rec="saved"]');
+  var CSRF = box.getAttribute('data-csrf'), EMBED = box.getAttribute('data-embed') === '1';
+  var canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder);
+  if (!canRecord) {
+    startBtn.disabled = true;
+    note.classList.add('is-bad');
+    note.textContent = 'Recording needs Chrome or Edge on a laptop or desktop. Phones and tablets can\'t record the screen.';
+    return;
+  }
+
+  var rec = null, media = [], audioCtx = null, info = null, startedAt = 0, clock = null;
+  var queue = [], pending = 0, offset = 0, uploading = false, failed = false, stopping = false;
+
+  function mb(n) { return (n / 1048576).toFixed(1) + ' MB'; }
+  function setNote(text, cls) { note.className = 'lr__rec-note' + (cls ? ' ' + cls : ''); note.textContent = text; }
+  function pickMime() {
+    var types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+    for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported(types[i])) return types[i];
+    return '';
+  }
+  function post(url, body, headers) {
+    return fetch(url, { method: 'POST', credentials: 'same-origin', body: body,
+      headers: Object.assign({ 'X-CSRFToken': CSRF }, headers || {}) });
+  }
+
+  // Pieces are sent one after another; each is retried before giving up.
+  function pump() {
+    if (uploading || !queue.length) return;
+    uploading = true;
+    var blob = queue.shift();
+    var attempt = 0;
+    (function send() {
+      post(info.chunk_url, blob, { 'X-Offset': String(offset), 'Content-Type': 'application/octet-stream' })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+        .then(function (res) {
+          if (res.ok) {
+            offset = res.j.size; pending -= blob.size; savedEl.textContent = mb(offset) + ' saved';
+            uploading = false; pump(); if (stopping && !queue.length) finish();
+          } else if (res.status === 409 && res.j.expected !== undefined && res.j.expected === offset + blob.size) {
+            offset = res.j.expected; uploading = false; pump();
+          } else { throw new Error(res.j.error || ('HTTP ' + res.status)); }
+        })
+        .catch(function (err) {
+          if (++attempt <= 6) { setNote('Connection hiccup, retrying… (' + attempt + ')', 'is-bad'); setTimeout(send, 1500 * attempt); }
+          else { failed = true; uploading = false; setNote('Could not save to Dropbox: ' + err.message + '. What was saved so far is kept.', 'is-bad'); }
+        });
+    })();
+  }
+
+  var buffer = [], bufferSize = 0, LIMIT = 4 * 1024 * 1024;
+  function flush() {
+    if (!bufferSize) return;
+    var blob = new Blob(buffer, { type: 'application/octet-stream' });
+    buffer = []; bufferSize = 0; queue.push(blob); pending += blob.size; pump();
+  }
+
+  startBtn.addEventListener('click', function () {
+    startBtn.disabled = true;
+    var mime = pickMime();
+    navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 15, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true, preferCurrentTab: EMBED, selfBrowserSurface: EMBED ? 'include' : 'exclude', systemAudio: 'include'
+    }).then(function (display) {
+      media.push(display);
+      return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+        .then(function (mic) { media.push(mic); return [display, mic]; })
+        .catch(function () { return [display, null]; });
+    }).then(function (streams) {
+      var display = streams[0], mic = streams[1];
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var dest = audioCtx.createMediaStreamDestination();
+      if (display.getAudioTracks().length) audioCtx.createMediaStreamSource(new MediaStream(display.getAudioTracks())).connect(dest);
+      if (mic) audioCtx.createMediaStreamSource(mic).connect(dest);
+      var tracks = display.getVideoTracks().concat(dest.stream.getAudioTracks());
+      var stream = new MediaStream(tracks);
+      display.getVideoTracks()[0].addEventListener('ended', stop);  // "Stop sharing" in the browser bar
+
+      return post(box.getAttribute('data-start-url'), JSON.stringify({ mime_type: mime || 'video/webm' }), { 'Content-Type': 'application/json' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (data) {
+          info = data; offset = 0; failed = false; stopping = false;
+          rec = new MediaRecorder(stream, Object.assign(mime ? { mimeType: mime } : {}, { videoBitsPerSecond: 800000, audioBitsPerSecond: 64000 }));
+          rec.ondataavailable = function (e) {
+            if (!e.data || !e.data.size) return;
+            buffer.push(e.data); bufferSize += e.data.size;
+            if (bufferSize >= LIMIT) flush();
+          };
+          rec.onstop = function () { flush(); stopping = true; if (!queue.length && !uploading) finish(); };
+          rec.start(5000);
+          startedAt = Date.now();
+          clock = setInterval(function () {
+            var s = Math.round((Date.now() - startedAt) / 1000);
+            timerEl.textContent = Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2);
+          }, 1000);
+          box.classList.add('is-recording');
+          startBtn.hidden = true; stopBtn.hidden = false; stopBtn.disabled = false;
+          setNote(data.warning || 'Recording… every few seconds is saved to ' + (data.storage === 'dropbox' ? 'Dropbox' : 'the server') + '. Keep this tab open.', data.warning ? 'is-bad' : '');
+          if (!display.getAudioTracks().length) setNote('Recording, but without the class audio: "Share tab audio" was not ticked. Only your microphone is recorded.', 'is-bad');
+        });
+    }).catch(function (err) {
+      cleanup();
+      startBtn.disabled = false;
+      if (err && err.name === 'NotAllowedError') setNote('Recording was not started: screen sharing was cancelled.', 'is-bad');
+      else setNote('Could not start recording: ' + (err && err.message ? err.message : err), 'is-bad');
+    });
+  });
+
+  function stop() {
+    if (!rec || rec.state === 'inactive') return;
+    stopBtn.disabled = true;
+    setNote('Saving the last part of the recording…');
+    rec.stop();
+  }
+  stopBtn.addEventListener('click', stop);
+
+  function cleanup() {
+    clearInterval(clock);
+    media.forEach(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); });
+    media = [];
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    box.classList.remove('is-recording');
+  }
+
+  function finish() {
+    if (!info || finish.done === info.id) return;
+    finish.done = info.id;
+    cleanup();
+    var duration = Math.round((Date.now() - startedAt) / 1000);
+    post(info.finish_url, JSON.stringify({ duration: duration }), { 'Content-Type': 'application/json' })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        startBtn.hidden = false; startBtn.disabled = false; stopBtn.hidden = true;
+        if (res.status === 'ready') {
+          setNote('Saved: ' + res.duration + ', ' + res.size_mb + ' MB. Students can watch it on this page. Reloading…', 'is-ok');
+          setTimeout(function () { location.reload(); }, 2500);
+        } else setNote('The recording could not be saved' + (failed ? ' because the upload failed.' : '.'), 'is-bad');
+      })
+      .catch(function () { setNote('Could not finish saving. It will be finished automatically the next time this page is opened.', 'is-bad'); });
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if ((rec && rec.state !== 'inactive') || queue.length || uploading) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+{% endblock %}

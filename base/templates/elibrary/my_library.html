@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}My Library | Infinite360{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="My Library" seo_noindex=True %}{% endblock %}
+
+{% block content %}
+<style>
+  .lib-page { max-width: 1100px; margin: 24px auto 48px; padding: 0 16px; }
+  .lib-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .lib-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; color: #14141b; }
+  .lib-head p { margin: 0; color: #6b7280; }
+  .lib-browse {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+    background: var(--brand-primary); color: var(--brand-on-primary, #fff); font-weight: 700; text-decoration: none;
+  }
+  .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+  .lib-card {
+    display: flex; flex-direction: column; overflow: hidden; border: 1px solid #ececf1; border-radius: 14px;
+    background: #fff; color: inherit; text-decoration: none; transition: box-shadow .2s, transform .2s;
+  }
+  .lib-card:hover { box-shadow: 0 12px 28px rgba(17, 24, 39, .1); transform: translateY(-2px); }
+  .lib-cover { aspect-ratio: 16 / 10; background: #EEF2FF; display: grid; place-items: center; overflow: hidden; }
+  .lib-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .lib-cover i { font-size: 40px; color: var(--brand-primary-text); }
+  .lib-body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; }
+  .lib-cat { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--brand-primary-text); }
+  .lib-title { margin: 0; font-size: 15.5px; font-weight: 700; color: #1f2330; line-height: 1.35; }
+  .lib-meta { margin-top: auto; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #6b7280; }
+  .lib-open { font-weight: 700; color: #14141b; }
+  .lib-empty {
+    display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 56px 20px; text-align: center;
+    border: 1px dashed #e3e5ec; border-radius: 16px; background: #fff;
+  }
+  .lib-empty-icon { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--brand-primary-rgb), .15); color: var(--brand-primary-text); font-size: 26px; margin-bottom: 6px; }
+  .lib-empty h2 { margin: 0; font-size: 1.2rem; color: #14141b; }
+  .lib-empty p { margin: 0 0 10px; max-width: 360px; color: #6b7280; }
+</style>
+
+<div class="lib-page">
+  <div class="lib-head">
+    <div>
+      <h1>My Library</h1>
+      <p>{% if courses %}{{ courses|length }} e-book course{{ courses|length|pluralize }} you can open anytime.{% else %}Your purchased e-books and notes will appear here.{% endif %}</p>
+    </div>
+    {% if courses %}<a class="lib-browse" href="{% url 'home' %}#e-library"><i class="fa fa-plus"></i> Browse more</a>{% endif %}
+  </div>
+
+  {% if courses %}
+  <div class="lib-grid">
+    {% for course in courses %}
+    <a class="lib-card" href="{% url 'course_detail' course.pk %}">
+      <div class="lib-cover">
+        {% if course.cover_image %}<img loading="lazy" decoding="async" src="{{ course.cover_image.url }}" alt="">{% else %}<i class="fa fa-book-open" aria-hidden="true"></i>{% endif %}
+      </div>
+      <div class="lib-body">
+        {% if course.category %}<span class="lib-cat">{{ course.category.name }}</span>{% endif %}
+        <h2 class="lib-title">{{ course.title }}</h2>
+        <div class="lib-meta">
+          <span><i class="fa fa-file-pdf"></i> {{ course.total_pdfs }} PDF{{ course.total_pdfs|pluralize }}</span>
+          <span class="lib-open">Open <i class="fa fa-arrow-right"></i></span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="lib-empty">
+    <span class="lib-empty-icon"><i class="fa fa-book-open"></i></span>
+    <h2>Your library is empty</h2>
+    <p>E-books and study notes you buy or unlock for free will show up here, ready to read on any device.</p>
+    <a class="lib-browse" href="{% url 'home' %}#e-library"><i class="fa fa-magnifying-glass"></i> Explore the e-library</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

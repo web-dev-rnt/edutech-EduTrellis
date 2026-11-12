@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Results | Infinite360{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="My Results" seo_noindex=True %}{% endblock %}
+
+{% block content %}
+<style>
+    .results-container {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .results-header {
+        margin-bottom: 24px;
+    }
+
+    .results-header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #232540;
+        margin-bottom: 6px;
+    }
+
+    .results-header p {
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .results-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .summary-card {
+        background: white;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        text-align: center;
+    }
+
+    .summary-card .value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--brand-primary-text);
+        line-height: 1.2;
+    }
+
+    .summary-card .label {
+        font-size: 13px;
+        color: #6b7280;
+        margin-top: 4px;
+        font-weight: 500;
+    }
+
+    .result-card {
+        background: white;
+        border-radius: 14px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .result-info {
+        flex: 1;
+        min-width: 220px;
+    }
+
+    .result-series {
+        font-size: 12px;
+        color: var(--brand-primary-text);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 4px;
+    }
+
+    .result-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 6px;
+    }
+
+    .result-meta {
+        font-size: 13px;
+        color: #6b7280;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .result-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .result-score {
+        text-align: center;
+        min-width: 110px;
+    }
+
+    .result-score .score-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1f2937;
+    }
+
+    .result-score .score-marks {
+        font-size: 12px;
+        color: #9ca3af;
+    }
+
+    .result-status {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        min-width: 140px;
+    }
+
+    .status-badge {
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-badge.passed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-badge.in-progress {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .result-action a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 18px;
+        border-radius: 8px;
+        background: var(--brand-primary);
+        color: var(--brand-on-primary, #fff);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+        white-space: nowrap;
+        transition: filter 0.2s ease;
+    }
+
+    .result-action a:hover {
+        filter: brightness(0.9);
+    }
+
+    .result-action a.secondary {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .empty-results {
+        text-align: center;
+        padding: 70px 30px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .empty-results i {
+        font-size: 3.5em;
+        color: #d1d5db;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .empty-results h3 {
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .empty-results p {
+        color: #6b7280;
+        margin-bottom: 20px;
+    }
+
+    .empty-results a {
+        display: inline-block;
+        padding: 10px 24px;
+        border-radius: 8px;
+        background: var(--brand-primary);
+        color: var(--brand-on-primary, #fff);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .mr-tabs { display: flex; gap: 8px; margin-bottom: 22px; border-bottom: 1px solid #e6e8f0; overflow-x: auto; }
+    .mr-tab {
+        display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; margin-bottom: -1px;
+        background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap;
+        font: 700 15px/1 var(--font-sans); color: #6b7280;
+    }
+    .mr-tab:hover { color: #232540; }
+    .mr-tab.is-active { color: var(--brand-primary-text); border-bottom-color: var(--brand-primary); }
+    .mr-tab:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb), .35); outline-offset: -3px; border-radius: 8px 8px 0 0; }
+    .mr-tab-count { padding: 3px 8px; border-radius: 999px; background: #eef1f8; color: #3b4258; font-size: 12px; }
+    .mr-tab.is-active .mr-tab-count { background: var(--brand-primary); color: var(--brand-on-primary, #fff); }
+
+    @media (max-width: 640px) {
+        .result-card {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .result-meta {
+            justify-content: center;
+        }
+
+        .result-action a {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="results-container">
+    <div class="results-header">
+        <h1><i class="fa fa-chart-line"></i> My Results</h1>
+        <p>Track every test and daily quiz you've attempted and how you scored.</p>
+    </div>
+
+    <div class="mr-tabs" role="tablist" aria-label="Results">
+        <button type="button" class="mr-tab is-active" role="tab" id="mr-tab-tests" aria-controls="mr-tests" aria-selected="true">
+            <i class="fa fa-file-lines"></i> Mock Tests <span class="mr-tab-count">{{ total_attempts }}</span>
+        </button>
+        <button type="button" class="mr-tab" role="tab" id="mr-tab-quiz" aria-controls="daily-quiz" aria-selected="false">
+            <i class="fa fa-bolt"></i> Daily Quiz <span class="mr-tab-count">{{ quiz.taken }}</span>
+        </button>
+    </div>
+
+    <div class="mr-panel" id="mr-tests" role="tabpanel" aria-labelledby="mr-tab-tests">
+    <div class="results-summary">
+        <div class="summary-card">
+            <div class="value">{{ total_attempts }}</div>
+            <div class="label">Tests Attempted</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">{{ passed_count }}</div>
+            <div class="label">Tests Passed</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">{{ average_percentage|floatformat:1 }}%</div>
+            <div class="label">Average Score</div>
+        </div>
+    </div>
+
+    {% if attempts %}
+        {% for attempt in attempts %}
+            <div class="result-card">
+                <div class="result-info">
+                    <div class="result-series">{{ attempt.test.test_series.title }}</div>
+                    <div class="result-title">{{ attempt.test.title }}</div>
+                    <div class="result-meta">
+                        <span><i class="fa fa-calendar"></i> {{ attempt.created_at|date:"M j, Y" }}</span>
+                        <span><i class="fa fa-list-check"></i> {{ attempt.attempted_questions }}/{{ attempt.total_questions }} attempted</span>
+                        {% if attempt.status == 'submitted' %}
+                            <span><i class="fa fa-rotate-right"></i> Attempt #{{ attempt.attempt_number }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if attempt.status == 'submitted' %}
+                    <div class="result-score">
+                        <div class="score-value">{{ attempt.marks_obtained|floatformat:0 }}/{{ attempt.total_marks|floatformat:0 }}</div>
+                        <div class="score-marks">{{ attempt.percentage_score|floatformat:1 }}%</div>
+                    </div>
+
+                    <div class="result-status">
+                        {% if attempt.passed %}
+                            <span class="status-badge passed"><i class="fa fa-check-circle"></i> Passed</span>
+                        {% else %}
+                            <span class="status-badge failed"><i class="fa fa-times-circle"></i> Failed</span>
+                        {% endif %}
+                        {% if attempt.rank %}
+                            <span style="font-size:12px;color:#6b7280;">Rank #{{ attempt.rank }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="result-action">
+                        <a href="{% url 'front_exam_result' attempt_id=attempt.id %}">
+                            <i class="fa fa-eye"></i> View Result
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="result-status">
+                        <span class="status-badge in-progress"><i class="fa fa-clock"></i> In Progress</span>
+                    </div>
+
+                    <div class="result-action">
+                        <a href="{% url 'front_exam_session' attempt_id=attempt.id %}" class="secondary">
+                            <i class="fa fa-play"></i> Resume Test
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-results">
+            <i class="fa fa-clipboard-question"></i>
+            <h3>No tests attempted yet</h3>
+            <p>Once you take a test, your results will show up here.</p>
+            <a href="{% url 'home' %}">Explore Test Series</a>
+        </div>
+    {% endif %}
+    </div>
+
+    <div class="mr-panel" id="daily-quiz" role="tabpanel" aria-labelledby="mr-tab-quiz" hidden>
+        {% include "partials/daily_quiz_history.html" %}
+    </div>
+</div>
+
+<script>
+(function () {
+    var tabs = document.querySelectorAll('.mr-tab');
+    function show(id) {
+        tabs.forEach(function (tab) {
+            var on = tab.getAttribute('aria-controls') === id;
+            tab.classList.toggle('is-active', on);
+            tab.setAttribute('aria-selected', on ? 'true' : 'false');
+            document.getElementById(tab.getAttribute('aria-controls')).hidden = !on;
+        });
+    }
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var id = tab.getAttribute('aria-controls');
+            show(id);
+            history.replaceState(null, '', id === 'daily-quiz' ? '#daily-quiz' : location.pathname + location.search);
+        });
+    });
+    if (location.hash === '#daily-quiz') show('daily-quiz');
+})();
+</script>
+{% endblock %}

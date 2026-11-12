@@ -1,0 +1,34 @@
+{% load seo_tags %}{% comment %}
+  Description, canonical, robots, Open Graph and Twitter card tags.
+  Optional include variables:
+    seo_title        page title without the brand suffix (falls back to seo.title)
+    seo_description  plain or HTML text, trimmed to 160 chars (falls back to seo.description)
+    seo_image        image URL or /media/ path (falls back to the brand logo)
+    seo_type         Open Graph type, default "website"
+    seo_noindex      truthy for private/utility pages
+{% endcomment %}{% with page_title=seo_title|default:""|striptags page_description=seo_description|default:seo.description|striptags|truncatechars:160 page_image=seo_image|default:seo.image|absolute_url %}
+  <meta name="description" content="{{ page_description }}">
+  <meta name="keywords" content="{{ seo.keywords }}">
+  <meta name="author" content="{{ seo.site_name }}">
+  {% if seo_noindex %}
+  <meta name="robots" content="noindex, follow">
+  {% else %}
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <link rel="canonical" href="{{ seo.canonical_url }}">
+  {% endif %}
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="{{ seo.site_name }}">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:type" content="{{ seo_type|default:'website' }}">
+  <meta property="og:title" content="{% if page_title %}{{ page_title }} | {{ seo.site_name }}{% else %}{{ seo.title }}{% endif %}">
+  <meta property="og:description" content="{{ page_description }}">
+  <meta property="og:url" content="{{ seo.canonical_url }}">
+  <meta property="og:image" content="{{ page_image }}">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% if page_title %}{{ page_title }} | {{ seo.site_name }}{% else %}{{ seo.title }}{% endif %}">
+  <meta name="twitter:description" content="{{ page_description }}">
+  <meta name="twitter:image" content="{{ page_image }}">
+{% endwith %}

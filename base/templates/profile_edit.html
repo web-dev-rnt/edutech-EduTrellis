@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit Profile | Infinite360{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Edit Profile" seo_noindex=True %}{% endblock %}
+{% block content %}
+{% include 'message.html' %}
+
+<style>
+  .profile-page { max-width: 1100px; margin: 20px auto 42px auto; padding: 0 18px; }
+  .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  @media (max-width: 1050px){ .profile-grid { grid-template-columns: 1fr; } }
+
+  .profile-card {
+    background: #fff; border: 1px solid #e6e6f2; border-radius: 14px;
+    box-shadow: 0 4px 20px #f4f4f4; padding: 22px 20px;
+  }
+  .profile-title { margin: 0 0 14px 0; color: var(--brand-primary-text); font-weight: 800; font-size: 1.24rem; letter-spacing: .2px; }
+
+  .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; margin-bottom: 12px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { color:#313969; font-weight:700; font-size: 0.98rem; }
+  
+  .form-input, .form-file {
+    border: 1.5px solid #c0c4e4; border-radius: 12px; padding: 12px 14px; font-size: 16px;
+    outline: none; background: #f7f9fe; transition: border-color .2s, box-shadow .2s; width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .form-input:focus, .form-file:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.2); background: #fff; }
+  
+  .field-error { 
+    color: #d93025; 
+    font-size: 12px; 
+    margin-top: 5px; 
+    display: block;
+    line-height: 1.3;
+    border-left: 2px solid #d93025;
+    padding-left: 8px;
+  }
+  
+  .has-error .form-input, .has-error .form-file { border-color: #e57373; }
+  .profile-actions { display:flex; gap:10px; justify-content:flex-end; margin-top: 6px; }
+
+  .btn-primary {
+    background:var(--brand-primary); color:var(--brand-on-primary, #fff); border:none; border-radius:12px; padding:12px 18px; font-weight:800; cursor:pointer;
+    box-shadow:0 2px 8px rgba(var(--brand-primary-rgb),0.25); transition: background 0.2s;
+  }
+  .btn-primary:hover { background:var(--brand-primary-dark); }
+
+  .avatar-wrap { display:flex; align-items:center; gap:16px; margin: 6px 0 14px 0; }
+  .avatar { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; background:#f3f3f6; border:1px solid #e6e6f2; }
+  .avatar-ctrls { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  
+  .btn-outline {
+    background:#edeef4; color:#32325d; border:1px solid #d1d1e4;
+    border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; line-height:1; white-space:nowrap;
+    transition: background 0.2s;
+  }
+  .btn-outline:hover { background:#e4e6f4; }
+  .btn-sm { padding:9px 14px; font-size: 0.95rem; }
+
+  /* Hide file input */
+  #id_profile_image { 
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px; 
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; 
+  }
+
+  /* Flash messages */
+  .flash { margin: 0 0 14px 0; padding: 11px 14px; border-radius: 10px; font-weight: 600; }
+  .flash-success { background: #ecfdf5; color:#065f46; border:1px solid #bbf7d0; }
+  .flash-error { background: #fef2f2; color:#7f1d1d; border:1px solid #fecaca; }
+  
+  .pw-help { color: #666; font-size: 0.9rem; margin-top: 4px; }
+  
+  /* Password message styles */
+  .coupon-form__message {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: none;
+    margin-top: 12px;
+  }
+  .coupon-form__message--success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #bbf7d0;
+    display: block;
+  }
+  .coupon-form__message--error {
+    background: #fef2f2;
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+    display: block;
+  }
+
+  .profile-hero {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 22px; padding: 20px 22px;
+    border-radius: 16px; background: #14141b; color: #fff;
+    background-image: radial-gradient(circle at 100% 0, rgba(var(--brand-primary-rgb), .35), transparent 45%);
+  }
+  .profile-hero-avatar {
+    width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: var(--brand-primary); color: var(--brand-on-primary, #fff); font-size: 26px; font-weight: 800; border: 3px solid rgba(255,255,255,.15);
+  }
+  .profile-hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-hero-info { flex: 1; min-width: 200px; }
+  .profile-hero-info h1 { margin: 0 0 4px; font-size: 1.35rem; font-weight: 800; color: #fff; }
+  .profile-hero-info p { margin: 0; color: #d4d5de; font-size: .95rem; word-break: break-all; }
+  .profile-hero-info small { color: #9a9cab; font-size: .82rem; }
+  .profile-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(34,197,94,.16); color: #86efac; font-size: .75rem; font-weight: 700; word-break: normal; }
+  .profile-hero-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  .profile-hero-links a {
+    display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 10px;
+    background: rgba(255,255,255,.08); color: #fff; font-size: .88rem; font-weight: 700; text-decoration: none;
+  }
+  .profile-hero-links a:hover { background: var(--brand-primary); color: var(--brand-on-primary, #fff); }
+  .profile-hero-links i { color: var(--brand-primary); }
+  .profile-hero-links a:hover i { color: var(--brand-on-primary, #fff); }
+
+  .profile-quiz { margin-bottom: 22px; padding: 18px 20px; border-radius: 14px; background: #fff; border: 1px solid #e6e6f2; box-shadow: 0 4px 20px #f4f4f4; }
+  .profile-quiz-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .profile-quiz-head h2 { margin: 0; color: var(--brand-primary-text); font-weight: 800; font-size: 1.24rem; }
+  .profile-quiz-head h2 i { color: #FF9A1F; margin-right: 4px; }
+  .profile-quiz-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  .profile-quiz-links a {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+    background: #f1f3f9; color: #1E2448; font-size: .88rem; font-weight: 700; text-decoration: none;
+  }
+  .profile-quiz-links a.is-primary { background: var(--brand-primary); color: var(--brand-on-primary, #fff); }
+  .profile-quiz-links a:hover { filter: brightness(.95); }
+  .profile-quiz-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .profile-quiz-stats div { padding: 12px 8px; border-radius: 12px; background: #f7f9fe; text-align: center; }
+  .profile-quiz-stats strong { display: block; font-size: 1.35rem; font-weight: 800; color: #14141b; line-height: 1.2; }
+  .profile-quiz-stats span { display: block; font-size: .78rem; color: #6b7280; font-weight: 600; margin-top: 2px; }
+  @media (max-width: 640px) {
+    .profile-quiz-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .profile-quiz-stats div:last-child { grid-column: span 2; }
+  }
+
+  .pw-field { position: relative; }
+  .pw-field .form-input { padding-right: 46px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px;
+    border: 0; border-radius: 8px; background: transparent; color: #8b8fa8; cursor: pointer;
+  }
+  .pw-toggle:hover { background: #eceefa; color: #313969; }
+  .pw-meter { height: 6px; margin-top: 4px; border-radius: 999px; background: #eceef5; overflow: hidden; }
+  .pw-meter span { display: block; height: 100%; width: 0; border-radius: inherit; transition: width .25s, background .25s; }
+
+  @media (max-width: 768px) {
+    .form-row { grid-template-columns: 1fr; }
+    .profile-hero-links { width: 100%; }
+    .profile-hero-links a { flex: 1; justify-content: center; }
+  }
+</style>
+
+<div class="profile-page">
+
+  {% with u=request.user %}
+  <section class="profile-hero">
+    <div class="profile-hero-avatar">
+      {% if u.profile_image %}<img loading="lazy" decoding="async" src="{{ u.profile_image.url }}" alt="">{% else %}{{ u.first_name|default:u.email|first|upper }}{% endif %}
+    </div>
+    <div class="profile-hero-info">
+      <h1>{% if u.first_name %}{{ u.first_name }} {{ u.last_name }}{% else %}My Profile{% endif %}</h1>
+      <p>{{ u.email }}{% if u.is_verified %} <span class="profile-badge"><i class="fa fa-circle-check"></i> Verified</span>{% endif %}</p>
+      <small>Member since {{ u.date_joined|date:"M Y" }}</small>
+    </div>
+    <nav class="profile-hero-links" aria-label="Account">
+      <a href="{% url 'my_purchases' %}"><i class="fa fa-bag-shopping"></i> My Purchases</a>
+      <a href="{% url 'my_test_results' %}"><i class="fa fa-chart-line"></i> My Results</a>
+      <a href="{% url 'my_library' %}"><i class="fa fa-book-open"></i> My Library</a>
+    </nav>
+  </section>
+  {% endwith %}
+
+  <!-- Daily Quiz summary (full history under My Results > Daily Quiz) -->
+  <section class="profile-quiz" aria-labelledby="profile-quiz-title">
+    <div class="profile-quiz-head">
+      <h2 id="profile-quiz-title"><i class="fa fa-bolt"></i> Daily Quiz</h2>
+      <div class="profile-quiz-links">
+        <a href="{% url 'my_test_results' %}#daily-quiz">View history</a>
+        <a class="is-primary" href="{% url 'home' %}#daily-quiz">{% if quiz.played_today %}Play another{% else %}Play today's quiz{% endif %} <i class="fa fa-arrow-right"></i></a>
+      </div>
+    </div>
+    <div class="profile-quiz-stats">
+      <div><strong>{{ quiz.taken }}</strong><span>Quizzes taken</span></div>
+      <div><strong>{{ quiz.answered }}</strong><span>Questions answered</span></div>
+      <div><strong>{{ quiz.accuracy }}%</strong><span>Accuracy</span></div>
+      <div><strong><i class="fa fa-fire" style="color:#FF9A1F"></i> {{ quiz.current_streak }}</strong><span>Day streak</span></div>
+      <div><strong>{{ quiz.best_streak }}</strong><span>Best streak</span></div>
+    </div>
+  </section>
+
+  <div class="profile-grid">
+
+    <!-- Profile details -->
+    <div class="profile-card">
+      <h2 class="profile-title">Profile Details</h2>
+
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <!-- Profile Picture Section -->
+        <div class="avatar-wrap">
+          {% if request.user.profile_image %}
+            <img loading="lazy" decoding="async" class="avatar" id="profileAvatar" src="{{ request.user.profile_image.url }}" alt="Profile">
+          {% else %}
+            <img loading="lazy" decoding="async" class="avatar" id="profileAvatar" src="{% static 'img/default-avatar.png' %}" alt="Profile">
+          {% endif %}
+
+          <div class="avatar-ctrls">
+            <label class="btn-outline btn-sm" for="id_profile_image">Change photo</label>
+            {% if request.user.profile_image %}
+              <button type="button" class="btn-outline btn-sm" id="clearAvatarBtn">Remove</button>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Hidden file input -->
+        <div class="form-group" style="position:relative;">
+          {{ form.profile_image }}
+          {% if form.profile_image.errors %}
+            <div class="field-error">{{ form.profile_image.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Name Fields -->
+        <div class="form-row">
+          <div class="form-group {% if form.first_name.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name *</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+              <div class="field-error">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group {% if form.middle_name.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.middle_name.id_for_label }}">Middle Name</label>
+            {{ form.middle_name }}
+            {% if form.middle_name.errors %}
+              <div class="field-error">{{ form.middle_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group {% if form.last_name.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name *</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+              <div class="field-error">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group {% if form.age.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.age.id_for_label }}">Age *</label>
+            {{ form.age }}
+            {% if form.age.errors %}
+              <div class="field-error">{{ form.age.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Gender and Contact -->
+        <div class="form-row">
+          <div class="form-group {% if form.gender.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.gender.id_for_label }}">Gender *</label>
+            {{ form.gender }}
+            {% if form.gender.errors %}
+              <div class="field-error">{{ form.gender.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-group {% if form.contact_number.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.contact_number.id_for_label }}">Contact Number *</label>
+            {{ form.contact_number }}
+            {% if form.contact_number.errors %}
+              <div class="field-error">{{ form.contact_number.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-row single">
+          <div class="form-group {% if form.email.errors %}has-error{% endif %}">
+            <label class="form-label" for="{{ form.email.id_for_label }}">Email Address *</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="field-error">{{ form.email.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="field-error" style="margin-top:6px;">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <div class="profile-actions">
+          <button type="submit" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Change password -->
+    <div class="profile-card">
+      <h2 class="profile-title">Change Password</h2>
+
+      <form id="passwordForm" novalidate>
+        {% csrf_token %}
+
+        <div class="form-row single">
+          <div class="form-group">
+            <label class="form-label" for="pwOld">Current Password</label>
+            <div class="pw-field"><input type="password" id="pwOld" name="old_password" class="form-input" autocomplete="current-password" required><button type="button" class="pw-toggle" aria-label="Show password"><i class="fa fa-eye"></i></button></div>
+            <div class="field-error" data-error-for="old_password" hidden></div>
+          </div>
+        </div>
+
+        <div class="form-row single">
+          <div class="form-group">
+            <label class="form-label" for="pwNew">New Password</label>
+            <div class="pw-field"><input type="password" id="pwNew" name="new_password1" class="form-input" autocomplete="new-password" minlength="8" required><button type="button" class="pw-toggle" aria-label="Show password"><i class="fa fa-eye"></i></button></div>
+            <div class="field-error" data-error-for="new_password1" hidden></div>
+          </div>
+        </div>
+
+        <div class="form-row single">
+          <div class="form-group">
+            <label class="form-label" for="pwConfirm">Confirm New Password</label>
+            <div class="pw-field"><input type="password" id="pwConfirm" name="new_password2" class="form-input" autocomplete="new-password" minlength="8" required><button type="button" class="pw-toggle" aria-label="Show password"><i class="fa fa-eye"></i></button></div>
+            <div class="field-error" data-error-for="new_password2" hidden></div>
+          </div>
+        </div>
+
+        <div class="pw-meter" aria-hidden="true"><span id="pwMeterBar"></span></div>
+        <p class="pw-help" id="pwStrength">Use at least 8 characters, mixing letters, numbers, and symbols.</p>
+
+        <div class="profile-actions">
+          <button type="submit" class="btn-primary">Update Password</button>
+        </div>
+
+        <div id="pwMessage" class="coupon-form__message"></div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Show / hide password fields
+  document.querySelectorAll('.pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.previousElementSibling;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      btn.innerHTML = '<i class="fa ' + (show ? 'fa-eye-slash' : 'fa-eye') + '"></i>';
+    });
+  });
+
+  // Password strength meter
+  const pwNew = document.getElementById('pwNew');
+  const pwBar = document.getElementById('pwMeterBar');
+  const pwText = document.getElementById('pwStrength');
+  if (pwNew && pwBar && pwText) {
+    const levels = [
+      ['Use at least 8 characters, mixing letters, numbers, and symbols.', '0%', '#e5e7eb'],
+      ['Weak - add more characters.', '25%', '#ef4444'],
+      ['Fair - mix in numbers or symbols.', '50%', '#f59e0b'],
+      ['Good password.', '75%', '#84cc16'],
+      ['Strong password.', '100%', '#16a34a'],
+    ];
+    pwNew.addEventListener('input', () => {
+      const v = pwNew.value;
+      let score = 0;
+      if (v.length >= 8) score++;
+      if (v.length >= 12) score++;
+      if (/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+      if (/\d/.test(v) && /[^A-Za-z0-9]/.test(v)) score++;
+      const [text, width, color] = levels[v ? Math.max(1, score) : 0];
+      pwText.textContent = text;
+      pwBar.style.width = width;
+      pwBar.style.background = color;
+    });
+  }
+
+  // Auto-dismiss flash messages after 3 seconds
+  const flashes = document.querySelectorAll('.flash');
+  if (flashes.length) {
+    setTimeout(() => {
+      flashes.forEach(el => {
+        el.style.transition = 'opacity .4s ease, transform .4s ease';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-6px)';
+        setTimeout(() => el.remove(), 420);
+      });
+    }, 3000);
+  }
+
+  // Live preview on file select
+  const fileInput = document.getElementById('id_profile_image');
+  const avatar = document.getElementById('profileAvatar');
+  
+  if (fileInput && avatar) {
+    fileInput.addEventListener('change', function(e) {
+      const file = this.files[0];
+      
+      if (!file) {
+        console.log('No file selected');
+        return;
+      }
+
+      // Check if it's an image
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        this.value = '';
+        return;
+      }
+
+      // Check file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image file size should not exceed 5MB');
+        this.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        avatar.src = e.target.result;
+        
+        // Uncheck the clear checkbox if it exists
+        const clearCheckbox = document.querySelector('input[type="checkbox"][name$="-clear"]');
+        if (clearCheckbox) {
+          clearCheckbox.checked = false;
+        }
+        
+        console.log('Image preview updated successfully');
+      };
+
+      reader.onerror = function() {
+        console.error('Error reading file');
+        alert('Error reading file. Please try again.');
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Remove avatar functionality
+  const clearBtn = document.getElementById('clearAvatarBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      // Check the clear checkbox
+      const clearCheckbox = document.querySelector('input[type="checkbox"][name$="-clear"]');
+      if (clearCheckbox) {
+        clearCheckbox.checked = true;
+      }
+      
+      // Clear the file input
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      // Update preview to default image
+      if (avatar) {
+        avatar.src = "{% static 'img/default-avatar.png' %}";
+      }
+    });
+  }
+
+  // Password form AJAX with inline errors
+  const pwForm = document.getElementById('passwordForm');
+  const msg = document.getElementById('pwMessage');
+
+  function showFieldError(name, text) {
+    const el = pwForm.querySelector(`[data-error-for="${name}"]`);
+    if (el) {
+      el.textContent = text || '';
+      el.hidden = !text;
+    }
+  }
+
+  if (pwForm) {
+    pwForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Clear previous messages
+      msg.textContent = '';
+      msg.className = 'coupon-form__message';
+      showFieldError('old_password', '');
+      showFieldError('new_password1', '');
+      showFieldError('new_password2', '');
+
+      const formData = new FormData(pwForm);
+      
+      try {
+        const resp = await fetch("{% url 'change_password' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') },
+          body: formData
+        });
+
+        const data = await resp.json();
+
+        if (data.success) {
+          msg.textContent = data.message || 'Password updated successfully.';
+          msg.className = 'coupon-form__message coupon-form__message--success';
+          pwForm.reset();
+          
+          // Auto-hide success message after 3 seconds
+          setTimeout(() => {
+            msg.textContent = '';
+            msg.className = 'coupon-form__message';
+          }, 3000);
+        } else {
+          msg.textContent = data.message || 'Please fix the errors and try again.';
+          msg.className = 'coupon-form__message coupon-form__message--error';
+          
+          // Display field-specific errors
+          if (data.errors) {
+            Object.entries(data.errors).forEach(([field, errs]) => {
+              const errorText = Array.isArray(errs) ? errs.join(' ') : String(errs);
+              showFieldError(field, errorText);
+            });
+          }
+        }
+      } catch (error) {
+        msg.textContent = 'An error occurred. Please try again.';
+        msg.className = 'coupon-form__message coupon-form__message--error';
+        console.error('Password change error:', error);
+      }
+    });
+  }
+})();
+</script>
+
+{% endblock %}

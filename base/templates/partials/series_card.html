@@ -1,0 +1,33 @@
+{# Compact test series card. Needs a series prepared by _series_cards() in base/views.py; styles: partials/series_card_css.html #}
+<a href="{% url 'front_exam_series_detail' series.pk %}" class="sc-card" style="--sc-color: {{ series.color }};" title="{{ series.title }}">
+    <div class="sc-cover">
+        {% if series.thumbnail %}
+            <img src="{{ series.thumbnail.url }}" alt="" loading="lazy">
+        {% else %}
+            <span class="sc-cover-icon"><i class="fa-solid fa-{{ series.icon }}"></i></span>
+            <span class="sc-cover-kicker">{{ series.cover_kicker }}</span>
+            <span class="sc-cover-title">{{ series.cover_title }}</span>
+            <span class="sc-cover-sub">{{ series.cover_sub|default:"&nbsp;" }}</span>
+        {% endif %}
+        <span class="sc-price {% if series.is_free %}is-free{% endif %}">{{ series.price_display }}</span>
+        {% if series.is_purchased %}<span class="sc-enrolled"><i class="fa-solid fa-circle-check"></i> Enrolled</span>{% endif %}
+    </div>
+    <div class="sc-body">
+        <h3 class="sc-title">{{ series.title }}</h3>
+        <div class="sc-meta">
+            <span>{{ series.active_test_count }} test{{ series.active_test_count|pluralize }}</span>
+            <span>{{ series.active_question_count }} Qs</span>
+            <span class="sc-level sc-level-{{ series.difficulty }}">{{ series.get_difficulty_display }}</span>
+        </div>
+        <div class="sc-foot">
+            {% if series.is_purchased %}
+                <span class="sc-cta is-enrolled"><i class="fa-solid fa-play"></i> Continue</span>
+            {% elif series.demo_count and not series.is_free %}
+                <span class="sc-demo"><i class="fa-solid fa-gift"></i> Free demo</span>
+                <span class="sc-cta">View <i class="fa-solid fa-arrow-right"></i></span>
+            {% else %}
+                <span class="sc-cta">View series <i class="fa-solid fa-arrow-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+</a>

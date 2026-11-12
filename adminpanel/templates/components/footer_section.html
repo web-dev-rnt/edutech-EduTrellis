@@ -1,0 +1,391 @@
+{% if footer_settings %}
+{% load static %}
+<!-- Dynamic Footer -->
+<footer class="footer">
+    <div class="footer-cta">
+        <div class="footer-cta__text">
+            <strong>Ready for your next exam?</strong>
+            <span>Start with a free demo test in any series. No payment needed.</span>
+        </div>
+        <a class="footer-cta__btn" href="{% url 'all_test_series' %}">Browse Test Series <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </div>
+
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <a href="/" class="footer-logo-link" aria-label="Infinite360 home">
+                {% if footer_settings.logo %}
+                    <img loading="lazy" decoding="async" src="{{ footer_settings.logo.url }}" alt="Infinite360 logo" class="footer-logo-img">
+                {% else %}
+                    <img loading="lazy" decoding="async" src="{% static 'img/footerlogo.png' %}" alt="Infinite360 logo" class="footer-logo-img">
+                {% endif %}
+            </a>
+            <p class="footer-tagline">Exam-pattern mock tests for school boards and competitive exams, with instant results and detailed solutions.</p>
+
+            <ul class="footer-contact">
+                <li>
+                    <span class="footer-contact__icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                    <a href="mailto:{{ footer_settings.email }}">{{ footer_settings.email }}</a>
+                </li>
+                <li>
+                    <span class="footer-contact__icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                    <a href="tel:+91{{ site_contact.phone }}">{{ site_contact.phone_display }}</a>
+                </li>
+                <li>
+                    <span class="footer-contact__icon"><i class="fas fa-location-dot" aria-hidden="true"></i></span>
+                    <address><a href="{{ site_contact.maps_url }}" target="_blank" rel="noopener noreferrer">{{ site_contact.address }}</a></address>
+                </li>
+            </ul>
+
+            <div class="footer-social-row">{% if footer_settings.facebook_url %}<a href="{{ footer_settings.facebook_url }}" class="footer-social" title="Facebook" aria-label="Facebook" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f"></i></a>{% endif %}{% if footer_settings.twitter_url %}<a href="{{ footer_settings.twitter_url }}" class="footer-social" title="X (Twitter)" aria-label="X (Twitter)" target="_blank" rel="noopener noreferrer"><i class="fab fa-x-twitter"></i></a>{% endif %}{% if footer_settings.youtube_url %}<a href="{{ footer_settings.youtube_url }}" class="footer-social" title="YouTube" aria-label="YouTube" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i></a>{% endif %}{% if footer_settings.linkedin_url %}<a href="{{ footer_settings.linkedin_url }}" class="footer-social" title="LinkedIn" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer"><i class="fab fa-linkedin-in"></i></a>{% endif %}{% if footer_settings.instagram_url %}<a href="{{ footer_settings.instagram_url }}" class="footer-social" title="Instagram" aria-label="Instagram" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>{% endif %}{% if footer_settings.telegram_url %}<a href="{{ footer_settings.telegram_url }}" class="footer-social" title="Telegram" aria-label="Telegram" target="_blank" rel="noopener noreferrer"><i class="fab fa-telegram-plane"></i></a>{% endif %}{% if footer_settings.whatsapp_url %}<a href="{{ footer_settings.whatsapp_url }}" class="footer-social" title="WhatsApp" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer"><i class="fab fa-whatsapp"></i></a>{% endif %}</div>
+        </div>
+
+        <nav class="footer-links" aria-label="Footer">
+            <div class="footer-links-col">
+                <h4>Test Series</h4>
+                <a class="footer-link" href="{% url 'all_test_series' %}?board=cbse">CBSE</a>
+                <a class="footer-link" href="{% url 'all_test_series' %}?board=icse">ICSE / ISC</a>
+                <a class="footer-link" href="{% url 'all_test_series' %}?board=up">UP Board</a>
+                <a class="footer-link" href="{% url 'all_test_series' %}?board=nios">NIOS</a>
+                <a class="footer-link footer-link--strong" href="{% url 'all_test_series' %}">All Test Series</a>
+            </div>
+            {% for section_key, section_name in footer_sections %}
+                <div class="footer-links-col">
+                    <h4>{{ section_name }}</h4>
+                    {% for link in footer_links %}
+                        {% if link.section == section_key %}
+                            <a class="footer-link" href="{{ link.url }}">{{ link.title }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </nav>
+    </div>
+
+    <div class="footer-app">
+        <div class="footer-app__text">
+            <span class="footer-app__icon"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i></span>
+            <span><strong>Get the Infinite360 app</strong> Take tests faster from your home screen.</span>
+        </div>
+        <button id="footer-install-pwa-btn" class="footer-install-btn" type="button">
+            <i class="fa fa-download" aria-hidden="true"></i>
+            <span>Install App</span>
+        </button>
+    </div>
+
+    <div class="footer-legal">
+        <div class="footer-copyright">{{ footer_settings.copyright_text }}</div>
+        {% if footer_legal_links %}
+            <div class="footer-legal-links">
+                {% for legal_link in footer_legal_links %}
+                    <a href="{{ legal_link.url }}">{{ legal_link.title }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</footer>
+
+<style>
+.footer {
+    --footer-bg: #0E1230;
+    --footer-panel: #181D42;
+    --footer-line: rgba(255, 255, 255, 0.08);
+    --footer-text: #c3c6d0;
+    --footer-muted: #8a8f9c;
+    --footer-accent: var(--brand-primary, #2459E0);
+    /* Lighter tint of the brand blue for text and icons on the dark navy footer */
+    --footer-accent-text: #8FB0FF;
+    background: var(--footer-bg);
+    color: var(--footer-text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    /* Room for the floating Ask Tutor / Install App buttons so they never cover the copyright line */
+    padding: 0 0 96px;
+    margin-top: 64px;
+}
+
+/* Call-to-action band overlapping the footer's top edge */
+.footer-cta {
+    max-width: 1192px;
+    margin: 0 auto;
+    position: relative;
+    top: -40px;
+    margin-bottom: -16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap;
+    padding: 22px 28px;
+    border-radius: 18px;
+    background: linear-gradient(120deg, var(--footer-accent) 0%, #5B3FE6 70%, #7B3FF2 100%);
+    color: var(--brand-on-primary, #fff);
+    box-shadow: 0 18px 40px rgba(var(--brand-primary-rgb, 36, 89, 224), 0.28);
+}
+.footer-cta__text strong { display: block; font-size: clamp(18px, 2vw, 22px); font-weight: 800; }
+.footer-cta__text span { font-size: 15px; font-weight: 500; opacity: 0.85; }
+.footer-cta__btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 24px; border-radius: 999px;
+    background: #10142E; color: #fff; font-weight: 700; text-decoration: none;
+    transition: transform .2s ease, background .2s ease;
+}
+.footer-cta__btn:hover { transform: translateY(-2px); background: #000; color: #fff; }
+
+.footer-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: minmax(260px, 1.15fr) 2.6fr;
+    gap: 40px 56px;
+}
+
+.footer-logo-img { height: 46px; width: auto; max-width: 100%; display: block; }
+.footer-tagline { margin: 14px 0 18px; line-height: 1.6; color: var(--footer-muted); max-width: 340px; }
+
+.footer-contact { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.footer-contact li { display: flex; align-items: flex-start; gap: 12px; }
+.footer-contact__icon {
+    flex: 0 0 32px; height: 32px; border-radius: 9px;
+    display: grid; place-items: center;
+    background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.12); color: var(--footer-accent-text); font-size: 13px;
+}
+.footer-contact address { font-style: normal; max-width: 300px; }
+.footer-contact a { color: #e8e9ee; text-decoration: none; line-height: 1.5; padding-top: 5px; display: inline-block; word-break: break-word; }
+.footer-contact a:hover { color: var(--footer-accent-text); }
+
+.footer-social-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.footer-social-row:empty { display: none; }
+.footer-social {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--footer-panel); border: 1px solid var(--footer-line);
+    color: #e8e9ee; text-decoration: none; font-size: 16px;
+    transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+.footer-social:hover { background: var(--footer-accent); color: var(--brand-on-primary, #fff); transform: translateY(-2px); }
+
+.footer-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px 24px; }
+.footer-links-col { display: flex; flex-direction: column; min-width: 0; }
+.footer-links-col h4 {
+    color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase;
+    margin: 0 0 14px; padding-bottom: 10px; position: relative;
+}
+.footer-links-col h4::after {
+    content: ''; position: absolute; left: 0; bottom: 0; width: 28px; height: 3px; border-radius: 3px;
+    background: var(--footer-accent);
+}
+.footer-link {
+    color: var(--footer-text); text-decoration: none; padding: 5px 0; line-height: 1.4;
+    transition: color .2s ease, transform .2s ease;
+}
+.footer-link:hover { color: var(--footer-accent-text); transform: translateX(3px); }
+.footer-link--strong { color: var(--footer-accent-text); font-weight: 700; }
+
+.footer-app {
+    max-width: 1192px;
+    margin: 36px auto 0;
+    padding: 14px 20px;
+    border-radius: 14px;
+    background: var(--footer-panel); border: 1px solid var(--footer-line);
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+}
+.footer-app__text { display: flex; align-items: center; gap: 14px; color: var(--footer-muted); }
+.footer-app__text strong { color: #fff; margin-right: 6px; }
+.footer-app__icon {
+    flex: 0 0 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+    background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.12); color: var(--footer-accent-text); font-size: 18px;
+}
+.footer-install-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 999px; border: 0; cursor: pointer;
+    background: var(--footer-accent); color: var(--brand-on-primary, #fff);
+    font: 700 14px/1 var(--font-sans);
+    transition: background .2s ease, transform .2s ease;
+}
+.footer-install-btn:hover { background: var(--brand-primary-dark, #1d49b8); transform: translateY(-2px); }
+
+.footer-legal {
+    max-width: 1192px;
+    margin: 24px auto 0;
+    padding: 18px 0 4px;
+    border-top: 1px solid var(--footer-line);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap;
+    font-size: 14px; color: var(--footer-muted);
+}
+.footer-legal-links { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.footer-legal a { color: var(--footer-muted); text-decoration: none; }
+.footer-legal a:hover { color: var(--footer-accent-text); }
+
+.footer a:focus-visible, .footer button:focus-visible {
+    outline: 2px solid var(--footer-accent); outline-offset: 3px; border-radius: 6px;
+}
+
+@media (max-width: 1240px) {
+    .footer-cta, .footer-app, .footer-legal { margin-left: 24px; margin-right: 24px; }
+}
+@media (max-width: 1100px) {
+    .footer-inner { grid-template-columns: 1fr; gap: 32px; }
+    .footer-links { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+    .footer { padding-bottom: 150px; }
+    .footer-cta { margin-left: 16px; margin-right: 16px; padding: 18px; flex-direction: column; align-items: stretch; text-align: center; }
+    .footer-cta__btn { justify-content: center; }
+    .footer-inner { padding: 0 16px; }
+    .footer-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .footer-app, .footer-legal { margin-left: 16px; margin-right: 16px; }
+    .footer-install-btn { width: 100%; justify-content: center; }
+    .footer-legal { justify-content: center; text-align: center; }
+    .footer-legal-links { justify-content: center; }
+    .footer-logo-img { height: 38px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .footer * { transition: none !important; }
+}
+</style>
+
+<!-- Footer PWA Install Script (Self-contained) -->
+<script>
+(function() {
+  'use strict';
+  
+  // Wait for DOM to be fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFooterPWA);
+  } else {
+    initFooterPWA();
+  }
+  
+  function initFooterPWA() {
+    const footerInstallBtn = document.getElementById('footer-install-pwa-btn');
+    
+    if (!footerInstallBtn) {
+      console.log('⚠️ Footer install button not found');
+      return;
+    }
+    
+    console.log('🚀 Footer PWA handler initialized');
+    
+    let footerDeferredPrompt = null;
+    
+    // Check if app is already installed
+    function isAppInstalled() {
+      return window.matchMedia('(display-mode: standalone)').matches || 
+             window.navigator.standalone === true;
+    }
+    
+    // Detect iOS
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    
+    // Listen for beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (event) => {
+      console.log('💡 Footer: beforeinstallprompt event fired');
+      
+      // Prevent default
+      event.preventDefault();
+      
+      // Save the event
+      footerDeferredPrompt = event;
+      
+      // Show button if app not installed
+      if (!isAppInstalled()) {
+        footerInstallBtn.style.display = 'flex';
+        console.log('✅ Footer install button shown');
+      }
+    });
+    
+    // Handle footer install button click
+    footerInstallBtn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('🖱️ Footer install button clicked');
+      
+      if (!footerDeferredPrompt) {
+        console.log('❌ Footer: deferredPrompt is NULL');
+        
+        // Show helpful message
+        if (isIOS()) {
+          alert('To install on iOS:\n\n1. Tap the Share button (⬆️)\n2. Select "Add to Home Screen"\n3. Tap "Add"');
+        } else {
+          alert('Installation not available:\n\n• Use Chrome, Edge, or Samsung Internet on Android\n• Make sure you are on HTTPS\n• Clear cache and reload if needed');
+        }
+        return;
+      }
+      
+      console.log('✅ Showing install prompt...');
+      
+      // Hide button temporarily
+      footerInstallBtn.style.display = 'none';
+      
+      try {
+        // Show the install prompt
+        await footerDeferredPrompt.prompt();
+        
+        // Wait for user response
+        const { outcome } = await footerDeferredPrompt.userChoice;
+        console.log(`👤 Footer: User response: ${outcome}`);
+        
+        if (outcome === 'accepted') {
+          console.log('✅ User accepted installation from footer');
+          
+          // Track in analytics if available
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'pwa_installed_footer', {
+              'event_category': 'PWA',
+              'event_label': 'Installed from Footer'
+            });
+          }
+        } else {
+          console.log('❌ User dismissed installation');
+          
+          // Show button again after 3 seconds
+          setTimeout(function() {
+            if (!isAppInstalled()) {
+              footerInstallBtn.style.display = 'flex';
+              console.log('🔄 Footer button shown again');
+            }
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('❌ Installation error:', error);
+      }
+      
+      // Clear deferred prompt
+      footerDeferredPrompt = null;
+    });
+    
+    // Handle app installed event
+    window.addEventListener('appinstalled', function(event) {
+      console.log('🎉 Footer: PWA installed successfully!');
+      
+      // Hide button
+      footerInstallBtn.style.display = 'none';
+      
+      // Clear deferred prompt
+      footerDeferredPrompt = null;
+      
+      // Show success message
+      setTimeout(function() {
+        alert('🎉 App installed successfully! You can now access Infinite360 from your home screen.');
+      }, 500);
+    });
+    
+    // Hide button if app already installed
+    if (isAppInstalled()) {
+      footerInstallBtn.style.display = 'none';
+      console.log('✅ Footer: App already installed - button hidden');
+    }
+    
+    // For testing on localhost - show button immediately
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      setTimeout(function() {
+        if (!isAppInstalled() && footerInstallBtn) {
+          footerInstallBtn.style.display = 'flex';
+          console.log('🧪 Test mode: Footer button shown');
+        }
+      }, 1000);
+    }
+  }
+})();
+</script>
+{% endif %}

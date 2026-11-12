@@ -1,0 +1,145 @@
+<!-- Daily Quiz history for the logged-in student (context: quiz = base.daily_quiz.user_stats) -->
+<div class="dqh">
+  <div class="dqh-hero">
+    <div>
+      <h2>Daily Quiz</h2>
+      <p>{% if quiz.played_today %}You've played {{ quiz.played_today }} quiz{{ quiz.played_today|pluralize:"zes" }} today. Keep it going!{% else %}Today's quiz is waiting. Play it to keep your streak alive.{% endif %}</p>
+    </div>
+    <a class="dqh-btn" href="{% url 'home' %}#daily-quiz"><i class="fa fa-bolt"></i> Play today's quiz</a>
+  </div>
+
+  <div class="dqh-stats">
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:37,89,224"><i class="fa fa-clipboard-check"></i></span><strong>{{ quiz.taken }}</strong><span>Quizzes taken</span></div>
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:123,63,228"><i class="fa fa-list-check"></i></span><strong>{{ quiz.answered }}</strong><span>Questions answered</span></div>
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:22,163,74"><i class="fa fa-bullseye"></i></span><strong>{{ quiz.accuracy }}%</strong><span>Accuracy ({{ quiz.correct }} correct)</span></div>
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:255,154,31"><i class="fa fa-fire"></i></span><strong>{{ quiz.current_streak }}</strong><span>Current streak (days)</span></div>
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:219,39,119"><i class="fa fa-trophy"></i></span><strong>{{ quiz.best_streak }}</strong><span>Best streak (days)</span></div>
+    <div class="dqh-stat"><span class="dqh-ico" style="--c:13,148,136"><i class="fa fa-star"></i></span><strong>{{ quiz.perfect }}</strong><span>Perfect 10s</span></div>
+  </div>
+
+  <div class="dqh-grid">
+    <section class="dqh-card">
+      <h3>Last 14 days</h3>
+      <div class="dqh-days">
+        {% for day in quiz.last_14 %}
+        <div class="dqh-day{% if day.count %} is-on{% endif %}" title="{{ day.date|date:'D, j M' }}: {{ day.count }} quiz{{ day.count|pluralize:'zes' }}">
+          <span class="dqh-day-box" style="--n:{{ day.count }}">{% if day.count %}{{ day.count }}{% endif %}</span>
+          <span class="dqh-day-label">{{ day.date|date:"D"|slice:":1" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="dqh-muted">{{ quiz.days_active }} day{{ quiz.days_active|pluralize }} active in total</p>
+    </section>
+
+    <section class="dqh-card">
+      <h3>Accuracy by category</h3>
+      {% if quiz.categories %}
+      <ul class="dqh-cats">
+        {% for cat in quiz.categories %}
+        <li>
+          <span class="dqh-cat-name"><i class="fa fa-{{ cat.icon }}"></i> {{ cat.label }} <small>{{ cat.played }} played</small></span>
+          <span class="dqh-bar" aria-hidden="true"><span style="width: {{ cat.accuracy }}%"></span></span>
+          <strong>{{ cat.accuracy }}%</strong>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="dqh-muted">Play a quiz to see your strong and weak areas.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="dqh-card">
+    <h3>Recent quizzes</h3>
+    {% if quiz.recent %}
+    <div class="dqh-list">
+      {% for a in quiz.recent %}
+      <div class="dqh-row">
+        <span class="dqh-row-ico"><i class="fa fa-{{ a.category_icon }}"></i></span>
+        <div class="dqh-row-main">
+          <strong>{{ a.category_label }}</strong>
+          <span>{{ a.quiz_date|date:"D, j M Y" }}{% if a.attempts > 1 %} · {{ a.attempts }} tries, best {{ a.best_score }}/{{ a.total }}{% endif %}</span>
+        </div>
+        <div class="dqh-row-score {% if a.percentage >= 80 %}is-high{% elif a.percentage >= 50 %}is-mid{% else %}is-low{% endif %}">
+          <strong>{{ a.score }}/{{ a.total }}</strong>
+          <span>{{ a.percentage }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if quiz.taken > quiz.recent|length %}<p class="dqh-muted">Showing your latest {{ quiz.recent|length }} of {{ quiz.taken }} quizzes.</p>{% endif %}
+    {% else %}
+    <div class="empty-results" style="box-shadow:none;padding:30px 10px;">
+      <i class="fa fa-bolt"></i>
+      <h3>No daily quizzes yet</h3>
+      <p>Answer 10 quick questions a day and your scores will show up here.</p>
+      <a href="{% url 'home' %}#daily-quiz">Play today's quiz</a>
+    </div>
+    {% endif %}
+  </section>
+  <p class="dqh-muted">Your first try at each day's quiz counts towards these stats. Retakes are for practice and only update your best score.</p>
+</div>
+
+<style>
+  .dqh { display: grid; gap: 18px; }
+  .dqh-hero {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    padding: 20px 22px; border-radius: 16px; color: #fff;
+    background: linear-gradient(135deg, var(--brand-ink, #10142E), var(--brand-ink-2, #1E2448));
+    background-image: radial-gradient(circle at 100% 0, rgba(255,154,31,.28), transparent 45%), linear-gradient(135deg, var(--brand-ink, #10142E), var(--brand-ink-2, #1E2448));
+  }
+  .dqh-hero h2 { margin: 0 0 4px; font: 800 1.3rem/1.2 var(--font-sans); color: #fff; }
+  .dqh-hero p { margin: 0; color: #c9ccd6; font-size: 14px; }
+  .dqh-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px; text-decoration: none;
+    background: #FF9A1F; color: #2b1600; font: 800 14px/1 var(--font-sans);
+  }
+  .dqh-btn:hover { background: #f08a0c; color: #2b1600; }
+  .dqh-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .dqh-stat { background: #fff; border-radius: 14px; padding: 16px 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); text-align: center; }
+  .dqh-ico { width: 38px; height: 38px; margin: 0 auto 8px; border-radius: 11px; display: grid; place-items: center; background: rgba(var(--c), .12); color: rgb(var(--c)); }
+  .dqh-stat strong { display: block; font: 800 1.5rem/1.2 var(--font-sans); color: #14141b; }
+  .dqh-stat > span:last-child { display: block; font-size: 12.5px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+  .dqh-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .dqh-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  .dqh-card h3 { margin: 0 0 14px; font: 800 1.05rem/1.2 var(--font-sans); color: #232540; }
+  .dqh-muted { margin: 10px 0 0; font-size: 13px; color: #6b7280; }
+  .dqh-days { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; }
+  .dqh-day { text-align: center; }
+  .dqh-day-box {
+    display: grid; place-items: center; aspect-ratio: 1; border-radius: 8px; background: #eef1f8;
+    font: 800 12px/1 var(--font-sans); color: #fff;
+  }
+  .dqh-day.is-on .dqh-day-box { background: var(--brand-primary); }
+  .dqh-day-label { display: block; margin-top: 4px; font-size: 11px; color: #9aa0b0; font-weight: 700; }
+  .dqh-cats { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .dqh-cats li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 44px; align-items: center; gap: 10px; }
+  .dqh-cat-name { font: 700 14px/1.3 var(--font-sans); color: #232540; }
+  .dqh-cat-name i { color: var(--brand-primary-text); width: 18px; }
+  .dqh-cat-name small { display: block; font-weight: 600; color: #9aa0b0; font-size: 12px; margin-left: 22px; }
+  .dqh-bar { height: 8px; border-radius: 99px; background: #eef1f8; overflow: hidden; }
+  .dqh-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-primary), #7B3FE4); }
+  .dqh-cats strong { text-align: right; font: 800 14px/1 var(--font-sans); color: #232540; }
+  .dqh-list { display: grid; gap: 8px; }
+  .dqh-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #f8f9fc; }
+  .dqh-row-ico { flex: 0 0 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: rgba(var(--brand-primary-rgb), .12); color: var(--brand-primary-text); }
+  .dqh-row-main { flex: 1; min-width: 0; }
+  .dqh-row-main strong { display: block; font: 700 14.5px/1.3 var(--font-sans); color: #232540; }
+  .dqh-row-main span { display: block; font-size: 12.5px; color: #6b7280; }
+  .dqh-row-score { text-align: right; }
+  .dqh-row-score strong { display: block; font: 800 16px/1.2 var(--font-sans); }
+  .dqh-row-score span { font-size: 12px; font-weight: 700; }
+  .dqh-row-score.is-high { color: #16a34a; }
+  .dqh-row-score.is-mid { color: #b45d00; }
+  .dqh-row-score.is-low { color: #dc2626; }
+  @media (max-width: 900px) {
+    .dqh-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dqh-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .dqh-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .dqh-days { gap: 3px; }
+    .dqh-day-box { border-radius: 5px; font-size: 10px; }
+    .dqh-hero .dqh-btn { width: 100%; justify-content: center; }
+  }
+</style>

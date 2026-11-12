@@ -1,0 +1,37 @@
+<!-- templates/components/banner_slider.html -->
+{% if banners %}
+<div class="banner-slider-container" id="banner-slider">
+    {% for banner in banners %}
+        <div class="banner-slide {% if forloop.first %}active{% endif %}">
+            {% if banner.link_url %}
+                <a href="{{ banner.link_url }}" target="_blank">
+                    <picture>
+                        {% if banner.mobile_image %}
+                            <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                        {% endif %}
+                        <img src="{{ banner.image.url }}" alt="{{ banner.alt_text }}"
+                             width="1920" height="300"
+                             {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}>
+                    </picture>
+                </a>
+            {% else %}
+                <picture>
+                    {% if banner.mobile_image %}
+                        <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                    {% endif %}
+                    <img src="{{ banner.image.url }}" alt="{{ banner.alt_text }}"
+                         width="1920" height="300"
+                         {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}>
+                </picture>
+            {% endif %}
+        </div>
+    {% endfor %}
+    
+    {% if banners|length > 1 %}
+        <a class="banner-prev">&#10094;</a>
+        <a class="banner-next">&#10095;</a>
+        <div class="banner-dots"></div>
+    {% endif %}
+</div>
+
+{% endif %}

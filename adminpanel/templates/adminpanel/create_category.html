@@ -1,0 +1,148 @@
+{% extends 'admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}Create Category{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+    <div class="nav-buttons">
+        <a href="{% url 'manage_categories' %}" class="btn">
+            <span>←</span> Back to Categories
+        </a>
+    </div>
+
+    <h1 class="h1">Create New Category</h1>
+    <p class="small">Add a new category to organize your courses</p>
+
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="panel">
+        <h3 class="panel-title">Category Details</h3>
+        
+        <form method="post" onsubmit="showLoading(this)">
+            {% csrf_token %}
+            <div class="grid">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="name">Category Name *</label>
+                        <input type="text" id="name" name="name" required maxlength="120" 
+                               placeholder="e.g., Web Development, Data Science"
+                               oninput="generateSlugPreview(this.value)">
+                        <div class="help-text">This will be the display name for your category</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>URL Preview</label>
+                        <div style="padding: 10px 12px; background: #f8fafc; border: 2px solid #e5e7eb; border-radius: 8px; color: #6b7280; font-family: monospace;">
+                            <span id="slug-preview">Enter name to see URL</span>
+                        </div>
+                        <div class="help-text">This is how the URL will look</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4"
+                                  placeholder="Brief description of this category (optional)"></textarea>
+                        <div class="help-text">Help users understand what courses belong in this category</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="icon">Icon</label>
+                        <input type="text" id="icon" name="icon" maxlength="50"
+                               placeholder="e.g., shield-alt, stethoscope, university"
+                               value="graduation-cap">
+                        <div class="help-text">Font Awesome icon name shown in the navbar dropdown (no "fa-" prefix)</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="icon_color">Icon Color</label>
+                        <div class="color-field">
+                            <input type="color" id="icon_color" name="icon_color" value="#667eea">
+                            <span class="color-field-value">#667EEA</span>
+                        </div>
+                        <div class="help-text">Color of the category icon</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-success">
+                    <span class="spinner" style="display: none;"></span>
+                    <span class="btn-text">Create Category</span>
+                </button>
+                <a href="{% url 'manage_categories' %}" class="btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.color-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.color-field input[type="color"] {
+    width: 48px;
+    height: 40px;
+    padding: 2px;
+    border: 2px solid var(--input-border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--input-bg);
+}
+.color-field-value {
+    font-size: 13px;
+    color: var(--admin-muted);
+    font-family: monospace;
+    text-transform: uppercase;
+}
+</style>
+<script>
+function generateSlugPreview(name) {
+    const slugPreview = document.getElementById('slug-preview');
+    if (name.trim()) {
+        const slug = name.toLowerCase()
+                        .replace(/[^a-z0-9 -]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-')
+                        .trim();
+        slugPreview.textContent = `/category/${slug}/`;
+    } else {
+        slugPreview.textContent = 'Enter name to see URL';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const colorInput = document.getElementById('icon_color');
+    const colorValue = document.querySelector('.color-field-value');
+    if (colorInput && colorValue) {
+        colorInput.addEventListener('input', function () {
+            colorValue.textContent = colorInput.value.toUpperCase();
+        });
+    }
+});
+
+function showLoading(form) {
+    const btn = form.querySelector('button[type="submit"]');
+    const spinner = btn.querySelector('.spinner');
+    const text = btn.querySelector('.btn-text');
+    
+    spinner.style.display = 'inline-block';
+    text.textContent = 'Creating...';
+    btn.classList.add('btn-loading');
+}
+</script>
+{% endblock %}

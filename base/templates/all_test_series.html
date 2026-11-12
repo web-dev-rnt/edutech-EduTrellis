@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Online Test Series & Mock Tests | Infinite360{% endblock %}
+{% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Online Test Series & Mock Tests" seo_description="Attempt exam-pattern online test series and mock tests with instant results, detailed solutions and all-India rank on Infinite360." %}{% endblock %}
+
+{% block content %}
+<style>
+    .ats-page { max-width: 1280px; margin: 32px auto 60px; padding: 0 20px; }
+
+    .ats-hero { text-align: center; margin-bottom: 28px; }
+    .ats-hero h1 { font-size: 32px; margin: 0 0 8px; color: #1f2937; }
+    .ats-hero p { margin: 0 auto; max-width: 640px; color: #6b7280; font-size: 15px; }
+
+    .ats-search {
+        display: flex; gap: 10px; max-width: 640px; margin: 20px auto 0;
+    }
+    .ats-search input {
+        flex: 1; height: 46px; padding: 0 16px; font-size: 15px;
+        border: 1px solid #d1d5db; border-radius: 10px; outline: none;
+    }
+    .ats-search input:focus { border-color: var(--brand-primary, #2459E0); }
+    .ats-search button, .ats-btn {
+        height: 46px; padding: 0 22px; border: none; border-radius: 10px; cursor: pointer;
+        background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff); font-weight: 600; font-size: 15px;
+    }
+
+    .ats-boards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+    .ats-board-pill {
+        display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px;
+        border: 1px solid #e5e7eb; border-radius: 999px; background: #fff;
+        color: #374151; font-size: 14px; font-weight: 600; text-decoration: none;
+    }
+    .ats-board-pill small { color: #9ca3af; font-weight: 500; }
+    .ats-board-pill.active { background: var(--brand-primary, #2459E0); border-color: transparent; color: var(--brand-on-primary, #fff); }
+    .ats-board-pill.active small { color: rgba(255,255,255,.8); }
+
+    .ats-layout { display: grid; grid-template-columns: 260px 1fr; gap: 28px; align-items: start; margin-top: 28px; }
+
+    .ats-filters {
+        position: sticky; top: 90px; background: #fff; border: 1px solid #e5e7eb;
+        border-radius: 14px; padding: 18px;
+    }
+    .ats-filters h3 {
+        display: flex; justify-content: space-between; align-items: center;
+        margin: 0 0 14px; font-size: 16px; color: #1f2937;
+    }
+    .ats-filters h3 a { font-size: 13px; font-weight: 500; color: var(--brand-primary-text); text-decoration: none; }
+    .ats-field { margin-bottom: 14px; }
+    .ats-field label {
+        display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em; color: #6b7280;
+    }
+    .ats-field select {
+        width: 100%; height: 40px; padding: 0 10px; border: 1px solid #d1d5db;
+        border-radius: 8px; background: #fff; font-size: 14px; color: #1f2937;
+    }
+    .ats-grade-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .ats-grade-grid input { display: none; }
+    .ats-grade-grid span {
+        display: block; padding: 7px 0; text-align: center; border: 1px solid #e5e7eb;
+        border-radius: 8px; font-size: 13px; font-weight: 600; color: #374151; cursor: pointer;
+    }
+    .ats-grade-grid input:checked + span { background: var(--brand-primary, #2459E0); border-color: transparent; color: var(--brand-on-primary, #fff); }
+    .ats-filters .ats-btn { width: 100%; height: 42px; }
+    .ats-filter-toggle { display: none; }
+
+    .ats-toolbar {
+        display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .ats-count { color: #4b5563; font-size: 15px; }
+    .ats-count strong { color: #1f2937; }
+    .ats-toolbar select { height: 38px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #fff; }
+
+    .ats-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .ats-chip {
+        display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+        background: #eef2ff; color: #4338ca; border-radius: 999px; font-size: 13px; text-decoration: none;
+    }
+    .ats-chip i { font-size: 11px; }
+
+    .ats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+    .ats-grid .course-card { width: auto; min-width: 0; max-width: none; flex: none; margin: 0; height: 100%; }
+    .ats-grid .course-body { display: flex; flex-direction: column; flex: 1; }
+    .ats-grid .course-labels { margin-top: auto; }
+    .ats-meta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .ats-meta-tag {
+        padding: 2px 8px; border-radius: 6px; background: #f3f4f6; color: #4b5563;
+        font-size: 11px; font-weight: 700;
+    }
+
+    .ats-empty { text-align: center; padding: 60px 20px; background: #fff; border: 1px dashed #d1d5db; border-radius: 14px; color: #6b7280; }
+    .ats-empty i { font-size: 40px; color: #d1d5db; margin-bottom: 12px; }
+    .ats-empty h3 { color: #1f2937; margin: 0 0 6px; }
+
+    .ats-pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 32px; flex-wrap: wrap; }
+    .ats-pagination a, .ats-pagination span {
+        min-width: 38px; height: 38px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; color: #374151; text-decoration: none; font-size: 14px;
+    }
+    .ats-pagination .current { background: var(--brand-primary, #2459E0); border-color: transparent; color: var(--brand-on-primary, #fff); font-weight: 700; }
+
+    @media (max-width: 900px) {
+        .ats-layout { grid-template-columns: 1fr; }
+        .ats-filters { position: static; display: none; }
+        .ats-filters.open { display: block; }
+        .ats-filter-toggle {
+            display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+            border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+    }
+    @media (max-width: 560px) {
+        .ats-page { padding: 0 16px; margin-top: 20px; }
+        .ats-hero h1 { font-size: 26px; }
+        .ats-search { flex-direction: column; }
+        .ats-search input, .ats-search button { flex: none; width: 100%; }
+        /* Two compact cards per row on phones */
+        .ats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .ats-grid .course-card { border-radius: 12px; }
+        .ats-grid .course-img { height: auto; aspect-ratio: 16 / 10; background-size: cover; background-position: center; }
+        .ats-grid .ts-price-label { font-size: 11px; padding: 3px 8px; }
+        .ats-grid .ts-enrolled-badge { font-size: 10px; padding: 3px 7px; }
+        .ats-grid .course-body { padding: 10px; gap: 0; }
+        .ats-grid .course-title {
+            font-size: 13px; line-height: 1.3; margin: 0;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .ats-grid .ats-meta-tags { gap: 4px; margin-top: 6px; }
+        .ats-grid .ats-meta-tag { font-size: 10px; padding: 2px 6px; }
+        .ats-grid .course-instructor { font-size: 12px; margin-top: 6px; }
+        .ats-grid .ts-subjects { display: none; }
+        .ats-grid .test-series-info { margin: 6px 0 0; gap: 2px; }
+        .ats-grid .test-series-info .info-item { font-size: 11px; }
+        .ats-grid .test-series-info .info-item:nth-child(n+2) { display: none; }
+        .ats-grid .course-labels { padding-top: 8px; }
+        .ats-grid .view-test-btn { width: 100%; font-size: 12px; padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    }
+    @media (max-width: 340px) {
+        .ats-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="ats-page">
+    <div class="ats-hero">
+        <h1>All Test Series</h1>
+        <p>Practice board-wise and subject-wise tests for every class. Filter by board, class, stream and subject to find the right series.</p>
+
+        <form class="ats-search" method="get">
+            {% for key, value in selected.items %}{% if value and key != 'sort' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+            {% if selected.sort != 'newest' %}<input type="hidden" name="sort" value="{{ selected.sort }}">{% endif %}
+            <input type="search" name="q" value="{{ query }}" placeholder="Search test series, e.g. Class 10 Science" aria-label="Search test series">
+            <button type="submit"><i class="fa fa-search"></i> Search</button>
+        </form>
+
+        {% if board_options %}
+        <div class="ats-boards">
+            <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="ats-board-pill {% if not selected.board %}active{% endif %}">All boards</a>
+            {% for value, label, count in board_options %}{% if count >= 5 or selected.board == value %}
+            <a href="?board={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="ats-board-pill {% if selected.board == value %}active{% endif %}">
+                {{ label }} <small>{{ count }}</small>
+            </a>
+            {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="ats-layout">
+        <form class="ats-filters" id="atsFilters" method="get">
+            <h3>Filters {% if active_filters %}<a href="{% url 'all_test_series' %}">Clear all</a>{% endif %}</h3>
+            {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+            <input type="hidden" name="sort" value="{{ selected.sort }}">
+
+            {% if exam_options %}
+            <div class="ats-field">
+                <label for="f-exam">Competitive Exam</label>
+                <select id="f-exam" name="exam">
+                    <option value="">All exams</option>
+                    {% for name, count in exam_options %}
+                    <option value="{{ name }}" {% if selected.exam == name %}selected{% endif %}>{{ name }} ({{ count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="ats-field">
+                <label for="f-board">Board</label>
+                <select id="f-board" name="board">
+                    <option value="">All boards</option>
+                    {% for value, label, count in board_options %}
+                    <option value="{{ value }}" {% if selected.board == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if grade_options %}
+            <div class="ats-field">
+                <label>Class</label>
+                <div class="ats-grade-grid">
+                    <label style="margin:0;text-transform:none;letter-spacing:0;">
+                        <input type="radio" name="grade" value="" {% if not selected.grade %}checked{% endif %}><span>All</span>
+                    </label>
+                    {% for g in grade_options %}
+                    <label style="margin:0;text-transform:none;letter-spacing:0;">
+                        <input type="radio" name="grade" value="{{ g }}" {% if selected.grade == g|stringformat:'s' %}checked{% endif %}><span>{{ g }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="ats-field" id="f-stream-field">
+                <label for="f-stream">Stream <small style="text-transform:none;letter-spacing:0;font-weight:500;">(Class 11–12)</small></label>
+                <select id="f-stream" name="stream">
+                    <option value="">All streams</option>
+                    {% for value, label in stream_options %}
+                    <option value="{{ value }}" {% if selected.stream == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="ats-field">
+                <label for="f-subject">Subject</label>
+                <select id="f-subject" name="subject">
+                    <option value="">All subjects</option>
+                    {% for s in subject_options %}
+                    <option value="{{ s.code }}" {% if selected.subject == s.code %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="ats-field">
+                <label for="f-difficulty">Level</label>
+                <select id="f-difficulty" name="difficulty">
+                    <option value="">All levels</option>
+                    {% for value, label in difficulty_options %}
+                    <option value="{{ value }}" {% if selected.difficulty == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="ats-field">
+                <label for="f-price">Price</label>
+                <select id="f-price" name="price">
+                    <option value="">Free &amp; paid</option>
+                    <option value="free" {% if selected.price == 'free' %}selected{% endif %}>Free</option>
+                    <option value="paid" {% if selected.price == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
+            </div>
+
+            <div class="ats-field">
+                <label for="f-paper">Paper type</label>
+                <select id="f-paper" name="paper">
+                    <option value="">All tests</option>
+                    <option value="subject" {% if selected.paper == 'subject' %}selected{% endif %}>Subject tests</option>
+                    <option value="pyp" {% if selected.paper == 'pyp' %}selected{% endif %}>Previous year papers</option>
+                </select>
+            </div>
+
+            <noscript><button type="submit" class="ats-btn">Apply filters</button></noscript>
+        </form>
+
+        <div>
+            <div class="ats-toolbar">
+                <div class="ats-count"><strong>{{ total_count }}</strong> test series found</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button type="button" class="ats-filter-toggle" onclick="document.getElementById('atsFilters').classList.toggle('open')">
+                        <i class="fa fa-sliders"></i> Filters{% if active_filters %} ({{ active_filters|length }}){% endif %}
+                    </button>
+                    <select aria-label="Sort by" onchange="atsSetSort(this.value)">
+                        {% for value, label in sort_options %}
+                        <option value="{{ value }}" {% if selected.sort == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if active_filters %}
+            <div class="ats-chips">
+                {% for f in active_filters %}
+                <a class="ats-chip" href="{{ f.remove_url }}" title="Remove filter">{{ f.label }} <i class="fa fa-times"></i></a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if page_obj.object_list %}
+            <div class="ats-grid">
+                {% for series in page_obj %}
+                <a href="{% url 'front_exam_series_detail' pk=series.pk %}"
+                   class="course-card {% if series.is_purchased %}ts-purchased-card{% endif %}"
+                   style="text-decoration: none; color: inherit;">
+                    {% if series.is_purchased %}
+                    <div class="ts-enrolled-badge"><i class="fa fa-check-circle"></i> Enrolled</div>
+                    {% endif %}
+
+                    <div class="course-img"
+                         style="background-image: url('{% if series.thumbnail %}{{ series.thumbnail.url }}{% else %}{% static 'img/default-thumb.jpg' %}{% endif %}');"
+                         data-background-url="{% if series.thumbnail %}{{ series.thumbnail.url }}{% else %}{% static 'img/default-thumb.jpg' %}{% endif %}">
+                        {% if series.is_free %}
+                        <div class="ts-price-label ts-free-label">FREE</div>
+                        {% else %}
+                        <div class="ts-price-label ts-paid-label">{{ series.price_display }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="course-body">
+                        <div class="course-title">{{ series.title }}</div>
+
+                        {% if series.board or series.grade or series.exam %}
+                        <div class="ats-meta-tags">
+                            {% if series.exam %}<span class="ats-meta-tag">{{ series.exam }}</span>{% endif %}
+                            {% if series.board %}<span class="ats-meta-tag">{{ series.get_board_display }}</span>{% endif %}
+                            {% if series.grade %}<span class="ats-meta-tag">Class {{ series.grade }}</span>{% endif %}
+                            {% if series.stream %}<span class="ats-meta-tag">{{ series.get_stream_display }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="course-instructor">
+                            {{ series.active_test_count }} Test{{ series.active_test_count|pluralize }}
+                            {% if series.is_free %}| <span style="color:#21b56c; font-weight: 600;">All Free</span>{% endif %}
+                        </div>
+
+                        {% with subjects=series.subjects %}
+                        {% if subjects %}
+                        <div class="ts-subjects">
+                            {% for subject in subjects %}
+                            <span class="ts-subject-chip" style="background: {{ subject.color }}1a; color: {{ subject.color }};">
+                                {% if subject.icon %}<i class="fa fa-{{ subject.icon }}"></i>{% endif %}{{ subject.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+
+                        <div class="test-series-info">
+                            <div class="info-item"><i class="fa fa-question-circle"></i> {{ series.active_question_count }} Question{{ series.active_question_count|pluralize }}</div>
+                            <div class="info-item"><i class="fa fa-signal"></i> {{ series.get_difficulty_display }} Level</div>
+                            {% if series.estimated_duration %}
+                            <div class="info-item"><i class="fa fa-clock"></i> {{ series.estimated_duration }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="course-labels">
+                            {% if series.is_purchased %}
+                            <button class="view-test-btn ts-purchased-btn"><i class="fa fa-play-circle"></i> Continue Tests</button>
+                            {% elif series.is_free %}
+                            <button class="view-test-btn"><i class="fa fa-gift"></i> Start Free</button>
+                            {% else %}
+                            <button class="view-test-btn"><i class="fa fa-eye"></i> View Test Series</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+            {% if page_obj.has_other_pages %}
+            <nav class="ats-pagination" aria-label="Pagination">
+                {% if page_obj.has_previous %}
+                <a href="?{% if pagination_query %}{{ pagination_query }}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="fa fa-chevron-left"></i></a>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <span class="current">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' or num == 1 or num == page_obj.paginator.num_pages %}
+                    <a href="?{% if pagination_query %}{{ pagination_query }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                    <span>…</span>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <a href="?{% if pagination_query %}{{ pagination_query }}&{% endif %}page={{ page_obj.next_page_number }}"><i class="fa fa-chevron-right"></i></a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="ats-empty">
+                <i class="fa fa-folder-open"></i>
+                <h3>No test series match these filters</h3>
+                <p>Try removing a filter or searching for something else.</p>
+                <a href="{% url 'all_test_series' %}" class="ats-btn" style="display:inline-flex;align-items:center;text-decoration:none;">Show all test series</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var form = document.getElementById('atsFilters');
+    if (!form) return;
+    // Apply filters as soon as one changes
+    form.addEventListener('change', function (e) {
+        if (e.target.name === 'grade') {
+            var grade = e.target.value;
+            if (grade !== '11' && grade !== '12') form.elements['stream'].value = '';
+        }
+        form.submit();
+    });
+    // Stream only applies to Class 11-12
+    var gradeChecked = form.querySelector('input[name="grade"]:checked');
+    var g = gradeChecked ? gradeChecked.value : '';
+    if (g && g !== '11' && g !== '12') document.getElementById('f-stream-field').style.display = 'none';
+})();
+
+function atsSetSort(value) {
+    var params = new URLSearchParams(window.location.search);
+    params.set('sort', value);
+    params.delete('page');
+    window.location.search = params.toString();
+}
+</script>
+{% endblock %}

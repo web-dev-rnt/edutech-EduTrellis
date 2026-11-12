@@ -1,0 +1,171 @@
+{% load static %}
+<!-- Product Bundles Section (Carousel Style) -->
+{% if product_bundles %}
+<div class="course-section bundle-section">
+  <div class="section-header">
+    <h2 class="main-heading">Product Bundles</h2>
+    <p>All-in-one bundles: E-Library + Live Classes + Video Course + Test Series</p>
+  </div>
+
+  <div class="scroll-row-outer">
+    <button class="slide-arrow2 left" onclick="smoothScrollCarousel('bundle-carousel', 'left')" aria-label="Previous">
+      <i class="fa fa-chevron-left"></i>
+    </button>
+    <button class="slide-arrow2 right" onclick="smoothScrollCarousel('bundle-carousel', 'right')" aria-label="Next">
+      <i class="fa fa-chevron-right"></i>
+    </button>
+
+    <div class="scroll-row" id="bundle-carousel">
+      {% for bundle in product_bundles %}
+        <a href="{% url 'product_bundle_detail' bundle.slug %}" 
+           class="course-card bundle-card" 
+           style="text-decoration: none; color: inherit;">
+          
+          <div class="bundle-img-wrapper">
+            {% if bundle.thumbnail %}
+              <img src="{{ bundle.thumbnail.url }}" 
+                   alt="{{ bundle.title }}" 
+                   class="bundle-img-elem"
+                   width="400" height="225" loading="lazy" decoding="async"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext fill=%22%23999%22 font-family=%22Arial%22 font-size=%2218%22 text-anchor=%22middle%22 x=%22200%22 y=%22120%22%3ENo Bundle Image%3C/text%3E%3C/svg%3E';">
+            {% else %}
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect fill='%23f0f0f0' width='400' height='225'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='120'%3ENo Bundle Image%3C/text%3E%3C/svg%3E" 
+                   alt="{{ bundle.title }}" 
+                   class="bundle-img-elem" width="400" height="225"
+                   loading="lazy" decoding="async">
+            {% endif %}
+            
+            <!-- Bundle Badge: Purchased / Paid / Free -->
+            {% if bundle.is_purchased %}
+              <div class="premium-badge-overlay">
+                <span class="badge-purchased">
+                  <i class="fa fa-check-circle"></i> Purchased
+                </span>
+              </div>
+            {% elif bundle.bundle_price > 0 %}
+              <div class="premium-badge-overlay">
+                <span class="badge-lock">
+                  <i class="fa fa-lock"></i> Paid
+                </span>
+              </div>
+            {% else %}
+              <div class="premium-badge-overlay">
+                <span class="badge-free">
+                  <i class="fa fa-unlock"></i> Free
+                </span>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="course-body">
+            <!-- Bundle Title -->
+            <div class="course-title">{{ bundle.title }}</div>
+            
+            <!-- Bundle Contents -->
+            <div class="course-category bundle-contents">
+              <i class="fa fa-th-large"></i> 
+              {% if bundle.elibrary_courses.count > 0 %}E-Library{% if bundle.live_classes.count > 0 or bundle.video_courses.count > 0 or bundle.test_series.count > 0 %} • {% endif %}{% endif %}
+              {% if bundle.live_classes.count > 0 %}Live Classes{% if bundle.video_courses.count > 0 or bundle.test_series.count > 0 %} • {% endif %}{% endif %}
+              {% if bundle.video_courses.count > 0 %}Video Course{% if bundle.test_series.count > 0 %} • {% endif %}{% endif %}
+              {% if bundle.test_series.count > 0 %}Test Series{% endif %}
+            </div>
+
+            <!-- Bundle Meta Info -->
+            <div class="course-meta-info">
+              <div class="meta-item">
+                <i class="fa fa-box"></i>
+                <span>{{ bundle.total_products }} Products</span>
+              </div>
+              <div class="meta-item">
+                <i class="fa fa-clock"></i>
+                <span>{{ bundle.validity_days }} days</span>
+              </div>
+            </div>
+
+            <!-- Bundle Description -->
+            {% if bundle.short_description %}
+              <div class="course-description">
+                {{ bundle.short_description|truncatewords:15 }}
+              </div>
+            {% endif %}
+
+            <!-- Bundle Details -->
+            <div class="bundle-details">
+              <div class="detail-item">
+                <i class="fa fa-book"></i>
+                <span>{{ bundle.elibrary_courses.count }} E-Library</span>
+              </div>
+              <div class="detail-item">
+                <i class="fa fa-video"></i>
+                <span>{{ bundle.live_classes.count }} Live Classes</span>
+              </div>
+              <div class="detail-item">
+                <i class="fa fa-play-circle"></i>
+                <span>{{ bundle.video_courses.count }} Video Courses</span>
+              </div>
+              <div class="detail-item">
+                <i class="fa fa-clipboard-list"></i>
+                <span>{{ bundle.test_series.count }} Test Series</span>
+              </div>
+            </div>
+
+            <!-- Rating (if applicable) -->
+            <div class="course-rating">
+              <div class="stars">
+                <span class="star">★</span> 
+                <span class="rating-value">{{ bundle.rating|default:"4.8" }}</span>
+              </div>
+              <span class="rating-count">({{ bundle.review_count|default:"Premium Bundle" }})</span>
+            </div>
+            
+            <!-- Pricing -->
+            <div class="course-pricing">
+              {% if bundle.is_purchased %}
+                <span class="purchased-text">
+                  <i class="fa fa-check-circle"></i> Already Enrolled
+                </span>
+              {% elif bundle.bundle_price == 0 %}
+                <span class="rupee-free">FREE</span>
+              {% else %}
+                <span class="rupee">₹</span><span class="price-amount">{{ bundle.price_display }}</span>
+                {% if bundle.original_price != bundle.bundle_price %}
+                  <span class="old-price">₹{{ bundle.original_price_display }}</span>
+                {% endif %}
+              {% endif %}
+            </div>
+            
+            <!-- Bundle Labels -->
+            <div class="course-labels">
+              {% if bundle.is_purchased %}
+                <span class="badge badge-enrolled">
+                  <i class="fa fa-graduation-cap"></i> Enrolled
+                </span>
+              {% endif %}
+              
+              {% if bundle.discount_percent > 0 and not bundle.is_purchased %}
+                <span class="badge badge-discount">
+                  <i class="fa fa-tag"></i> {{ bundle.discount_percent|floatformat:0 }}% OFF
+                </span>
+              {% endif %}
+              
+              <span class="badge badge-bundle">
+                <i class="fa fa-boxes"></i> Bundle
+              </span>
+              
+              {% if bundle.bundle_price == 0 and not bundle.is_purchased %}
+                <span class="badge badge-free-label">
+                  <i class="fa fa-gift"></i> Free
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+
+<!-- Image Error Handling Script for Bundles -->
+
+{% endif %}

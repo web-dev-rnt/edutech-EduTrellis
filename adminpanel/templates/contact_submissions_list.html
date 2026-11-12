@@ -1,0 +1,147 @@
+{% extends 'admin_dashboard.html' %}
+
+{% block title %}Contact Submissions{% endblock %}
+
+{% block content %}
+<div class="ad-main-content">
+    <div class="ad-page-header">
+        <h1><i class="fas fa-envelope"></i>Contact Submissions</h1>
+        <p>Leads submitted through the homepage "Contact Us" form.{% if unread_count %} <strong>{{ unread_count }}</strong> unread.{% endif %}</p>
+    </div>
+
+    <div class="ad-card">
+        <div class="ad-card-header">
+            <h2>All Submissions</h2>
+        </div>
+        <div class="ad-card-body">
+            {% if submissions %}
+                <div class="ad-table-container">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email / Phone</th>
+                                <th>Subject</th>
+                                <th>Message</th>
+                                <th>Received</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                                <tr {% if not submission.is_read %}class="cs-unread-row"{% endif %}>
+                                    <td><strong>{{ submission.name }}</strong></td>
+                                    <td>
+                                        <a href="mailto:{{ submission.email }}">{{ submission.email }}</a>
+                                        {% if submission.phone %}<br><span class="cs-muted">{{ submission.phone }}</span>{% endif %}
+                                    </td>
+                                    <td>{{ submission.subject|default:"—" }}</td>
+                                    <td class="cs-message-cell">{{ submission.message }}</td>
+                                    <td class="cs-muted">{{ submission.created_at|date:"M j, Y g:i A" }}</td>
+                                    <td>
+                                        {% if submission.is_read %}
+                                            <span class="ad-status ad-active">Read</span>
+                                        {% else %}
+                                            <span class="ad-status ad-inactive">Unread</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="ad-actions">
+                                        <div class="action-buttons">
+                                            {% if not submission.is_read %}
+                                                <a href="{% url 'contact_submission_mark_read' submission.pk %}"
+                                                   class="action-btn show-btn" title="Mark as Read">
+                                                    <span class="btn-icon"><i class="fas fa-check"></i></span><span class="btn-text">Mark Read</span>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'contact_submission_delete' submission.pk %}"
+                                               onclick="return confirm('Delete this submission? This cannot be undone.')"
+                                               class="action-btn delete-btn" title="Delete">
+                                                <span class="btn-icon"><i class="fas fa-trash"></i></span><span class="btn-text">Delete</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="ad-empty-state">
+                    <h3>No contact submissions yet</h3>
+                    <p>Messages sent through the homepage contact form will show up here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.cs-unread-row {
+    background: #EEF2FF;
+    font-weight: 500;
+}
+
+.cs-muted {
+    color: #888;
+    font-size: 13px;
+}
+
+.cs-message-cell {
+    max-width: 280px;
+    white-space: normal;
+    word-break: break-word;
+    color: #444;
+}
+
+.ad-actions {
+    white-space: nowrap;
+    min-width: 160px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.show-btn {
+    background: #e8f5e8;
+    color: #2e7d32;
+    border-color: #81c784;
+}
+.show-btn:hover {
+    background: #81c784;
+    color: #1b5e20;
+    transform: translateY(-1px);
+}
+
+.delete-btn {
+    background: #ffebee;
+    color: #d32f2f;
+    border-color: #ffcdd2;
+}
+.delete-btn:hover {
+    background: #ffcdd2;
+    color: #b71c1c;
+    transform: translateY(-1px);
+}
+
+.ad-status.ad-active { color: #28a745; font-weight: 500; }
+.ad-status.ad-inactive { color: #dc3545; font-weight: 500; }
+</style>
+{% endblock %}

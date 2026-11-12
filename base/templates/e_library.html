@@ -1,0 +1,158 @@
+{% load static %}
+<!-- E-Library Section -->
+{% if featured_courses %}
+<div class="course-section">
+  <div class="section-header">
+    <h2 class="main-heading">Discover Our Digital Library</h2>
+    <p>Access comprehensive study materials and e-books curated by experts to enhance your learning</p>
+  </div>
+
+  <div class="scroll-row-outer">
+    <button class="slide-arrow2 left" onclick="smoothScrollCarousel('ebook-carousel', 'left')" aria-label="Previous">
+      <i class="fa fa-chevron-left"></i>
+    </button>
+    <button class="slide-arrow2 right" onclick="smoothScrollCarousel('ebook-carousel', 'right')" aria-label="Next">
+      <i class="fa fa-chevron-right"></i>
+    </button>
+
+    <div class="scroll-row" id="ebook-carousel">
+      {% for course in featured_courses %}
+        <a href="{% url 'course_detail' course.pk %}" 
+           class="course-card elibrary-card" 
+           style="text-decoration: none; color: inherit;">
+          
+          <div class="elibrary-img-wrapper">
+            {% if course.cover_image %}
+              <img src="{{ course.cover_image.url }}" 
+                   alt="{{ course.title }}" 
+                   class="elibrary-img-elem"
+                   width="400" height="225" loading="lazy" decoding="async"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22225%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22225%22/%3E%3Ctext fill=%22%23999%22 font-family=%22Arial%22 font-size=%2218%22 text-anchor=%22middle%22 x=%22200%22 y=%22120%22%3ENo Cover Available%3C/text%3E%3C/svg%3E';">
+            {% else %}
+              <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225'%3E%3Crect fill='%23f0f0f0' width='400' height='225'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='120'%3ENo Cover Available%3C/text%3E%3C/svg%3E" 
+                   alt="{{ course.title }}" 
+                   class="elibrary-img-elem" width="400" height="225"
+                   loading="lazy" decoding="async">
+            {% endif %}
+            
+            <!-- Course Badge: Purchased / Paid / Free -->
+            {% if course.is_purchased %}
+              <div class="premium-badge-overlay">
+                <span class="badge-purchased">
+                  <i class="fa fa-check-circle"></i> Purchased
+                </span>
+              </div>
+            {% elif not course.is_free %}
+              <div class="premium-badge-overlay">
+                <span class="badge-lock">
+                  <i class="fa fa-lock"></i> Paid
+                </span>
+              </div>
+            {% else %}
+              <div class="premium-badge-overlay">
+                <span class="badge-free">
+                  <i class="fa fa-unlock"></i> Free
+                </span>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="course-body">
+            <!-- Course Title -->
+            <div class="course-title">{{ course.title }}</div>
+            
+            <!-- Course Category -->
+            {% if course.category %}
+              <div class="course-category">
+                <i class="fa fa-folder-open"></i> {{ course.category.name }}
+              </div>
+            {% endif %}
+            
+            <!-- Instructor Info -->
+            <div class="course-instructor-info">
+              <div class="instructor-name">{{ course.instructor|default:"Expert Author" }}</div>
+              <div class="instructor-headline">{{ course.get_difficulty_level_display }} Level</div>
+            </div>
+
+            <!-- Course Description -->
+            <div class="course-description">
+              {% if course.description %}
+                {{ course.description|truncatewords:15 }}
+              {% else %}
+                Comprehensive study materials and resources to enhance your learning experience.
+              {% endif %}
+            </div>
+
+            <!-- Course Meta Info -->
+            <div class="course-meta-info">
+              <div class="meta-item">
+                <i class="fa fa-file-pdf"></i>
+                <span>{{ course.total_pdfs }} PDF{{ course.total_pdfs|pluralize }}</span>
+              </div>
+              {% if course.total_pages %}
+              <div class="meta-item">
+                <i class="fa fa-file-text"></i>
+                <span>{{ course.total_pages }} pages</span>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Rating -->
+            <div class="course-rating">
+              <div class="stars">
+                <span class="star">★</span> 
+                <span class="rating-value">{{ course.rating|default:"4.5" }}</span>
+              </div>
+              <span class="rating-count">({{ course.enrollment_count|default:"0" }})</span>
+            </div>
+            
+            <!-- Pricing -->
+            <div class="course-pricing">
+              {% if course.is_purchased %}
+                <span class="purchased-text">
+                  <i class="fa fa-check-circle"></i> Already Enrolled
+                </span>
+              {% elif course.is_free %}
+                <span class="rupee-free">FREE</span>
+              {% else %}
+                <span class="rupee">₹</span><span class="price-amount">{{ course.current_price }}</span>
+                {% if course.has_discount %}
+                  <span class="old-price">₹{{ course.price }}</span>
+                {% endif %}
+              {% endif %}
+            </div>
+            
+            <!-- Course Labels -->
+            <div class="course-labels">
+              {% if course.is_purchased %}
+                <span class="badge badge-enrolled">
+                  <i class="fa fa-graduation-cap"></i> Enrolled
+                </span>
+              {% endif %}
+              {% if course.is_bestseller %}
+                <span class="badge badge-bestseller">
+                  <i class="fa fa-fire"></i> Bestseller
+                </span>
+              {% endif %}
+              {% if course.is_featured %}
+                <span class="badge badge-featured">
+                  <i class="fa fa-star"></i> Featured
+                </span>
+              {% endif %}
+              {% if course.is_free and not course.is_purchased %}
+                <span class="badge badge-free-label">
+                  <i class="fa fa-gift"></i> Free
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+
+<!-- Image Error Handling Script for E-Library -->
+
+{% endif %}
