@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 import logging
 from urllib.parse import unquote
 
-from django.http import HttpResponseRedirect, JsonResponse, StreamingHttpResponse
+from django.http import HttpResponseForbidden, HttpResponseRedirect, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -18,16 +18,20 @@ from .backup_utils import DropboxBackupManager, clear_backup_list_cache
 from .branding import default_backup_folder
 from .forms import DropboxConfigurationForm
 from .models import DropboxConfiguration
+from .permissions import can_manage_backups
 
 logger = logging.getLogger(__name__)
 
 
 def _superuser_required(view_fn):
-    """Decorator: allow only superusers; redirect others with an error message."""
+    """Decorator: allow only the backup owner accounts (settings.BACKUP_MANAGER_EMAILS)."""
     @login_required(login_url='login')
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_superuser:
-            messages.error(request, "Access denied. This section is restricted to Super Admins only.")
+        if not can_manage_backups(request.user):
+            if request.method != "GET":
+                return JsonResponse({"error": "Access denied."}, status=403) if request.path.startswith("/backup/upload/") \
+                    else HttpResponseForbidden("Access denied.")
+            messages.error(request, "Access denied. Backup Management is restricted to the site owner.")
             return redirect('admindashboard')
         return view_fn(request, *args, **kwargs)
     wrapper.__name__ = view_fn.__name__

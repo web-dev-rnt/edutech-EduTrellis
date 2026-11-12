@@ -192,6 +192,7 @@ class BrandNameTests(TestCase):
         self.assertEqual(brand_name(), 'Infinite360')
 
 
+@override_settings(BACKUP_MANAGER_EMAILS=['owner@example.com'])
 class DatabaseUploadTests(TestCase):
     """Manual database upload: only real SQLite databases of this site are accepted or restored."""
 
@@ -199,7 +200,7 @@ class DatabaseUploadTests(TestCase):
         import tempfile
         self.tmp = tempfile.mkdtemp()
         self.admin = get_user_model().objects.create_user(
-            email='upload-admin@example.com', password='test-password', is_staff=True, is_superuser=True,
+            email='owner@example.com', password='test-password', is_staff=True, is_superuser=True,
         )
 
     def make_db(self, tables):
@@ -237,12 +238,27 @@ class DatabaseUploadTests(TestCase):
                                         HTTP_X_FILE_NAME='photo.png', HTTP_X_FILE_SIZE='16')
             self.assertEqual(response.status_code, 400)
 
-    def test_upload_is_superuser_only(self):
-        staff = get_user_model().objects.create_user(email='staff-only@example.com', password='x', is_staff=True)
-        self.client.force_login(staff)
-        response = self.client.post('/backup/upload/start/', b'SQLite format 3\x00', content_type='application/octet-stream',
-                                    HTTP_X_FILE_NAME='db.sqlite3', HTTP_X_FILE_SIZE='16')
-        self.assertEqual(response.status_code, 302)
+    def test_backups_are_owner_only(self):
+        """Other super admins (like admin@gmail.com) get no backup link, page or action."""
+        other = get_user_model().objects.create_user(
+            email='admin@example.com', password='x', is_staff=True, is_superuser=True,
+        )
+        self.client.force_login(other)
+        dashboard = self.client.get(reverse('admindashboard'))
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertNotContains(dashboard, 'Backup Management')
+        self.assertRedirects(self.client.get('/backup/'), reverse('admindashboard'), fetch_redirect_response=False)
+        with patch('adminpanel.backup_utils._get_dbx', side_effect=AssertionError('no Dropbox call expected')):
+            for url in ('/backup/now/', '/backup/restore/', '/backup/delete/', '/backup/configuration/',
+                        '/backup/upload/start/', '/backup/upload/chunk/', '/backup/upload/finish/'):
+                response = self.client.post(url, b'SQLite format 3\x00', content_type='application/octet-stream',
+                                            HTTP_X_FILE_NAME='db.sqlite3', HTTP_X_FILE_SIZE='16')
+                self.assertEqual(response.status_code, 403, url)
+            self.assertRedirects(self.client.get('/backup/download/x.sqlite3/'), reverse('admindashboard'),
+                                 fetch_redirect_response=False)
+
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get(reverse('admindashboard')), 'Backup Management')
 
     def test_upload_token_is_tied_to_the_user(self):
         from .backup_utils import UploadError, upload_append

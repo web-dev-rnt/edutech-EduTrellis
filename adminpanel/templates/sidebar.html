@@ -1,6 +1,6 @@
 <!-- Sidebar -->
 <aside class="admin-sidebar">
-  {% load static %}
+  {% load static admin_access %}
   <div class="admin-sb-head">
     <a href="{% url 'admindashboard' %}" class="admin-sb-brand">
       <span class="admin-sb-logo"><img src="{% static 'img/brand/logo-badge.png' %}" alt="" width="38" height="38"></span>
@@ -222,10 +222,12 @@
     </a>
     {% endif %}
 
-    <!-- Backup Management -->
+    {% if request.user|can_manage_backups %}
+    <!-- Backup Management (site owner only) -->
     <a href="{% url 'backup_dashboard' %}" class="{% if request.resolver_match.url_name in 'backup_dashboard,backup_now,backup_restore,backup_download,backup_delete' %}admin-active{% endif %}">
       <span class="admin-ico" style="--ico: #6c757d;"><i class="fas fa-database"></i></span><span>Backup Management</span>
     </a>
+    {% endif %}
 
     <!-- Log Out -->
     <a href="{% url 'logout_user' %}" class="admin-nav-logout" data-no-ajax>

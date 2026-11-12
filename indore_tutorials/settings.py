@@ -373,6 +373,10 @@ for origin in (
 # --------------------
 # DROPBOX STORAGE
 # --------------------
+# Only these accounts see Backup Management (backups, restore, upload, Dropbox credentials).
+# Other super admins, such as admin@gmail.com, get every other admin option but not this one.
+BACKUP_MANAGER_EMAILS = ["rnt@gmail.com"]
+
 # Keys are kept in the code. A variable of the same name set on the server still takes priority.
 DROPBOX_APP_KEY = os.environ.get("DROPBOX_APP_KEY") or "wgg2fsw5pf16x8q"
 DROPBOX_APP_SECRET = os.environ.get("DROPBOX_APP_SECRET") or "38dg9gi6djz3zuu"
