@@ -170,6 +170,18 @@ class BrandNameTests(TestCase):
         self.assertContains(self.client.get('/admin/'), 'BrightPath Admin Panel')
         self.assertEqual(_credentials()[3], '/brightpath-backup')
 
+    def test_homepage_sections_use_brand_name(self):
+        """About Us and the footer are drawn by inclusion tags, which have their own context."""
+        from .models import AboutUsSection, WhyChooseUsItem
+
+        AboutUsSection.objects.update_or_create(pk=1, defaults={'company_name': '', 'is_active': True})
+        WhyChooseUsItem.objects.create(title='Fast results', description='Fast results', is_active=True)
+        self.rename()
+        self.client.logout()
+        home = self.client.get('/').content.decode()
+        self.assertIn('Why Choose BrightPath?', home)
+        self.assertIn('Get the BrightPath app', home)
+
     def test_blank_name_is_rejected(self):
         self.client.force_login(self.admin)
         response = self.client.post(reverse('theme_settings_edit'), {

@@ -1,5 +1,6 @@
 from django import template
 from adminpanel.models import *
+from adminpanel.branding import brand
 
 register = template.Library()
 
@@ -72,6 +73,7 @@ def render_about_us_section():
         'about_us': about_us,
         'why_choose_items': why_choose_items,
         'service_items': service_items,
+        'brand': brand(),  # inclusion tags don't see the page context
     }
 
 @register.inclusion_tag('components/contact_section.html')
@@ -99,4 +101,5 @@ def render_footer_section(context):
         'footer_legal_links': footer_legal_links,
         'footer_sections': footer_sections,
         'site_contact': context.get('site_contact', {}),
+        'brand': context.get('brand') or brand(),
     }
