@@ -191,3 +191,64 @@ class DemoLiveClassCommandTests(TestCase):
         sessions = list(course.sessions.order_by('scheduled_datetime'))
         self.assertEqual(len(sessions), 3)
         self.assertEqual(access.room_state(sessions[0]), 'open')
+
+
+def _rsa_pem():
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()).decode()
+    return key, pem
+
+
+_JAAS_KEY, _JAAS_PEM = _rsa_pem()
+
+
+@override_settings(STORAGES=STORAGES, JAAS_APP_ID='vpaas-magic-cookie-test', JAAS_API_KEY_ID='vpaas-magic-cookie-test/k1',
+                   JAAS_PRIVATE_KEY=_JAAS_PEM.replace('\n', '\\n'))  # one-line form, as in an environment variable
+class JaasTests(TestCase):
+    """With JaaS configured, classes are embedded on 8x8.vc and staff are hosts without any Jitsi login."""
+
+    def setUp(self):
+        course = LiveClassCourse.objects.create(
+            name='Bio Live', language='English', original_price=0, current_price=0, is_free=True,
+            start_date=date.today(), end_date=date.today(),
+        )
+        self.session = LiveClassSession.objects.create(course=course, class_name='Cells', scheduled_datetime=timezone.now())
+        self.url = reverse('live_class_join', args=[self.session.pk])
+
+    def token_on_page(self, user):
+        import base64
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding
+        self.client.force_login(user)
+        page = self.client.get(self.url, secure=True).content.decode()
+        page = page.replace(chr(92) + 'u002D', '-')  # escapejs writes '-' as backslash-u002D
+        self.assertIn('https://8x8.vc/vpaas-magic-cookie-test/external_api.js', page)
+        self.assertIn("roomName: 'vpaas-magic-cookie-test/Infinite360LiveClass", page)
+        self.assertNotIn('meet.jit.si', page)
+        jwt = re.search(r"jwt: '([^']+)'", page).group(1)
+        head, body, sig = jwt.split('.')
+        pad = lambda s: s + '=' * (-len(s) % 4)
+        _JAAS_KEY.public_key().verify(base64.urlsafe_b64decode(pad(sig)), f'{head}.{body}'.encode(), padding.PKCS1v15(), hashes.SHA256())
+        self.assertEqual(json.loads(base64.urlsafe_b64decode(pad(head)))['kid'], 'vpaas-magic-cookie-test/k1')
+        return json.loads(base64.urlsafe_b64decode(pad(body)))
+
+    def test_admin_is_host_and_student_is_participant(self):
+        admin = User.objects.create_user(email='a@example.com', password='Str0ng!Passw0rd#2026', is_staff=True, first_name='Admin')
+        student = User.objects.create_user(email='s@example.com', password='Str0ng!Passw0rd#2026', first_name='Ravi')
+        claims = self.token_on_page(admin)
+        self.assertEqual((claims['aud'], claims['iss'], claims['sub']), ('jitsi', 'chat', 'vpaas-magic-cookie-test'))
+        self.assertEqual(claims['context']['user']['moderator'], 'true')
+        self.assertGreater(claims['exp'], claims['iat'])
+        claims = self.token_on_page(student)
+        self.assertEqual(claims['context']['user']['moderator'], 'false')
+        self.assertEqual(claims['context']['user']['name'], 'Ravi')
+
+    def test_no_token_before_the_room_opens(self):
+        self.session.scheduled_datetime = timezone.now() + timedelta(days=2)
+        self.session.save()
+        self.client.force_login(User.objects.create_user(email='s@example.com', password='Str0ng!Passw0rd#2026'))
+        page = self.client.get(self.url, secure=True)
+        self.assertContains(page, 'Class starts in')
+        self.assertNotContains(page, 'jwt:')

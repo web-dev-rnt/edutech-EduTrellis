@@ -273,8 +273,20 @@ RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
 # Free public servers no longer allow embedding (since 2024 a meet.jit.si call embedded on another site ends after
 # 5 minutes; meet.ffmuc.net blocks iframes since 2026), so on those the class opens in its own tab with no time limit.
 # With a self-hosted Jitsi (set JITSI_DOMAIN) the class is embedded in the page instead.
-JITSI_DOMAIN = os.environ.get("JITSI_DOMAIN", "meet.jit.si").strip().lower().removeprefix("https://").strip("/")
-JITSI_EMBED = os.environ.get(
+#
+# JaaS (Jitsi as a Service by 8x8, free up to 25 users a month): set the three JAAS_* variables and classes are
+# embedded on 8x8.vc with admins as hosts automatically (no "log in to become a moderator" screen).
+JAAS_APP_ID = os.environ.get("JAAS_APP_ID", "").strip()              # vpaas-magic-cookie-…
+JAAS_API_KEY_ID = os.environ.get("JAAS_API_KEY_ID", "").strip()      # vpaas-magic-cookie-…/abc123
+JAAS_PRIVATE_KEY = os.environ.get("JAAS_PRIVATE_KEY", "")            # PEM text; "\n" escapes are fine
+if JAAS_PRIVATE_KEY.strip() and not JAAS_PRIVATE_KEY.strip().startswith("-----"):
+    _key_file = Path(JAAS_PRIVATE_KEY.strip())                          # or a path to the .pk file
+    JAAS_PRIVATE_KEY = _key_file.read_text() if _key_file.is_file() else JAAS_PRIVATE_KEY
+JAAS_ENABLED = bool(JAAS_APP_ID and JAAS_API_KEY_ID and JAAS_PRIVATE_KEY.strip())
+
+JITSI_DOMAIN = "8x8.vc" if JAAS_ENABLED else (
+    os.environ.get("JITSI_DOMAIN", "meet.jit.si").strip().lower().removeprefix("https://").strip("/"))
+JITSI_EMBED = JAAS_ENABLED or os.environ.get(
     "JITSI_EMBED", "false" if JITSI_DOMAIN in ("meet.jit.si", "meet.ffmuc.net") else "true"
 ).strip().lower() in ("1", "true", "yes")
 if JITSI_EMBED:

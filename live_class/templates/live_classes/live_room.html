@@ -261,11 +261,12 @@
   // ---- embedded meeting (self-hosted Jitsi)
   var status = root.querySelector('[data-lr="status"]');
   var script = document.createElement('script');
-  script.src = 'https://{{ jitsi_domain }}/external_api.js';
+  script.src = '{{ jitsi_script|escapejs }}';
   script.onload = function () {
     try {
       window.jitsiAPI = new JitsiMeetExternalAPI('{{ jitsi_domain }}', {
-        roomName: '{{ room_name }}',
+        roomName: '{{ jitsi_room|escapejs }}',
+        {% if jitsi_jwt %}jwt: '{{ jitsi_jwt|escapejs }}',{% endif %}
         parentNode: document.getElementById('jitsi-container'),
         width: '100%', height: '100%',
         userInfo: { displayName: '{{ display_name|escapejs }}', email: '{{ user_email|escapejs }}' },

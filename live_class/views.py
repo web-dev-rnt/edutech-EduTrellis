@@ -14,7 +14,7 @@ import json
 import logging
 from urllib.parse import quote
 
-from . import access, recording
+from . import access, jaas, recording
 from .models import LiveClassSession, LiveClassCourse, LiveClassRecording
 from .forms import LiveClassCourseForm
 from .utils.jitsi_free import generate_room_name
@@ -239,7 +239,16 @@ def live_class_join(request, session_id):
     if user.is_authenticated:
         display_name = user.get_full_name() or user.first_name or user.email.split('@')[0]
     room_name = generate_room_name(session.pk, session.class_name)
-    domain = settings.JITSI_DOMAIN
+    can_enter = allowed and (teacher or state == 'open')
+    use_jaas = jaas.is_configured()
+    if use_jaas:
+        # JaaS: embedded, and the signed token makes staff hosts (no Jitsi login screen).
+        domain, embed = jaas.DOMAIN, True
+        jitsi_room, script_url = jaas.room(room_name), jaas.script_url()
+        jwt = jaas.token(user, display_name, teacher) if can_enter else ''
+    else:
+        domain, embed = settings.JITSI_DOMAIN, settings.JITSI_EMBED
+        jitsi_room, script_url, jwt = room_name, f"https://{domain}/external_api.js", ''
     recordings = session.recordings.filter(status='ready')
     if not teacher:
         recordings = recordings.filter(is_published=True)
@@ -250,15 +259,18 @@ def live_class_join(request, session_id):
         'state': 'open' if teacher else state,
         'real_state': state,
         'opens_at': access.opens_at(session),
-        'can_join': allowed and (teacher or state == 'open'),
+        'can_join': can_enter,
         'has_access': allowed,
         'is_moderator': teacher,
         'jitsi_domain': domain,
-        'jitsi_embed': settings.JITSI_EMBED,
+        'jitsi_embed': embed,
+        'jitsi_room': jitsi_room,
+        'jitsi_script': script_url,
+        'jitsi_jwt': jwt,
         'room_name': room_name,
         'display_name': display_name,
         'user_email': user.email if user.is_authenticated else '',
-        'join_url': _jitsi_join_url(domain, room_name, display_name or 'Student', session.class_name, teacher) if allowed else '',
+        'join_url': _jitsi_join_url(domain, room_name, display_name or 'Student', session.class_name, teacher) if allowed and not embed else '',
         'recordings': recordings if allowed else [],
         'dropbox_ready': recording.dropbox_ready(),
         'login_url': f"{reverse('login')}?next={quote(request.get_full_path())}",
