@@ -34,6 +34,11 @@ def _contrast(rgb_a, rgb_b):
 
 
 #notifications models
+
+def default_backup_folder():
+    from .branding import default_backup_folder as folder
+    return folder()
+
 class Notification(models.Model):
     title = models.CharField(max_length=200, help_text="Notification title")
     body = models.TextField(help_text="Notification message/content")
@@ -496,7 +501,17 @@ class ServiceItem(models.Model):
 
 
 class ThemeSettings(models.Model):
-    """Site-wide brand color, applied via CSS custom properties on every page."""
+    """Site-wide brand name and color. The name is used in page titles, emails, SEO and the admin panel."""
+    site_name = models.CharField(
+        max_length=60,
+        default='Infinite360',
+        help_text="Short brand name shown in page titles, emails, the admin panel and search results."
+    )
+    site_full_name = models.CharField(
+        max_length=120,
+        default='Infinite360 Tech Academy',
+        help_text="Full or legal name, used in the homepage title, search results and structured data."
+    )
     primary_color = models.CharField(
         max_length=7,
         default='#2459E0',
@@ -505,11 +520,11 @@ class ThemeSettings(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Theme Settings"
-        verbose_name_plural = "Theme Settings"
+        verbose_name = "Brand & Theme Settings"
+        verbose_name_plural = "Brand & Theme Settings"
 
     def __str__(self):
-        return f"Theme Settings ({self.primary_color})"
+        return f"{self.site_name} ({self.primary_color})"
 
     @property
     def primary_color_rgb(self):
@@ -549,18 +564,18 @@ class ThemeSettings(models.Model):
         if not self.pk and ThemeSettings.objects.exists():
             raise ValueError('Only one ThemeSettings instance allowed')
         super().save(*args, **kwargs)
-        cache.delete("site-theme-settings-v1")
+        cache.delete("site-theme-settings-v2")
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-        cache.delete("site-theme-settings-v1")
+        cache.delete("site-theme-settings-v2")
 
     @classmethod
     def get_solo(cls):
-        theme = cache.get("site-theme-settings-v1")
+        theme = cache.get("site-theme-settings-v2")
         if theme is None:
             theme, _ = cls.objects.get_or_create(pk=1)
-            cache.set("site-theme-settings-v1", theme, 3600)
+            cache.set("site-theme-settings-v2", theme, 3600)
         return theme
 
 
@@ -909,7 +924,7 @@ class DropboxConfiguration(models.Model):
     app_key = models.CharField(max_length=100)
     app_secret = models.CharField(max_length=200)
     refresh_token = models.CharField(max_length=500)
-    backup_folder = models.CharField(max_length=255, default="/indore-tutorials-backup")
+    backup_folder = models.CharField(max_length=255, default=default_backup_folder)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

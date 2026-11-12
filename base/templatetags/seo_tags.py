@@ -9,12 +9,11 @@ from django.utils.safestring import mark_safe
 
 from adminpanel.context_processors import (
     SITE_EMAIL,
-    SITE_LEGAL_NAME,
-    SITE_NAME,
     SITE_PHONE,
     SITE_POSTAL_ADDRESS,
-    SEO_DEFAULT_DESCRIPTION,
+    seo_texts,
 )
+from adminpanel.branding import brand
 
 register = template.Library()
 
@@ -43,16 +42,17 @@ def _organization(footer_settings=None):
     same_as = [
         url for url in (getattr(footer_settings, f, "") for f in SOCIAL_FIELDS) if url
     ]
+    site_brand = brand()
     org = {
         "@type": "EducationalOrganization",
         "@id": f"{settings.SITE_URL}/#organization",
-        "name": SITE_NAME,
-        "legalName": SITE_LEGAL_NAME,
-        "alternateName": [SITE_LEGAL_NAME, "Infinite 360", "Infinite360 Academy"],
+        "name": site_brand["name"],
+        "legalName": site_brand["full_name"],
+        "alternateName": list(dict.fromkeys([site_brand["full_name"], f"{site_brand['name']} Academy"])),
         "url": f"{settings.SITE_URL}/",
         "logo": _absolute(static("img/brand/logo-badge.png")),
         "image": _absolute(static("img/brand/logo-horizontal.png")),
-        "description": SEO_DEFAULT_DESCRIPTION,
+        "description": seo_texts(site_brand)["description"],
         "email": SITE_EMAIL,
         "telephone": f"+91-{SITE_PHONE}",
         "address": {"@type": "PostalAddress", **SITE_POSTAL_ADDRESS},
@@ -80,8 +80,8 @@ def site_jsonld(context):
             {
                 "@type": "WebSite",
                 "@id": f"{settings.SITE_URL}/#website",
-                "name": SITE_NAME,
-                "alternateName": SITE_LEGAL_NAME,
+                "name": brand()["name"],
+                "alternateName": brand()["full_name"],
                 "url": f"{settings.SITE_URL}/",
                 "inLanguage": "en-IN",
                 "publisher": {"@id": f"{settings.SITE_URL}/#organization"},
@@ -101,7 +101,7 @@ def course_jsonld(context, name, description="", image="", price=None, currency=
     request = context.get("request")
     url = f"{settings.SITE_URL}{request.path}" if request else settings.SITE_URL
     name = strip_tags(str(name or "")).strip()
-    text = strip_tags(description or "").strip() or f"{name} by {SITE_NAME}."
+    text = strip_tags(description or "").strip() or f"{name} by {brand()['name']}."
     data = {
         "@context": "https://schema.org",
         "@type": "Course",
@@ -109,7 +109,7 @@ def course_jsonld(context, name, description="", image="", price=None, currency=
         "description": text[:500],
         "url": url,
         "inLanguage": "en-IN",
-        "provider": {"@type": "Organization", "name": SITE_NAME, "sameAs": f"{settings.SITE_URL}/"},
+        "provider": {"@type": "Organization", "name": brand()["name"], "sameAs": f"{settings.SITE_URL}/"},
     }
     image_url = _absolute(image)
     if image_url:

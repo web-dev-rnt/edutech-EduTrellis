@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}My Results | Infinite360{% endblock %}
+{% block title %}My Results | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="My Results" seo_noindex=True %}{% endblock %}
 
 {% block content %}

@@ -62,7 +62,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>{{ site_name|default:"Your Website" }}</h1>
+            <h1>{{ site_name }}</h1>
             <p>Email Verification Required</p>
         </div>
         
@@ -87,7 +87,7 @@
         </div>
         
         <div class="footer">
-            <p>&copy; 2025 {{ site_name|default:"Your Website" }}. All rights reserved.</p>
+            <p>&copy; {% now "Y" %} {{ site_name }}. All rights reserved.</p>
             <p>This is an automated message, please do not reply to this email.</p>
         </div>
     </div>

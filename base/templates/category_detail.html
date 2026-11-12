@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ category.name }} Courses, Test Series & E-Books | Infinite360{% endblock %}
+{% block title %}{{ category.name }} Courses, Test Series & E-Books | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title=category.name seo_description=category.description %}{% endblock %}
 
 {% block content %}

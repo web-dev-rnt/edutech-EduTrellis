@@ -210,9 +210,9 @@
     <div class="mnav-head">
         <a href="{% url 'home' %}" class="mnav-logo">
             {% if navbar_settings and navbar_settings.logo %}
-                <img src="{{ navbar_settings.logo.url }}" alt="Infinite360">
+                <img src="{{ navbar_settings.logo.url }}" alt="{{ brand.name }}">
             {% else %}
-                <img src="{% static 'img/mainlogo.png' %}" alt="Infinite360">
+                <img src="{% static 'img/mainlogo.png' %}" alt="{{ brand.name }}">
             {% endif %}
         </a>
         <button class="mnav-close" id="navbarMobileClose" type="button" aria-label="Close menu">

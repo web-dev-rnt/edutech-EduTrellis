@@ -41,8 +41,10 @@ def send_otp_email(user, otp_code, timeout=15):
         return False, "No working SMTP configuration found."
 
     try:
-        subject = "Email Verification - OTP Code"
-        context = {"user": user, "otp_code": otp_code, "site_name": "Your Site"}
+        from adminpanel.branding import brand_name
+        site_name = brand_name()
+        subject = f"{site_name} email verification code"
+        context = {"user": user, "otp_code": otp_code, "site_name": site_name}
 
         try:
             html_message = render_to_string("emails/otp_verification.html", context)
@@ -54,7 +56,7 @@ Hello {user.first_name or user.email},
 Your OTP is: {otp_code}
 This OTP expires in 10 minutes.
 Thanks,
-Your Site Team
+{site_name} Team
         """
 
         # ✅ Build a dedicated connection using smtp_config values directly

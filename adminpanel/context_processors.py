@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.templatetags.static import static
 
+from .branding import brand
+
 # ── Site-wide contact constants ──────────────────────────────────────────────
 SITE_EMAIL = "businessconsulting@gmail.com"
 SITE_PHONE = "8296893895"
@@ -12,7 +14,7 @@ SITE_PHONE_DISPLAY = "+91 82968 93895"
 SITE_WHATSAPP_NUMBER = "918296893895"  # country code + number, no +
 SITE_WHATSAPP_URL = (
     f"https://wa.me/{SITE_WHATSAPP_NUMBER}"
-    "?text=Hello%2C%20I%20would%20like%20to%20know%20more%20about%20Infinite360%20Tech%20Academy%20courses"
+    "?text=Hello%2C%20I%20would%20like%20to%20know%20more%20about%20your%20courses"
 )
 SITE_ADDRESS = "8th Floor, DLF Cyber City, Tower A, Phase III, Gurugram - 122002, India"
 SITE_MAPS_URL = "https://maps.google.com/?q=DLF+Cyber+City+Tower+A+Phase+III+Gurugram+Haryana+122002"
@@ -27,18 +29,29 @@ SITE_POSTAL_ADDRESS = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── SEO defaults ─────────────────────────────────────────────────────────────
-SITE_NAME = "Infinite360"
-SITE_LEGAL_NAME = "Infinite360 Tech Academy"
-SEO_DEFAULT_TITLE = "Infinite360 Tech Academy | Online Live Classes, Video Courses & Test Series"
-SEO_DEFAULT_DESCRIPTION = (
-    "Infinite360 Tech Academy: live online classes, video courses, mock test series, "
+# The brand name itself lives in the database (Brand & Theme settings); see adminpanel/branding.py.
+SEO_TITLE_SUFFIX = "Online Live Classes, Video Courses & Test Series"
+SEO_DESCRIPTION_BODY = (
+    "live online classes, video courses, mock test series, "
     "previous year papers and e-books for board and competitive exams. Learn anytime, anywhere."
 )
-SEO_KEYWORDS = (
-    "Infinite360, Infinite360 Tech Academy, Infinite 360, Infinite360 academy, online coaching, live online classes, video courses, online test series, "
+SEO_KEYWORD_TOPICS = (
+    "online coaching, live online classes, video courses, online test series, "
     "mock tests, previous year papers, e-library, e-books, CBSE, board exam preparation, "
     "competitive exam preparation"
 )
+
+
+def seo_texts(site_brand=None):
+    """Default title, description and keywords built from the saved brand name."""
+    site_brand = site_brand or brand()
+    name, full_name = site_brand["name"], site_brand["full_name"]
+    names = list(dict.fromkeys([name, full_name, f"{name} academy"]))
+    return {
+        "title": f"{full_name} | {SEO_TITLE_SUFFIX}",
+        "description": f"{full_name}: {SEO_DESCRIPTION_BODY}",
+        "keywords": ", ".join(names) + ", " + SEO_KEYWORD_TOPICS,
+    }
 SEO_DEFAULT_IMAGE = "img/brand/logo-horizontal.png"
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -73,13 +86,16 @@ def seo(request):
         {{ seo.title }}  {{ seo.description }}  {{ seo.canonical_url }}  {{ seo.image }}
     """
     site_url = settings.SITE_URL
+    site_brand = brand()
+    texts = seo_texts(site_brand)
     return {
+        "brand": site_brand,
         "seo": {
-            "site_name": SITE_NAME,
+            "site_name": site_brand["name"],
             "site_url": site_url,
-            "title": SEO_DEFAULT_TITLE,
-            "description": SEO_DEFAULT_DESCRIPTION,
-            "keywords": SEO_KEYWORDS,
+            "title": texts["title"],
+            "description": texts["description"],
+            "keywords": texts["keywords"],
             "canonical_url": f"{site_url}{request.path}",
             "image": f"{site_url}{static(SEO_DEFAULT_IMAGE)}",
         }
@@ -119,7 +135,7 @@ def footer_settings(request):
         if not settings:
             settings = FooterSettings.objects.create(
                 email=SITE_EMAIL,
-                copyright_text="Copyright \u00a9 2026 Infinite360. All rights reserved.",
+                copyright_text=f"Copyright \u00a9 2026 {brand()['name']}. All rights reserved.",
             )
 
         cache.set(

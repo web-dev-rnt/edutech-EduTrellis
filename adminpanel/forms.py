@@ -1,5 +1,6 @@
 # adminpanel/forms.py
 from django import forms  # noqa: F401  (forms used throughout)
+from .branding import default_backup_folder
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -80,7 +81,7 @@ class DropboxConfigurationForm(forms.ModelForm):
             "app_key": forms.TextInput(attrs={"class": "backup-input", "autocomplete": "off"}),
             "app_secret": forms.PasswordInput(attrs={"class": "backup-input", "autocomplete": "new-password"}, render_value=False),
             "refresh_token": forms.PasswordInput(attrs={"class": "backup-input", "autocomplete": "new-password"}, render_value=False),
-            "backup_folder": forms.TextInput(attrs={"class": "backup-input", "placeholder": "/indore-tutorials-backup"}),
+            "backup_folder": forms.TextInput(attrs={"class": "backup-input", "placeholder": "/infinite360-backup"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -94,7 +95,7 @@ class DropboxConfigurationForm(forms.ModelForm):
         folder = self.cleaned_data["backup_folder"].strip()
         if not folder.startswith("/"):
             folder = f"/{folder}"
-        return folder.rstrip("/") or "/indore-tutorials-backup"
+        return folder.rstrip("/") or default_backup_folder()
 
     def clean_app_secret(self):
         value = self.cleaned_data.get("app_secret", "").strip()
@@ -530,10 +531,21 @@ class ServiceItemForm(forms.ModelForm):
 class ThemeSettingsForm(forms.ModelForm):
     class Meta:
         model = ThemeSettings
-        fields = ['primary_color']
+        fields = ['site_name', 'site_full_name', 'primary_color']
         widgets = {
+            'site_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Infinite360'}),
+            'site_full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Infinite360 Tech Academy'}),
             'primary_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
         }
+
+    def clean_site_name(self):
+        name = self.cleaned_data['site_name'].strip()
+        if not name:
+            raise forms.ValidationError('Enter the brand name.')
+        return name
+
+    def clean_site_full_name(self):
+        return self.cleaned_data['site_full_name'].strip() or self.cleaned_data.get('site_name', '')
 
 
 class AuthPageSettingsForm(forms.ModelForm):

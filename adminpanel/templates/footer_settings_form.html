@@ -46,7 +46,7 @@
                     <div class="form-group">
                         <label for="{{ form.copyright_text.id_for_label }}">Copyright Text</label>
                         {{ form.copyright_text }}
-                        <small class="form-help">e.g., "Copyright © 2026 Infinite360. All rights reserved."</small>
+                        <small class="form-help">e.g., "Copyright © 2026 {{ brand.name }}. All rights reserved."</small>
                         {% if form.copyright_text.errors %}
                             <div class="form-error">{{ form.copyright_text.errors.0 }}</div>
                         {% endif %}

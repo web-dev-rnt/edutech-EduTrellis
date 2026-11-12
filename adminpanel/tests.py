@@ -126,3 +126,55 @@ class SignupAnalyticsTests(TestCase):
         self.assertContains(response, 'signup-filter-clear')
         self.assertContains(response, '<option value="regular"', html=False)
         self.assertNotContains(response, '<option value="superuser"', html=False)
+
+
+@override_settings(STORAGES={
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+})
+class BrandNameTests(TestCase):
+    """The brand name comes from the database, so renaming it in the admin panel renames the site."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.admin = get_user_model().objects.create_user(
+            email='brand-admin@example.com', password='test-password', is_staff=True, is_superuser=True,
+        )
+
+    def rename(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('theme_settings_edit'), {
+            'site_name': 'BrightPath', 'site_full_name': 'BrightPath Learning', 'primary_color': '#2459e0',
+        })
+        self.assertEqual(response.status_code, 302)
+
+    def test_rename_updates_pages_admin_and_backups(self):
+        from .backup_utils import _credentials
+        from .branding import brand
+
+        self.rename()
+        self.assertEqual(brand(), {'name': 'BrightPath', 'full_name': 'BrightPath Learning', 'slug': 'brightpath'})
+
+        self.client.logout()
+        home = self.client.get('/').content.decode()
+        self.assertIn('<title>BrightPath Learning |', home)
+        self.assertIn('content="BrightPath"', home)  # app name meta
+        login = self.client.get('/login/').content.decode()
+        self.assertIn('Login | BrightPath', login)
+        self.assertNotIn('Infinite360', login)
+        manifest = self.client.get('/manifest.json').json()
+        self.assertEqual(manifest['short_name'], 'BrightPath')
+
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get('/admin/'), 'BrightPath Admin Panel')
+        self.assertEqual(_credentials()[3], '/brightpath-backup')
+
+    def test_blank_name_is_rejected(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('theme_settings_edit'), {
+            'site_name': '  ', 'site_full_name': '', 'primary_color': '#2459e0',
+        })
+        self.assertEqual(response.status_code, 200)
+        from .branding import brand_name
+        self.assertEqual(brand_name(), 'Infinite360')

@@ -38,6 +38,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 
 from .models import ProductBundle , DeveloperPopup 
+from .branding import brand_name
 from .forms import ProductBundleForm, BundleFilterForm , DeveloperPopupForm 
 from video_courses.models import VideoCourse
 from live_class.models import LiveClassCourse
@@ -1380,8 +1381,8 @@ def about_us_section_edit(request):
     """Edit About Us main section"""
     about_us, _ = AboutUsSection.objects.get_or_create(
         defaults={
-            'company_name': 'Infinite360',
-            'heading': 'About Infinite360',
+            'company_name': brand_name(),
+            'heading': f'About {brand_name()}',
             'description': (
                 "India's fastest-growing one-stop exam prep platform (Trusted by over 4 crore users!).\n"
                 'We empower exam aspirants with affordable online live classes, mock tests, e-books, and personalized '
@@ -1507,7 +1508,7 @@ def theme_settings_edit(request):
         form = ThemeSettingsForm(request.POST, instance=theme)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Theme color updated successfully!')
+            messages.success(request, 'Brand name and theme color updated.')
             return redirect('theme_settings_edit')
     else:
         form = ThemeSettingsForm(instance=theme)
@@ -1569,7 +1570,7 @@ def footer_edit(request):
 @login_required
 def footer_settings_edit(request):
     footer_settings, _ = FooterSettings.objects.get_or_create(
-        defaults={'email': 'businessconsulting@gmail.com', 'copyright_text': 'Copyright © 2026 Infinite360. All rights reserved.'}
+        defaults={'email': 'businessconsulting@gmail.com', 'copyright_text': f'Copyright © 2026 {brand_name()}. All rights reserved.'}
     )
     if request.method == 'POST':
         form = FooterSettingsForm(request.POST, request.FILES, instance=footer_settings)

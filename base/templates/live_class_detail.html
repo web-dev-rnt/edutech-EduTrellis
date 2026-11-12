@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ course.name }} | Live Online Classes | Infinite360</title>
+    <title>{{ course.name }} | Live Online Classes | {{ brand.name }}</title>
     {% include "partials/seo_meta.html" with seo_title=course.name seo_description=course.about seo_image=course.banner_image_desktop %}
     {% course_jsonld course.name course.about course.banner_image_desktop course.current_price "INR" course.is_free %}
     <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">

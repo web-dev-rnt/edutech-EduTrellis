@@ -5,6 +5,7 @@ Optimized for performance, caching, security, and Core Web Vitals.
 
 from pathlib import Path
 import os
+import sys
 import dj_database_url
 
 try:
@@ -207,6 +208,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    # Data migrations copy banner artwork into MEDIA_ROOT; keep test runs out of the real media folder.
+    import tempfile
+    MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="infinite360-test-media-"))
 
 # WhiteNoise: serve compressed static files with aggressive browser caching (1 year)
 STORAGES = {
@@ -312,7 +317,12 @@ CSRF_USE_SESSIONS = False
 # SEO
 # Canonical public origin used for canonical links, Open Graph URLs and the sitemap.
 # --------------------
-SITE_URL = os.environ.get("SITE_URL", "https://www.indoretutorials.online").rstrip("/")
+# Defaults to the live Railway address; set SITE_URL once a custom domain is attached. Pointing this at a
+# different domain than the one serving the login page makes Chrome treat the site as a phishing copy.
+SITE_URL = (
+    os.environ.get("SITE_URL", "").strip()
+    or "https://" + (os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip() or "infinite360-production.up.railway.app")
+).rstrip("/")
 
 # --------------------
 # PWA SETTINGS

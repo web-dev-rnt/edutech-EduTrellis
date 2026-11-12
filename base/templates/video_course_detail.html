@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ course.name }} | Online Video Course | Infinite360</title>
+    <title>{{ course.name }} | Online Video Course | {{ brand.name }}</title>
     {% include "partials/seo_meta.html" with seo_title=course.name seo_description=course.description seo_image=course.thumbnail %}
     {% course_jsonld course.name course.description course.thumbnail course.selling_price course.currency course.is_free %}
     
@@ -1160,7 +1160,7 @@
             key: data.razorpay_merchant_key,
             amount: data.amount,
             currency: data.currency,
-            name: "Infinite360 Tech Academy",
+            name: "{{ brand.full_name|escapejs }}",
             description: data.course_name,
             order_id: data.razorpay_order_id,
             prefill: {

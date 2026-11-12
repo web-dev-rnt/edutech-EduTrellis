@@ -133,13 +133,15 @@ def manifest(request):
     def build_icon_url(filename):
         return request.build_absolute_uri(settings.STATIC_URL + f'img/{filename}')
 
+    from adminpanel.branding import brand
     from adminpanel.models import ThemeSettings
     theme_color = ThemeSettings.get_solo().primary_color
+    site_brand = brand()
 
     manifest_data = {
-        "name": "Infinite360 Tech Academy - Complete Learning Platform",
-        "short_name": "Infinite360",
-        "description": "Prepare smarter with Infinite360: live online classes, video courses, mock test series, previous year papers and e-books.",
+        "name": f"{site_brand['full_name']} - Complete Learning Platform",
+        "short_name": site_brand['name'],
+        "description": f"Prepare smarter with {site_brand['name']}: live online classes, video courses, mock test series, previous year papers and e-books.",
         "start_url": "/",
         "scope": "/",
         "display": "standalone",
@@ -2250,10 +2252,12 @@ def forgot_password_request(request):
         expires_at=timezone.now() + timezone.timedelta(minutes=10)
     )
 
+    from adminpanel.branding import brand_name
+    site_name = brand_name()
     email_message = f"""
 Hello {user.first_name or user.email},
 
-You have requested to reset your Infinite360 password.
+You have requested to reset your {site_name} password.
 
 Your OTP code is: {otp_code}
 
@@ -2262,7 +2266,7 @@ This OTP is valid for 10 minutes. Never share it with anyone.
 If you did not request this password reset, please ignore this email.
 
 Best regards,
-Infinite360 Support
+{site_name} Support
     """.strip()
 
     try:
@@ -2276,7 +2280,7 @@ Infinite360 Support
             use_ssl=smtp_config.email_use_ssl,
         )
         sent = send_mail(
-            subject='Your Infinite360 password reset code',
+            subject=f'Your {site_name} password reset code',
             message=email_message,
             from_email=smtp_config.default_from_email,
             recipient_list=[user.email],
@@ -3716,7 +3720,8 @@ ERROR_PAGES = {
 
 def _error_page(request, status):
     title, message = ERROR_PAGES[status]
-    html = loader.render_to_string('errors/error.html', {'status': status, 'title': title, 'message': message})
+    from adminpanel.branding import brand
+    html = loader.render_to_string('errors/error.html', {'status': status, 'title': title, 'message': message, 'brand': brand()})
     return HttpResponse(html, status=status)
 
 

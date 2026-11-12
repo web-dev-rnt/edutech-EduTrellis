@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ course.title }} | E-Book & Study Notes | Infinite360</title>
+    <title>{{ course.title }} | E-Book & Study Notes | {{ brand.name }}</title>
     {% include "partials/seo_meta.html" with seo_title=course.title seo_description=course.short_description|default:course.description seo_image=course.cover_image %}
     {% course_jsonld course.title course.description course.cover_image course.price "INR" course.is_free %}
     <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">

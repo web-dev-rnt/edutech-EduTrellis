@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}My Library | Infinite360{% endblock %}
+{% block title %}My Library | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="My Library" seo_noindex=True %}{% endblock %}
 
 {% block content %}

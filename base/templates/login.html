@@ -2,7 +2,7 @@
 {% load static %}
 {% load navbar_tags %}
 
-{% block title %}Login | Infinite360{% endblock %}
+{% block title %}Login | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Login" seo_noindex=True %}{% endblock %}
 {% block content %}
 {% include 'message.html' %}
@@ -281,11 +281,11 @@
 <div class="login-background">
   <div class="login-card">
     <div class="login-form-container">
-      <a href="{% url 'home' %}" class="auth-brand" aria-label="Infinite360 Tech Academy home">
-        <img src="{% static 'img/brand/logo-inline.png' %}" alt="Infinite360 Tech Academy" width="1341" height="168">
+      <a href="{% url 'home' %}" class="auth-brand" aria-label="{{ brand.full_name }} home">
+        <img src="{% static 'img/brand/logo-inline.png' %}" alt="{{ brand.full_name }}" width="1341" height="168">
       </a>
       <div class="login-welcome">Welcome back</div>
-      <p class="auth-sub">Log in to continue learning with Infinite360.</p>
+      <p class="auth-sub">Log in to continue learning with {{ brand.name }}.</p>
       
       <form class="login-form" id="loginForm" novalidate method="post" action="{% url 'login' %}" autocomplete="on">
         {% csrf_token %}

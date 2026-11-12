@@ -522,9 +522,13 @@ class ProductBundleAdmin(admin.ModelAdmin):
 # ============================================
 # ADMIN SITE CUSTOMIZATION
 # ============================================
-admin.site.site_header = "Infinite360 Admin Panel"
-admin.site.site_title = "Infinite360 Admin"
-admin.site.index_title = "Welcome to Infinite360 Tech Academy Administration"
+# Read from the saved brand name on each request, so a rename shows up without a restart.
+from django.utils.functional import lazy
+from .branding import brand_full_name, brand_name
+
+admin.site.site_header = lazy(lambda: f"{brand_name()} Admin Panel", str)()
+admin.site.site_title = lazy(lambda: f"{brand_name()} Admin", str)()
+admin.site.index_title = lazy(lambda: f"Welcome to {brand_full_name()} Administration", str)()
 
 
 

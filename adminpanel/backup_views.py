@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from .backup_utils import DropboxBackupManager, clear_backup_list_cache
+from .branding import default_backup_folder
 from .forms import DropboxConfigurationForm
 from .models import DropboxConfiguration
 
@@ -43,7 +44,7 @@ def backup_dashboard(request):
         app_key=settings.DROPBOX_APP_KEY,
         app_secret=settings.DROPBOX_APP_SECRET,
         refresh_token=settings.DROPBOX_REFRESH_TOKEN,
-        backup_folder="/indore-tutorials-backup",
+        backup_folder=default_backup_folder(),
     )
     form = DropboxConfigurationForm(instance=saved_config)
     context = {

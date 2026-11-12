@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ session.class_name }} · Live Class | {{ seo.site_name|default:"Infinite360" }}{% endblock %}
+{% block title %}{{ session.class_name }} · Live Class | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title=session.class_name seo_noindex=True %}{% endblock %}
 
 {% block content %}

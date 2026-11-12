@@ -1660,7 +1660,7 @@ html, body, .admin-root { background: #f5f6fa; }
       <div class="page-header">
         <div class="header-content">
           <h1>Dashboard</h1>
-          <p class="page-subtitle">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}. Here is how Infinite360 is doing.</p>
+          <p class="page-subtitle">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}. Here is how {{ brand.name }} is doing.</p>
         </div>
         <a class="btn" href="{% url 'home' %}" target="_blank" rel="noopener" data-no-ajax><i class="fas fa-arrow-up-right-from-square"></i> View website</a>
       </div>

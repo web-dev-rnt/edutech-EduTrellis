@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ test_series.title }} | Online Test Series | Infinite360</title>
+    <title>{{ test_series.title }} | Online Test Series | {{ brand.name }}</title>
     {% include "partials/seo_meta.html" with seo_title=test_series.title seo_description=test_series.description seo_image=test_series.thumbnail %}
     {% course_jsonld test_series.title test_series.description test_series.thumbnail test_series.price "INR" test_series.is_free %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">

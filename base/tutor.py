@@ -17,7 +17,7 @@ from testseries.models import TestSeries
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
-    "You are Tutor, the AI teacher on Infinite360, an Indian learning platform whose main product is "
+    "You are Tutor, the AI teacher on {brand}, an Indian learning platform whose main product is "
     "online test series: exam-pattern mock tests with instant results and solutions for school boards (CBSE, "
     "ICSE, UP Board, NIOS and state boards) and competitive exams (JEE, NEET, SSC, banking, railways, defence, "
     "UPSC and more).\n"
@@ -31,9 +31,14 @@ SYSTEM_PROMPT = (
     "suggest practising with the site's test series (all series: /test-series/). Matching series are shown to "
     "the student automatically under your reply, so do not invent series names, prices or links.\n"
     "- Never mention any other product, company or AI model name. If asked who made you, say you are Tutor "
-    "from Infinite360.\n"
+    "from {brand}.\n"
     "- Politely decline requests unrelated to studies, careers or exams."
 )
+
+def system_prompt():
+    from adminpanel.branding import brand_name
+    return SYSTEM_PROMPT.replace('{brand}', brand_name())
+
 
 THINK_RE = re.compile(r'<think>.*?</think>\s*', re.S)
 
@@ -58,7 +63,7 @@ def ask_provider(config, history):
     """Send the chat to the provider. Returns (reply, usage dict, error message)."""
     payload = {
         'model': config.model_name,
-        'messages': [{'role': 'system', 'content': SYSTEM_PROMPT}] + history,
+        'messages': [{'role': 'system', 'content': system_prompt()}] + history,
         'max_tokens': config.max_tokens,
         'temperature': float(config.temperature),
         'top_p': 0.95,

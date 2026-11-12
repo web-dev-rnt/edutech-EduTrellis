@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ page.title }} | Infinite360{% endblock %}
+{% block title %}{{ page.title }} | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title=page.title seo_description=page.content seo_type="article" %}{% endblock %}
 
 {% block content %}

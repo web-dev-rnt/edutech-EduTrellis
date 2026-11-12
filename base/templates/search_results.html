@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Search results for "{{ query }}" | Infinite360{% endblock %}
+{% block title %}Search results for "{{ query }}" | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Search" seo_noindex=True %}{% endblock %}
 
 {% block content %}

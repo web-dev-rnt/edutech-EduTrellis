@@ -9,7 +9,7 @@
         {% if about_us.logo %}
           <img loading="lazy" decoding="async" src="{{ about_us.logo.url }}" alt="{{ about_us.company_name }} Logo" class="aboutus-logo">
         {% else %}
-          <img loading="lazy" decoding="async" src="{% load static %}{% static 'img/mainlogo.png' %}" alt="Infinite360 Logo" class="aboutus-logo">
+          <img loading="lazy" decoding="async" src="{% load static %}{% static 'img/mainlogo.png' %}" alt="{{ brand.name }} Logo" class="aboutus-logo">
         {% endif %}
         <div class="aboutus-company">{{ about_us.company_name }}</div>
       </div>
@@ -63,7 +63,7 @@
       <div class="aboutus-why">
         <div class="aboutus-why-title">
           <i class="fa-regular fa-lightbulb"></i>
-          Why Choose {{ about_us.company_name|default:"Infinite360" }}?
+          Why Choose {{ about_us.company_name|default:brand.name }}?
         </div>
         <ul class="aboutus-why-list">
           {% for item in why_choose_items %}

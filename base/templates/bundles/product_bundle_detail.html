@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ bundle.title }} | Course Bundle | Infinite360</title>
+    <title>{{ bundle.title }} | Course Bundle | {{ brand.name }}</title>
     {% include "partials/seo_meta.html" with seo_title=bundle.title seo_description=bundle.short_description|default:bundle.description seo_image=bundle.thumbnail %}
     {% course_jsonld bundle.title bundle.description bundle.thumbnail bundle.bundle_price bundle.currency bundle.is_free %}
     

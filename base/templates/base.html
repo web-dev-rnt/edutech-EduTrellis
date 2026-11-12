@@ -19,8 +19,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Infinite360">
-  <meta name="application-name" content="Infinite360">
+  <meta name="apple-mobile-web-app-title" content="{{ brand.name }}">
+  <meta name="application-name" content="{{ brand.name }}">
   <meta name="msapplication-TileColor" content="{{ theme.primary_color|default:"#2459E0" }}">
   <meta name="msapplication-tap-highlight" content="no">
   <meta name="msapplication-TileImage" content="{% static 'img/icon-192.png' %}">
@@ -95,7 +95,7 @@
     {% endblock footer %}
 
   <!-- PWA Install Button (shown dynamically on supported browsers) -->
-  <button id="pwa-install-btn" aria-label="Install Infinite360 App">
+  <button id="pwa-install-btn" aria-label="Install {{ brand.name }} App">
     <i class="fa fa-download"></i>
     <span>Install App</span>
   </button>
@@ -103,7 +103,7 @@
   <!-- iOS Install Banner (shown on iOS devices) -->
   <div class="ios-install-banner" id="ios-install-banner">
     <div class="ios-install-content">
-      <h3>📱 Install Infinite360</h3>
+      <h3>📱 Install {{ brand.name }}</h3>
       <p>Tap <i class="fa fa-share"></i> then "Add to Home Screen"</p>
     </div>
     <button class="ios-install-close" id="ios-install-close" aria-label="Close banner">×</button>

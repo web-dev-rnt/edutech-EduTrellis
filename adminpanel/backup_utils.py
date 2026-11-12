@@ -1,6 +1,6 @@
 """
 adminpanel/backup_utils.py
-Dropbox backup manager for Infinite360 database backups.
+Dropbox backup manager for the site database.
 Uses the Dropbox OAuth2 credentials already configured in settings.
 """
 from __future__ import annotations
@@ -12,6 +12,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.cache import cache
+
+from .branding import brand, default_backup_folder
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ def _credentials():
         settings.DROPBOX_APP_KEY,
         settings.DROPBOX_APP_SECRET,
         settings.DROPBOX_REFRESH_TOKEN,
-        "/indore-tutorials-backup",
+        default_backup_folder(),
     )
 
 
@@ -99,7 +101,7 @@ class DropboxBackupManager:
             return {"success": False, "message": f"Database file not found: {DB_PATH}"}
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"indore_tutorials_backup_{timestamp}.sqlite3"
+        filename = f"{brand()['slug'].replace('-', '_')}_backup_{timestamp}.sqlite3"
         _, _, _, backup_folder = _credentials()
         dropbox_path = f"{backup_folder}/{filename}"
 

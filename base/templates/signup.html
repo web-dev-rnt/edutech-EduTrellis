@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load navbar_tags %}
-{% block title %}Sign Up | Infinite360{% endblock %}
+{% block title %}Sign Up | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Sign Up" seo_noindex=True %}{% endblock %}
 {% block content %}
 {% include 'message.html' %}
@@ -10,11 +10,11 @@
   <div class="login-background">
     <div class="login-card signup-card">
       <div class="login-form-container signup-form-container">
-        <a href="{% url 'home' %}" class="auth-brand" aria-label="Infinite360 Tech Academy home">
-          <img src="{% static 'img/brand/logo-inline.png' %}" alt="Infinite360 Tech Academy" width="1341" height="168">
+        <a href="{% url 'home' %}" class="auth-brand" aria-label="{{ brand.full_name }} home">
+          <img src="{% static 'img/brand/logo-inline.png' %}" alt="{{ brand.full_name }}" width="1341" height="168">
         </a>
         <div class="login-welcome">Create Your Account</div>
-        <p class="auth-sub">Join Infinite360 Tech Academy. It takes under a minute.</p>
+        <p class="auth-sub">Join {{ brand.full_name }}. It takes under a minute.</p>
 
         <form class="login-form" id="signupForm" method="post" action="{% url 'signup' %}" enctype="multipart/form-data" novalidate>
           {% csrf_token %}

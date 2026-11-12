@@ -3,7 +3,7 @@
      Logged-in students only: scores are saved to their account and shown under My Results / My Profile. -->
 <section class="dq{% if daily_quiz.locked %} is-locked{% endif %}" id="daily-quiz" aria-labelledby="dq-title"
          data-api="{% url 'daily_quiz_api' 'mixed' %}" data-next-in="{{ daily_quiz.next_in }}"
-         data-site="{{ seo.site_name|default:'Infinite360' }}"
+         data-site="{{ brand.name }}"
          data-locked="{{ daily_quiz.locked|yesno:'1,0' }}"
          data-login="{% url 'login' %}?next=/%23daily-quiz" data-signup="{% url 'signup' %}?next=/%23daily-quiz"
          data-history="{% url 'my_test_results' %}#daily-quiz"

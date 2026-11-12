@@ -12,11 +12,11 @@
 
     <div class="footer-inner">
         <div class="footer-brand">
-            <a href="/" class="footer-logo-link" aria-label="Infinite360 home">
+            <a href="/" class="footer-logo-link" aria-label="{{ brand.name }} home">
                 {% if footer_settings.logo %}
-                    <img loading="lazy" decoding="async" src="{{ footer_settings.logo.url }}" alt="Infinite360 logo" class="footer-logo-img">
+                    <img loading="lazy" decoding="async" src="{{ footer_settings.logo.url }}" alt="{{ brand.name }} logo" class="footer-logo-img">
                 {% else %}
-                    <img loading="lazy" decoding="async" src="{% static 'img/footerlogo.png' %}" alt="Infinite360 logo" class="footer-logo-img">
+                    <img loading="lazy" decoding="async" src="{% static 'img/footerlogo.png' %}" alt="{{ brand.name }} logo" class="footer-logo-img">
                 {% endif %}
             </a>
             <p class="footer-tagline">Exam-pattern mock tests for school boards and competitive exams, with instant results and detailed solutions.</p>
@@ -64,7 +64,7 @@
     <div class="footer-app">
         <div class="footer-app__text">
             <span class="footer-app__icon"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i></span>
-            <span><strong>Get the Infinite360 app</strong> Take tests faster from your home screen.</span>
+            <span><strong>Get the {{ brand.name }} app</strong> Take tests faster from your home screen.</span>
         </div>
         <button id="footer-install-pwa-btn" class="footer-install-btn" type="button">
             <i class="fa fa-download" aria-hidden="true"></i>
@@ -366,7 +366,7 @@
       
       // Show success message
       setTimeout(function() {
-        alert('🎉 App installed successfully! You can now access Infinite360 from your home screen.');
+        alert('🎉 App installed successfully! You can now access {{ brand.name|escapejs }} from your home screen.');
       }, 500);
     });
     

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Edit Profile | Infinite360{% endblock %}
+{% block title %}Edit Profile | {{ brand.name }}{% endblock %}
 {% block seo_meta %}{% include "partials/seo_meta.html" with seo_title="Edit Profile" seo_noindex=True %}{% endblock %}
 {% block content %}
 {% include 'message.html' %}
