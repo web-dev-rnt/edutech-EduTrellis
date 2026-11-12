@@ -81,6 +81,7 @@ class Exam:
     icon: str = 'graduation-cap'
     color: str = '#667eea'
     note: str = ''
+    light: bool = False    # catalog exams: 2 full mocks, a few topic tests and a demo
 
     @property
     def total(self):
@@ -557,6 +558,11 @@ EXAMS = [
 from .patterns_india import EXAMS_2026_EXPANSION  # noqa: E402
 
 EXAMS += EXAMS_2026_EXPANSION
+
+# Every other exam in the exam list (testseries/content/exam_catalog.csv), with a practice pattern each.
+from .catalog_patterns import build_exams  # noqa: E402
+
+EXAMS += build_exams({e.name for e in EXAMS})
 
 EXAM_INDEX = {e.name: e for e in EXAMS}
 assert len(EXAM_INDEX) == len(EXAMS), "duplicate exam names in patterns"

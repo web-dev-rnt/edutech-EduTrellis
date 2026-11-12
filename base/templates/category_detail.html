@@ -489,7 +489,7 @@
         <div class="cx-hero-main">
             <span class="cx-icon" aria-hidden="true"><i class="fa fa-{{ category.icon|default:'graduation-cap' }}"></i></span>
             <div>
-                <span class="cx-kicker">{% if test_series %}Exam category{% else %}Category{% endif %}</span>
+                <span class="cx-kicker">{% if category.group %}{{ category.group }}{% if category.sub_category %} › {{ category.sub_category }}{% endif %}{% elif test_series %}Exam category{% else %}Category{% endif %}</span>
                 <h1>{{ category.name }}</h1>
                 <p class="cx-about">
                     {% if test_series %}<b>{% if test_series.0.board %}About the board{% else %}Exam pattern{% endif %}</b>{% endif %}

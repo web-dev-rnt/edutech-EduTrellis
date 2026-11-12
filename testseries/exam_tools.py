@@ -20,7 +20,7 @@ EXAM_CALCULATORS = {
 
 # Home page "Browse all test series" tabs: (key, label, icon, exam names in display order).
 # Series whose exam is not listed here fall into the last tab.
-EXAM_GROUPS = [
+_POPULAR_GROUPS = [
     ('engineering', 'Engineering', 'gears', [
         'JEE Main', 'JEE Advanced', 'BITSAT', 'VITEEE', 'MHT CET', 'WBJEE', 'KCET', 'AP EAPCET',
         'TS EAPCET', 'GATE', 'GATE EE', 'GATE ME', 'GATE CE', 'GATE EC', 'GATE DA', 'UPSC ESE', 'NATA', 'Polytechnic Entrance',
@@ -87,3 +87,13 @@ EXAM_GROUPS = [
         'Sainik School Class 9 (AISSEE)', 'RMS CET', 'NMMS',
     ]),
 ]
+
+
+# Explore Exams categories (the exam list's first level), each listing its exams: the popular ones above first,
+# then the rest of the list. Sub-categories come from testseries.content.catalog.placement().
+def _build_groups():
+    from testseries.content.catalog import exam_groups
+    return exam_groups([name for _key, _label, _icon, names in _POPULAR_GROUPS for name in names])
+
+
+EXAM_GROUPS = _build_groups()

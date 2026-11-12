@@ -37,6 +37,9 @@ class Category(TimestampedModel):
         default='#667eea',
         help_text="Hex color code for the category icon (e.g., #667eea)."
     )
+    # Exam list levels: category > sub-category > exam (this record). Set by build_test_content from the exam list.
+    group = models.CharField(max_length=80, blank=True, db_index=True, help_text="Exam list category, e.g. Banking.")
+    sub_category = models.CharField(max_length=160, blank=True, help_text="Exam list sub-category, e.g. Bank PO/Clerical.")
 
     class Meta:
         ordering = ["name"]

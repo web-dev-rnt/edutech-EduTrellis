@@ -196,11 +196,15 @@
             </a>
           {% endfor %}
         </div>
+        {% if tab.more_url %}
+          <a href="{{ tab.more_url }}" class="tsd-more">View all {{ tab.count }} {{ tab.label }} test series <i class="fa-solid fa-arrow-right"></i></a>
+        {% endif %}
       {% endif %}
     </div>
     {% endfor %}
 
-    <p class="tsd-empty" id="tsd-empty" hidden>No test series match "<span></span>". Try an exam name such as SSC, NEET or Class 10.</p>
+    <p class="tsd-empty" id="tsd-empty" hidden>No test series on this page match "<span></span>". Try an exam name such as SSC, NEET or Class 10.</p>
+    <p class="tsd-search-all" id="tsd-search-all" hidden><a href="{% url 'all_test_series' %}">Search all test series for "<span></span>" <i class="fa-solid fa-arrow-right"></i></a></p>
   </div>
 
   <div class="ts-view-all-wrap">
@@ -443,6 +447,13 @@
   .tsd-exam-meta { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .tsd-empty { margin: 0; padding: 32px 20px; text-align: center; color: #6b7280; font-size: 14px; }
+  .tsd-more { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-weight: 700; font-size: 14px;
+              color: var(--brand-primary-text, #1d4ed8); text-decoration: none; }
+  .tsd-more:hover { text-decoration: underline; }
+  .tsd-search-all { margin: 0; padding: 4px 20px 20px; text-align: center; font-size: 14px; }
+  .tsd-search-all a { font-weight: 700; color: var(--brand-primary-text, #1d4ed8); text-decoration: none; }
+  .tsd-search-all a:hover { text-decoration: underline; }
+  .tsd-search-all[hidden], .tsd-more[hidden] { display: none; }
   .tsd-all-link {
     display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700;
     color: #374151; text-decoration: none; padding: 8px 4px; border-bottom: 2px solid var(--brand-primary, #D4AF37);
@@ -475,6 +486,8 @@
   var panels = Array.prototype.slice.call(shell.querySelectorAll('.tsd-panel'));
   var search = document.getElementById('tsd-search');
   var empty = document.getElementById('tsd-empty');
+  var searchAll = document.getElementById('tsd-search-all');
+  var searchAllBase = searchAll.querySelector('a').getAttribute('href');
   var activeKey = tabs.length ? tabs[0].dataset.tab : null;
 
   function showTab(key) {
@@ -507,6 +520,11 @@
   function filter(raw) {
     var query = raw.trim().toLowerCase();
     shell.classList.toggle('is-searching', !!query);
+    // Tabs show the most popular series only, so offer a search over the whole catalogue too.
+    searchAll.hidden = !query;
+    searchAll.querySelector('span').textContent = raw.trim();
+    searchAll.querySelector('a').setAttribute('href', searchAllBase + '?q=' + encodeURIComponent(raw.trim()));
+    shell.querySelectorAll('.tsd-more').forEach(function (el) { el.hidden = !!query; });
     if (!query) {
       shell.querySelectorAll('[data-search]').forEach(function (el) { el.hidden = false; });
       shell.querySelectorAll('.tsd-group').forEach(function (el) { el.hidden = false; });

@@ -155,3 +155,91 @@ class GradingTests(TestCase):
         self.attempt.refresh_from_db()
         self.assertEqual(self.attempt.correct_answers, 1)
         self.assertAlmostEqual(float(self.attempt.marks_obtained), 2.5 - 0.83, places=2)
+
+
+class ExamListTests(TestCase):
+    """The exam list (exam_catalog.csv): every exam has a category and sub-category, new exams get light series."""
+
+    def setUp(self):
+        cache.clear()
+
+    def test_every_catalog_exam_has_a_valid_pattern(self):
+        from testseries.content.catalog import placement, rows
+        from testseries.content.core import TOPICS
+
+        load_all()
+        names = {e.name for e in EXAMS}
+        catalog = [r for r in rows() if r['kind'] == 'exam']
+        self.assertGreater(len(catalog), 1000)
+        for row in catalog:
+            self.assertIn(row['exam'], names)
+        for exam in EXAMS:
+            self.assertTrue(exam.sections, exam.name)
+            self.assertTrue(all(k in TOPICS for s in exam.sections for k in s.topics), exam.name)
+            self.assertNotEqual(placement(exam.name)[0], '', exam.name)
+        self.assertEqual(placement('SBI PO'), ('Banking', 'Bank PO/Clerical'))     # existing exam placed from the list
+        self.assertEqual(placement('UPSC CMS')[0], 'Medical')                       # alias 'UPSC CMSE' -> existing exam
+
+    def test_light_series_and_category_levels(self):
+        call_command('build_test_content', exam=['IBPS SO Law Officer', 'GATE Biotechnology'], verbosity=0)
+        series = TestSeries.objects.get(exam='IBPS SO Law Officer')
+        titles = list(series.tests.values_list('title', flat=True))
+        self.assertEqual(sum('Full Mock Test' in t for t in titles), 2)
+        self.assertFalse(any('Sectional' in t or 'Previous Year' in t for t in titles))
+        self.assertLessEqual(sum(t.startswith('Topic Test') for t in titles), 4)
+        self.assertTrue(series.tests.filter(is_demo=True).exists())
+        self.assertFalse(Test.objects.filter(questions__isnull=True).exists())
+        from video_courses.models import Category
+        category = Category.objects.get(name='IBPS SO Law Officer')
+        self.assertEqual((category.group, category.sub_category), ('Banking', 'Bank Specialist Officer (SO)'))
+        self.assertEqual(Test.objects.filter(test_series__exam='GATE Biotechnology', is_demo=False).first().calculator, 'scientific')
+
+    def test_import_command_links_existing_exams(self):
+        import csv
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from testseries.management.commands import import_exam_catalog as importer
+
+        src = Path(tempfile.mkdtemp()) / 'list.csv'
+        out = Path(tempfile.mkdtemp()) / 'catalog.csv'
+        with src.open('w', encoding='utf-8', newline='') as fh:
+            writer = csv.writer(fh)
+            writer.writerow(['L0 Name', 'L0_link', 'L1 Name', 'L1_link', 'L2 Name', 'L2_Link'])
+            writer.writerow(['SSC', '', 'SSC (CGL - TIER 1 & 2)', '', 'SSC CGL', ''])
+            writer.writerow(['Banking', '', 'Bank PO/Clerical', '', 'Bihar State Cooperative Bank', ''])
+            writer.writerow(['New Level 0', '', 'Recruitment Test', '', 'Round 1', ''])
+            writer.writerow(['School Level - State Boards', '', 'Goa Board', '', 'Goa Board Class XI', ''])
+            writer.writerow(['School Level - All India', '', 'CBSE', '', 'CBSE Nursery', ''])
+        with patch.object(importer, 'OUT', out):
+            call_command('import_exam_catalog', str(src), verbosity=0)
+        rows = list(csv.DictReader(out.open(encoding='utf-8')))
+        self.assertEqual([(r['kind'], r['exam'], r['site_exam']) for r in rows if r['kind'] == 'exam'],
+                         [('exam', 'SSC CGL', 'SSC CGL'), ('exam', 'Bihar State Cooperative Bank', '')])
+        self.assertEqual(sorted((r['board'], r['grade'], r['stream']) for r in rows if r['kind'] == 'school'),
+                         [('ga', '11', 'arts'), ('ga', '11', 'commerce'), ('ga', '11', 'science')])
+
+
+class ExamMenuTests(TestCase):
+    """Explore Exams: pages carry only the category tabs; exams, under sub-category headings, load with the menu."""
+
+    def setUp(self):
+        cache.clear()
+        call_command('build_test_content', exam=['SBI PO', 'IBPS SO Law Officer', 'SSC CGL'], verbosity=0)
+
+    def test_menu_loads_on_demand_with_sub_categories(self):
+        home = self.client.get('/')
+        self.assertContains(home, 'data-src="/exams/menu/"')
+        self.assertNotContains(home, 'class="exam-menu-link"')
+        menu = self.client.get('/exams/menu/').content.decode()
+        self.assertIn('Bank PO/Clerical', menu)
+        self.assertIn('Bank Specialist Officer (SO)', menu)
+        self.assertIn('IBPS SO Law Officer', menu)
+        mobile = self.client.get('/exams/menu/?v=mobile').content.decode()
+        self.assertIn('mnav-chip', mobile)
+
+    def test_catalogue_filters_by_exam_category(self):
+        page = self.client.get('/test-series/?group=banking').content.decode()
+        self.assertIn('IBPS SO Law Officer', page)
+        self.assertNotIn('SSC CGL 2026', page)

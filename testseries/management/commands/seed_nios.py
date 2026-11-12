@@ -17,5 +17,5 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         added = nios_seed.seed(TestSeries, Test, Question, Subject, Category, log=self.stdout.write)
-        cache.delete('site-navbar-categories')
+        cache.delete_many(['site-navbar-categories', 'site-navbar-category-tabs'])
         self.stdout.write(self.style.SUCCESS(f"NIOS: added {added} tests."))

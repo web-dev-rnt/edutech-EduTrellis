@@ -109,6 +109,18 @@ def dropbox_file_redirect(request, token):
     return redirect(target_url)
 
 @require_GET
+def exam_menu(request):
+    """The Explore Exams menu's exam links, loaded when the menu is first opened (?v=mobile for the mobile drawer)."""
+    from video_courses.context_processors import category_groups
+
+    variant = 'mobile' if request.GET.get('v') == 'mobile' else 'desktop'
+    template = 'partials/exam_menu_mobile.html' if variant == 'mobile' else 'partials/exam_menu_panels.html'
+    response = render(request, template, {'groups': category_groups()})
+    patch_cache_control(response, public=True, max_age=300)
+    return response
+
+
+@require_GET
 def dropbox_media_redirect(request, token):
     """Send the browser to an uploaded site file in Dropbox (see DropboxMediaStorage).
 
@@ -797,6 +809,9 @@ def _series_cards(queryset, user):
     return series_list
 
 
+DIRECTORY_CARDS_PER_TAB = 24
+
+
 def _test_series_directory(purchased_ids):
     """
     Every active test series grouped into tabs for the home page directory:
@@ -861,18 +876,22 @@ def _test_series_directory(purchased_ids):
         if not series.board and series.exam:
             by_exam.setdefault(series.exam, []).append(series)
     grouped = set()
+    all_url = reverse('all_test_series')
     for key, label, icon, exams in EXAM_GROUPS:
         items = [s for exam in exams for s in by_exam.get(exam, [])]
         grouped.update(exams)
         if items:
-            tabs.append({'key': key, 'label': label, 'icon': icon, 'layout': 'grid', 'items': items, 'count': len(items)})
+            # The most popular exams come first; the rest are one click away on the filtered catalogue.
+            tabs.append({'key': key, 'label': label, 'icon': icon, 'layout': 'grid', 'items': items[:DIRECTORY_CARDS_PER_TAB],
+                         'count': len(items), 'more_url': f"{all_url}?group={key}" if len(items) > DIRECTORY_CARDS_PER_TAB else ''})
 
     others = [
         s for s in series_list
         if not s.board and (not s.exam or s.exam not in grouped)
     ]
     if others:
-        tabs.append({'key': 'more', 'label': 'More', 'icon': 'layer-group', 'layout': 'grid', 'items': others, 'count': len(others)})
+        tabs.append({'key': 'more', 'label': 'More', 'icon': 'layer-group', 'layout': 'grid', 'items': others[:DIRECTORY_CARDS_PER_TAB],
+                     'count': len(others), 'more_url': all_url if len(others) > DIRECTORY_CARDS_PER_TAB else ''})
 
     return tabs
 
@@ -1390,8 +1409,11 @@ def test_series_detail(request, pk):
     if test_series.board:
         related = related.filter(board=test_series.board).order_by('grade', 'stream')
     elif test_series.exam:
+        from testseries.content.catalog import placement
         group = next((exams for _, _, _, exams in EXAM_GROUPS if test_series.exam in exams), [])
-        related = related.filter(exam__in=group)
+        place = placement(test_series.exam)
+        same_sub_category = [name for name in group if placement(name) == place]
+        related = related.filter(exam__in=same_sub_category if len(same_sub_category) > 1 else group)
     else:
         related = related.order_by('-created_at')
     related = list(related[:6])
@@ -2871,6 +2893,8 @@ def all_test_series(request):
     params = request.GET
     query = params.get('q', '').strip()
     exam = params.get('exam', '')
+    groups = {key: (label, names) for key, label, _icon, names in EXAM_GROUPS}
+    group = params.get('group', '') if params.get('group') in groups else ''
     board = params.get('board', '')
     grade = params.get('grade', '')
     stream = params.get('stream', '')
@@ -2885,6 +2909,8 @@ def all_test_series(request):
         series_qs = series_qs.filter(pk__in=ranked_ids(query, 'Test Series'))
     if exam:
         series_qs = series_qs.filter(exam=exam)
+    if group:
+        series_qs = series_qs.filter(exam__in=groups[group][1])
     if board in dict(TestSeries.BOARD_CHOICES):
         series_qs = series_qs.filter(board=board)
     if grade.isdigit():
@@ -2924,6 +2950,7 @@ def all_test_series(request):
 
     active_filters = []
     labels = {
+        'group': groups[group][0] if group else None,
         'exam': exam or None,
         'board': dict(TestSeries.BOARD_CHOICES).get(board),
         'grade': f"Class {grade}" if grade.isdigit() else None,
@@ -2951,7 +2978,7 @@ def all_test_series(request):
         'total_count': page_obj.paginator.count,
         'query': query,
         'selected': {
-            'exam': exam, 'board': board, 'grade': grade, 'stream': stream, 'subject': subject,
+            'exam': exam, 'group': group, 'board': board, 'grade': grade, 'stream': stream, 'subject': subject,
             'difficulty': difficulty, 'price': price, 'paper': paper, 'sort': sort,
         },
         'board_options': [
@@ -2959,8 +2986,10 @@ def all_test_series(request):
             for value, label in TestSeries.BOARD_CHOICES
             if board_counts.get(value)
         ],
+        'group_options': [(key, label) for key, (label, _names) in groups.items()],
         'exam_options': list(
-            active_series.exclude(exam='').values_list('exam').annotate(n=Count('id')).order_by('exam')
+            (active_series.filter(exam__in=groups[group][1]) if group else active_series.exclude(exam=''))
+            .values_list('exam').annotate(n=Count('id')).order_by('exam')
         ),
         'grade_options': sorted(set(active_series.exclude(grade__isnull=True).values_list('grade', flat=True))),
         'stream_options': TestSeries.STREAM_CHOICES,

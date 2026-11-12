@@ -17,6 +17,7 @@ from django.utils.text import slugify
 
 from testseries.boards import STATE_BOARDS
 from testseries.content import load_all
+from testseries.content.catalog import placement, school_classes
 from testseries.content.core import LETTERS, TOPICS, draw, seeded
 from testseries.content.legacy import exam_key
 from testseries.content.patterns import EXAMS
@@ -30,6 +31,7 @@ from video_courses.models import Category
 YEAR = 2026
 TOPIC_TEST_SIZE = 10
 MAX_TOPIC_TESTS = 40
+LIGHT_TOPIC_TESTS = 4  # catalog exams: 2 full mocks, 4 topic tests and a demo
 EXTRA_MOCKS = 1        # full mocks built per exam = Exam.mocks + EXTRA_MOCKS
 SCHOOL_BOARD_MOCKS = 3  # board-pattern mocks for Classes 9-12
 SCHOOL_BOARDS = [('cbse', 'CBSE', 'CBSE'), ('icse', 'ICSE', 'ISC'), ('up', 'UP Board', 'UP Board')]
@@ -67,7 +69,8 @@ class Command(BaseCommand):
         if opts['only'] in ('school', 'all') and not opts['exam']:
             self.build_school(set(opts['board']))
 
-        cache.delete('site-navbar-categories')
+        from video_courses.context_processors import clear_menu_cache
+        clear_menu_cache()
         cache.delete('site-search-index-v2')
         stats_clear()
         self.stdout.write(self.style.SUCCESS(
@@ -180,11 +183,18 @@ class Command(BaseCommand):
     def _exam_series(self, exam):
         series = TestSeries.objects.filter(exam=exam.name).order_by('pk').first()
         negatives = [s.negative for s in exam.sections if s.negative]
+        if exam.light:
+            title = f"{exam.name} {YEAR} – Mock Tests & Topic Tests"
+            description = (f"{exam.name} practice in the {YEAR} pattern: full-length mock tests with the paper's sections, marking "
+                           f"scheme and time limit, plus topic-wise tests with solutions. {exam.pattern}" + (f" {exam.note}" if exam.note else ""))
+        else:
+            title = f"{exam.name} {YEAR} – Full Mocks, PYQ Pattern Papers & Topic Tests"
+            description = (f"Complete {exam.name} preparation in the {YEAR} pattern: full-length mock tests with the exact sections, "
+                           f"question count, marking scheme and time limit, previous-year-pattern papers, sectional tests and topic-wise tests. "
+                           f"Pattern: {exam.pattern}" + (f" {exam.note}" if exam.note else ""))
         fields = dict(
-            title=f"{exam.name} {YEAR} – Full Mocks, PYQ Pattern Papers & Topic Tests",
-            description=(f"Complete {exam.name} preparation in the {YEAR} pattern: full-length mock tests with the exact sections, "
-                         f"question count, marking scheme and time limit, previous-year-pattern papers, sectional tests and topic-wise tests. "
-                         f"Pattern: {exam.pattern}" + (f" {exam.note}" if exam.note else "")),
+            title=title,
+            description=description,
             difficulty=exam.difficulty,
             estimated_duration=f"{exam.minutes} minutes per full mock",
             has_negative_marking=bool(negatives),
@@ -201,13 +211,15 @@ class Command(BaseCommand):
             hard = exam.difficulty in ('hard', 'expert')
             series = TestSeries.objects.create(
                 exam=exam.name, slug=f"{slugify(exam.name)}-{YEAR}-test-series", is_free=False,
-                price=Decimal('299') if hard else self.default_price, **fields,
+                price=Decimal('99') if exam.light else Decimal('299') if hard else self.default_price, **fields,
             )
+        group, sub_category = placement(exam.name)
         category, created = Category.objects.get_or_create(
-            name=exam.name, defaults={'icon': exam.icon, 'icon_color': exam.color, 'description': exam.pattern})
-        if not created and category.description != exam.pattern:
-            category.description = exam.pattern
-            category.save(update_fields=['description'])
+            name=exam.name, defaults={'icon': exam.icon, 'icon_color': exam.color, 'description': exam.pattern,
+                                      'group': group, 'sub_category': sub_category})
+        if not created and (category.description, category.group, category.sub_category) != (exam.pattern, group, sub_category):
+            category.description, category.group, category.sub_category = exam.pattern, group, sub_category
+            category.save(update_fields=['description', 'group', 'sub_category'])
         return series
 
     @transaction.atomic
@@ -218,7 +230,8 @@ class Command(BaseCommand):
             self._clear(series)
         rng = seeded('exam', exam.name, YEAR)
         used = set()
-        calc = EXAM_CALCULATORS.get(exam.name, 'none')
+        # GATE and IIT JAM papers (every subject) give a virtual scientific calculator.
+        calc = EXAM_CALCULATORS.get(exam.name) or ('scientific' if exam.name.startswith(('GATE ', 'IIT JAM')) else 'none')
         per_q = exam.minutes / exam.total
 
         def full_sections(sections=None):
@@ -240,7 +253,7 @@ class Command(BaseCommand):
                             "Original practice questions – not a reproduction of an official paper.",
                             exam.minutes, 'pyp', self._questions(full_sections(), rng, used), calc)
 
-        if len(exam.sections) > 1:
+        if len(exam.sections) > 1 and not exam.light:
             for s in exam.sections:
                 if s.count < 10:
                     continue
@@ -252,7 +265,8 @@ class Command(BaseCommand):
         # Topic tests: take topics round-robin across sections so every section gets its share.
         queues = [[k for k in s.topics if k in TOPICS] for s in exam.sections]
         seen, keys_seen = [], set()
-        while any(queues) and len(seen) < MAX_TOPIC_TESTS:
+        max_topics = LIGHT_TOPIC_TESTS if exam.light else MAX_TOPIC_TESTS
+        while any(queues) and len(seen) < max_topics:
             for s, queue in zip(exam.sections, queues):
                 while queue:
                     key = queue.pop(0)
@@ -260,7 +274,7 @@ class Command(BaseCommand):
                         keys_seen.add(key)
                         seen.append((key, s))
                         break
-                if len(seen) >= MAX_TOPIC_TESTS:
+                if len(seen) >= max_topics:
                     break
         for key, s in seen:
             label = TOPICS[key].label
@@ -295,9 +309,11 @@ class Command(BaseCommand):
             if not self.plan and (not only_boards or b.code in only_boards):
                 # Each state board is its own 'Explore Exams' entry (boards added later need it created here).
                 Category.objects.get_or_create(name=b.category, defaults={'icon': 'school', 'icon_color': '#0f766e', 'description': b.note})
-            specs.append((b.code, b.label, 10, '', b.hindi, b))
-            for stream in ('science', 'commerce', 'arts'):
-                specs.append((b.code, b.label, 12, stream, b.hindi, b))
+            wanted = {(10, ''), (12, 'science'), (12, 'commerce'), (12, 'arts')}
+            if b.code != 'nios':  # NIOS has only Secondary (10) and Senior Secondary (12)
+                wanted |= {(g, s) for g, s in school_classes().get(b.code, set()) if 1 <= g <= 12}
+            for grade, stream in sorted(wanted):
+                specs.append((b.code, b.label, grade, stream if grade >= 11 else '', b.hindi, b))
         for spec in specs:
             if not only_boards or spec[0] in only_boards:
                 self.build_class(*spec)

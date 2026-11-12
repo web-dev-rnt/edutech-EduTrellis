@@ -55,7 +55,7 @@ class Command(BaseCommand):
             tests10 = class10 if board.hindi else [t for t in class10 if t[0] != 'HIN1']
             self._create_series(board, 10, '', _pick(tests10, 20 // len(tests10), f'{board.code}-10'), subjects)
             self._create_series(board, 12, 'science', _pick(class12, 4, f'{board.code}-12'), subjects)
-        cache.delete('site-navbar-categories')
+        cache.delete_many(['site-navbar-categories', 'site-navbar-category-tabs'])
 
     def _create_series(self, board, grade, stream, questions, subjects):
         label = f"{board.label} Class {grade}{' Science' if stream else ''}"

@@ -1,0 +1,19 @@
+{# Explore Exams menu (desktop): one panel per category, exams grouped under their sub-categories. Loaded by navbar.html. #}
+{% for group in groups %}
+<div class="exam-menu-panel" data-group="{{ group.key }}" role="tabpanel" hidden>
+    <div class="exam-menu-panel-title">{{ group.label }}</div>
+    {% for sub in group.subs %}
+    <div class="exam-menu-subgroup">
+        {% if group.subs|length > 1 %}<div class="exam-menu-sub">{{ sub.label }} <em>{{ sub.categories|length }}</em></div>{% endif %}
+        <div class="exam-menu-grid">
+            {% for c in sub.categories %}
+            <a href="{% url 'category_detail' c.slug %}" class="exam-menu-link" data-name="{{ c.name|lower }} {{ sub.label|lower }}">
+                <span class="exam-menu-icon" style="background: rgba({{ c.rgb }}, 0.12); color: {{ c.color }};"><i class="fa fa-{{ c.icon }}"></i></span>
+                <span class="exam-menu-name">{{ c.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}

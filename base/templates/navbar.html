@@ -42,26 +42,13 @@
                                     data-group="{{ group.key }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
                                 <i class="fa-solid fa-{{ group.icon }}"></i>
                                 <span>{{ group.label }}</span>
-                                <em>{{ group.categories|length }}</em>
+                                <em>{{ group.count }}</em>
                             </button>
                         {% endfor %}
                     </div>
-                    <div class="exam-menu-panels">
-                        {% for group in navbar_category_groups %}
-                            <div class="exam-menu-panel" data-group="{{ group.key }}" role="tabpanel" {% if not forloop.first %}hidden{% endif %}>
-                                <div class="exam-menu-panel-title">{{ group.label }}</div>
-                                <div class="exam-menu-grid">
-                                    {% for category in group.categories %}
-                                        <a href="{% url 'category_detail' category.slug %}" class="exam-menu-link" data-name="{{ category.name|lower }}">
-                                            <span class="exam-menu-icon" style="background: rgba({{ category.icon_color_rgb }}, 0.12); color: {{ category.icon_color }};">
-                                                <i class="fa fa-{{ category.icon|default:'graduation-cap' }}"></i>
-                                            </span>
-                                            <span class="exam-menu-name">{{ category.name }}</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endfor %}
+                    <div class="exam-menu-panels" data-src="{% url 'exam_menu' %}">
+                        {# Exam links load when the menu is first opened (there are over 1,500), see the script below. #}
+                        <p class="exam-menu-loading" id="examMenuLoading"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading exams…</p>
                         <p class="exam-menu-empty" id="examMenuEmpty" hidden>No exam matches your search.</p>
                     </div>
                 </div>
@@ -261,23 +248,16 @@
         {% if navbar_category_groups %}
         <div class="mnav-section">
             <p class="mnav-label">Explore Exams</p>
-            <div class="mnav-groups">
+            <div class="mnav-groups" data-src="{% url 'exam_menu' %}?v=mobile">
                 {% for group in navbar_category_groups %}
-                    <details class="mnav-group" {% if forloop.first %}open{% endif %}>
+                    <details class="mnav-group">
                         <summary>
                             <i class="fa-solid fa-{{ group.icon }}" aria-hidden="true"></i>
                             <span>{{ group.label }}</span>
-                            <em>{{ group.categories|length }}</em>
+                            <em>{{ group.count }}</em>
                             <i class="fa-solid fa-chevron-down mnav-caret" aria-hidden="true"></i>
                         </summary>
-                        <div class="mnav-chips">
-                            {% for category in group.categories %}
-                                <a href="{% url 'category_detail' category.slug %}" class="mnav-chip">
-                                    <span style="background: rgba({{ category.icon_color_rgb }}, 0.12); color: {{ category.icon_color }};"><i class="fa fa-{{ category.icon|default:'graduation-cap' }}" aria-hidden="true"></i></span>
-                                    {{ category.name }}
-                                </a>
-                            {% endfor %}
-                        </div>
+                        <div class="mnav-chips" data-group="{{ group.key }}"><span class="mnav-loading">Loading…</span></div>
                     </details>
                 {% endfor %}
             </div>
@@ -895,6 +875,12 @@ document.addEventListener('DOMContentLoaded', function() {
     .exam-menu-icon { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; display: grid; place-items: center; font-size: 13px; }
     .exam-menu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .exam-menu-empty { margin: 24px 0; text-align: center; color: #6b7280; font-size: 14px; }
+    .exam-menu-loading { margin: 24px 0; text-align: center; color: #6b7280; font-size: 14px; }
+    .exam-menu-subgroup + .exam-menu-subgroup { margin-top: 14px; }
+    .exam-menu-sub { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 12.5px; font-weight: 700; color: #374151; }
+    .exam-menu-sub em { font-style: normal; font-size: 11px; font-weight: 700; color: #6b7280; background: #eef0f4; padding: 0 6px; border-radius: 999px; }
+    .mnav-sub { flex-basis: 100%; margin: 8px 0 2px; font-size: 12px; font-weight: 700; color: #6b7280; }
+    .mnav-loading { font-size: 13px; color: #6b7280; }
 
     .exam-menu-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 16px; border-top: 1px solid #eef0f4; background: #fafbfc; }
     .navbar-dropdown-content.exam-menu a.exam-menu-foot-link {
@@ -920,10 +906,32 @@ document.addEventListener('DOMContentLoaded', function() {
     var menu = document.getElementById('examMenu');
     if (!menu || !menu.querySelector('.exam-menu-group')) return;
     var groups = Array.prototype.slice.call(menu.querySelectorAll('.exam-menu-group'));
-    var panels = Array.prototype.slice.call(menu.querySelectorAll('.exam-menu-panel'));
+    var panels = [];
     var search = document.getElementById('examMenuSearch');
     var empty = document.getElementById('examMenuEmpty');
+    var loadingNote = document.getElementById('examMenuLoading');
+    var holder = menu.querySelector('.exam-menu-panels');
     var activeKey = groups[0].dataset.group;
+    var loading = null;
+
+    // The exam links (1,500+) are fetched once, the first time the menu is opened or searched.
+    function load() {
+        if (loading) return loading;
+        loading = fetch(holder.dataset.src, { credentials: 'same-origin' })
+            .then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); })
+            .then(function (html) {
+                loadingNote.insertAdjacentHTML('beforebegin', html);
+                loadingNote.hidden = true;
+                panels = Array.prototype.slice.call(menu.querySelectorAll('.exam-menu-panel'));
+                showGroup(activeKey);
+                if (search.value) filter(search.value);
+            })
+            .catch(function () {
+                loading = null;
+                loadingNote.textContent = 'Could not load exams. Please try again.';
+            });
+        return loading;
+    }
 
     function showGroup(key) {
         activeKey = key;
@@ -939,19 +947,30 @@ document.addEventListener('DOMContentLoaded', function() {
     function filter(raw) {
         var query = raw.trim().toLowerCase();
         menu.classList.toggle('is-searching', !!query);
+        if (!panels.length) { load(); return; }
+        var words = query.split(/\s+/);
         var total = 0;
         panels.forEach(function (panel) {
             var shown = 0;
-            panel.querySelectorAll('.exam-menu-link').forEach(function (link) {
-                var hit = !query || link.dataset.name.indexOf(query) !== -1;
-                link.hidden = !hit;
-                if (hit) shown++;
+            panel.querySelectorAll('.exam-menu-subgroup').forEach(function (sub) {
+                var subShown = 0;
+                sub.querySelectorAll('.exam-menu-link').forEach(function (link) {
+                    var hit = !query || words.every(function (w) { return link.dataset.name.indexOf(w) !== -1; });
+                    link.hidden = !hit;
+                    if (hit) subShown++;
+                });
+                sub.hidden = subShown === 0;
+                shown += subShown;
             });
             panel.hidden = query ? shown === 0 : panel.dataset.group !== activeKey;
             total += shown;
         });
         empty.hidden = total > 0;
     }
+
+    var trigger = menu.closest('.navbar-dropdown').querySelector('.navbar-explore-btn');
+    ['mouseenter', 'focus', 'click', 'touchstart'].forEach(function (ev) { trigger.addEventListener(ev, load, { passive: true }); });
+    search.addEventListener('focus', load);
 
     groups.forEach(function (g) {
         // Desktop: hovering a section previews it; a click works everywhere.
@@ -975,7 +994,38 @@ document.addEventListener('DOMContentLoaded', function() {
         if (rect.left + shift < 16) shift = 16 - rect.left;
         menu.style.left = shift + 'px';
     }
-    new MutationObserver(fitToWindow).observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(function () {
+        if (wrapper.classList.contains('dropdown-open')) load();
+        fitToWindow();
+    }).observe(wrapper, { attributes: true, attributeFilter: ['class'] });
     window.addEventListener('resize', fitToWindow);
+})();
+
+// Mobile drawer: exam chips for every category load the first time a category is opened.
+(function () {
+    var list = document.querySelector('.mnav-groups[data-src]');
+    if (!list) return;
+    var loading = null;
+    function load() {
+        if (loading) return loading;
+        loading = fetch(list.dataset.src, { credentials: 'same-origin' })
+            .then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); })
+            .then(function (html) {
+                var box = document.createElement('div');
+                box.innerHTML = html;
+                box.querySelectorAll('[data-group]').forEach(function (group) {
+                    var target = list.querySelector('.mnav-chips[data-group="' + group.dataset.group + '"]');
+                    if (target) target.innerHTML = group.innerHTML;
+                });
+            })
+            .catch(function () {
+                loading = null;
+                list.querySelectorAll('.mnav-loading').forEach(function (el) { el.textContent = 'Could not load exams. Please try again.'; });
+            });
+        return loading;
+    }
+    list.querySelectorAll('details').forEach(function (details) {
+        details.addEventListener('toggle', function () { if (details.open) load(); });
+    });
 })();
 </script>

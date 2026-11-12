@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 continue
             self._ensure_category(spec)
             self._create_series(spec, subjects)
-        cache.delete('site-navbar-categories')
+        cache.delete_many(['site-navbar-categories', 'site-navbar-category-tabs'])
 
     def _ensure_category(self, spec):
         """Create the exam's 'Explore Exams' category if missing; fill in a blank description with the pattern."""

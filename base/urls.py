@@ -56,6 +56,7 @@ urlpatterns = [
     
     # Search
     path('search/', views.search_results, name='search_results'),
+    path('exams/menu/', views.exam_menu, name='exam_menu'),
     path('api/search-suggestions/', views.search_suggestions, name='search_suggestions'),
 
     # E-Library

@@ -1,0 +1,14 @@
+{# Explore Exams (mobile drawer): chips for each category, under sub-category labels. Loaded by navbar.html. #}
+{% for group in groups %}
+<div data-group="{{ group.key }}">
+    {% for sub in group.subs %}
+        {% if group.subs|length > 1 %}<p class="mnav-sub">{{ sub.label }}</p>{% endif %}
+        {% for c in sub.categories %}
+        <a href="{% url 'category_detail' c.slug %}" class="mnav-chip">
+            <span style="background: rgba({{ c.rgb }}, 0.12); color: {{ c.color }};"><i class="fa fa-{{ c.icon }}" aria-hidden="true"></i></span>
+            {{ c.name }}
+        </a>
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endfor %}

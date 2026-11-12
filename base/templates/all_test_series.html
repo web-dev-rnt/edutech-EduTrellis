@@ -171,6 +171,16 @@
             {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
             <input type="hidden" name="sort" value="{{ selected.sort }}">
 
+            <div class="ats-field">
+                <label for="f-group">Exam category</label>
+                <select id="f-group" name="group">
+                    <option value="">All categories</option>
+                    {% for key, label in group_options %}
+                    <option value="{{ key }}" {% if selected.group == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             {% if exam_options %}
             <div class="ats-field">
                 <label for="f-exam">Competitive Exam</label>

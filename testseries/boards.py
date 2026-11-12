@@ -56,6 +56,8 @@ STATE_BOARDS = [
           "Mizoram Board of School Education: HSLC (Class 10) and HSSLC (Class 12)."),
     Board('nl', 'Nagaland Board', 'Nagaland Board (NBSE)', False, False,
           "Nagaland Board of School Education: HSLC (Class 10) and HSSLC (Class 12)."),
+    Board('ar', 'Arunachal Pradesh Board', 'Arunachal Pradesh Board', True, True,
+          "Arunachal Pradesh schools follow the CBSE syllabus and NCERT textbooks; Classes 10 and 12 sit CBSE board exams."),
     Board('tr', 'Tripura Board', 'Tripura Board (TBSE)', True, False,
           "Tripura Board of Secondary Education: Madhyamik (Class 10) and Higher Secondary (Class 12), on NCERT-based textbooks."),
     Board('nios', 'NIOS', 'NIOS (Open Schooling)', False, True,
