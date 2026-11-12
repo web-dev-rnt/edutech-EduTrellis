@@ -525,6 +525,7 @@ class ProductBundleAdmin(admin.ModelAdmin):
 # Read from the saved brand name on each request, so a rename shows up without a restart.
 from django.utils.functional import lazy
 from .branding import brand_full_name, brand_name
+from .permissions import is_site_owner
 
 admin.site.site_header = lazy(lambda: f"{brand_name()} Admin Panel", str)()
 admin.site.site_title = lazy(lambda: f"{brand_name()} Admin", str)()
@@ -539,6 +540,12 @@ class AdminAuditLogAdmin(admin.ModelAdmin):
     list_filter = ('action', 'method')
     search_fields = ('user_email', 'path', 'ip_address')
     date_hierarchy = 'created_at'
+
+    def has_module_permission(self, request):
+        return is_site_owner(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return is_site_owner(request.user)
 
     def has_add_permission(self, request):
         return False

@@ -210,19 +210,17 @@
       <span class="admin-ico" style="--ico: #3395ff;"><i class="fas fa-wallet"></i></span><span>Razorpay Configuration</span>
     </a>
 
-    <!-- Tutor AI (chatbot key, usage and questions) -->
+    {% if request.user|is_site_owner %}
+    <!-- Tutor AI (chatbot key, usage and questions; site owner only) -->
     <a href="{% url 'tutor_admin' %}" class="{% if request.resolver_match.url_name == 'tutor_admin' %}admin-active{% endif %}">
       <span class="admin-ico" style="--ico: #e0a800;"><i class="fas fa-robot"></i></span><span>Tutor AI</span>
     </a>
 
-    {% if request.user.is_superuser %}
-    <!-- Audit Log -->
+    <!-- Audit Log (site owner only) -->
     <a href="{% url 'audit_log' %}" class="{% if request.resolver_match.url_name == 'audit_log' %}admin-active{% endif %}">
       <span class="admin-ico" style="--ico: #14b8a6;"><i class="fas fa-shield-halved"></i></span><span>Audit Log</span>
     </a>
-    {% endif %}
 
-    {% if request.user|can_manage_backups %}
     <!-- Backup Management (site owner only) -->
     <a href="{% url 'backup_dashboard' %}" class="{% if request.resolver_match.url_name in 'backup_dashboard,backup_now,backup_restore,backup_download,backup_delete' %}admin-active{% endif %}">
       <span class="admin-ico" style="--ico: #6c757d;"><i class="fas fa-database"></i></span><span>Backup Management</span>

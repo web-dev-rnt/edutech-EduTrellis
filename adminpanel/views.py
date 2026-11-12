@@ -39,6 +39,7 @@ from django.core.paginator import Paginator
 
 from .models import ProductBundle , DeveloperPopup 
 from .branding import brand_name
+from .permissions import site_owner_required
 from .forms import ProductBundleForm, BundleFilterForm , DeveloperPopupForm 
 from video_courses.models import VideoCourse
 from live_class.models import LiveClassCourse
@@ -2330,9 +2331,9 @@ def bundle_calculate_price(request):
 
 # ======================== AUDIT LOG ========================
 
-@user_passes_test(lambda u: u.is_active and u.is_superuser)
+@site_owner_required
 def audit_log(request):
-    """Superuser-only view of admin activity, staff logins and failed logins."""
+    """Site-owner-only view of admin activity, staff logins and failed logins."""
     entries = AdminAuditLog.objects.select_related('user')
     action = request.GET.get('action', '')
     query = request.GET.get('q', '').strip()[:100]
@@ -2354,8 +2355,7 @@ def audit_log(request):
 
 # ======================== TUTOR AI ========================
 
-@login_required(login_url='login')
-@user_passes_test(is_admin)
+@site_owner_required
 def tutor_admin(request):
     """Tutor AI: provider key and options, usage numbers, and the log of what students asked."""
     from datetime import datetime, time as dtime

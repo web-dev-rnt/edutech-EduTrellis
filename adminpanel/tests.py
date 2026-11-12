@@ -192,7 +192,7 @@ class BrandNameTests(TestCase):
         self.assertEqual(brand_name(), 'Infinite360')
 
 
-@override_settings(BACKUP_MANAGER_EMAILS=['owner@example.com'])
+@override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
 class DatabaseUploadTests(TestCase):
     """Manual database upload: only real SQLite databases of this site are accepted or restored."""
 
@@ -338,7 +338,7 @@ class DropboxMediaStorageTests(TestCase):
         self.assertEqual(self.client.get('/dropbox-media/abc:def/').status_code, 404)
 
 
-@override_settings(BACKUP_MANAGER_EMAILS=['owner@example.com'])
+@override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
 class RestoreSessionTests(TestCase):
     """A restore replaces the sessions table; the admin who clicked Restore must stay logged in."""
 
@@ -363,3 +363,28 @@ class RestoreSessionTests(TestCase):
             page = self.client.get('/backup/')
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'upload-card')
+
+
+@override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
+class SiteOwnerOnlyTests(TestCase):
+    """Audit Log and Tutor AI are for the site owner only, not for other super admins."""
+
+    def test_other_super_admin_cannot_see_audit_log_or_tutor_ai(self):
+        other = get_user_model().objects.create_user(email='admin@example.com', password='x', is_staff=True, is_superuser=True)
+        owner = get_user_model().objects.create_user(email='owner@example.com', password='x', is_staff=True, is_superuser=True)
+
+        self.client.force_login(other)
+        dashboard = self.client.get(reverse('admindashboard'))
+        self.assertNotContains(dashboard, 'Audit Log')
+        self.assertNotContains(dashboard, 'Tutor AI')
+        for name in ('audit_log', 'tutor_admin'):
+            self.assertRedirects(self.client.get(reverse(name)), reverse('admindashboard'), fetch_redirect_response=False)
+        self.assertEqual(self.client.post(reverse('tutor_admin'), {'action': 'save'}).status_code, 403)
+        self.assertEqual(self.client.get('/admin/adminpanel/adminauditlog/').status_code, 403)
+
+        self.client.force_login(owner)
+        dashboard = self.client.get(reverse('admindashboard'))
+        self.assertContains(dashboard, 'Audit Log')
+        self.assertContains(dashboard, 'Tutor AI')
+        self.assertEqual(self.client.get(reverse('audit_log')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('tutor_admin')).status_code, 200)

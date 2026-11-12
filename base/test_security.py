@@ -191,10 +191,12 @@ class RolePermissionTests(SecurityTestCase):
         self.client.post(f"/user/{self.student.pk}/edit/", {"email": "student@example.com", "first_name": "Renamed"}, secure=True)
         self.assertTrue(AdminAuditLog.objects.filter(user=self.staff, action="update").exists())
 
-    def test_audit_log_page_is_superuser_only(self):
+    def test_audit_log_page_is_site_owner_only(self):
         self.assertEqual(self.client.get("/audit-log/", secure=True).status_code, 302)
-        self.client.force_login(self.root)
-        self.assertEqual(self.client.get("/audit-log/", secure=True).status_code, 200)
+        self.client.force_login(self.root)  # a super admin who is not a site owner
+        self.assertEqual(self.client.get("/audit-log/", secure=True).status_code, 302)
+        with self.settings(SITE_OWNER_EMAILS=[self.root.email]):
+            self.assertEqual(self.client.get("/audit-log/", secure=True).status_code, 200)
 
 
 class UploadAndMediaTests(SecurityTestCase):

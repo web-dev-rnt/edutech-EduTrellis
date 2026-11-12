@@ -38,7 +38,7 @@ def _stay_logged_in(request):
 
 
 def _superuser_required(view_fn):
-    """Decorator: allow only the backup owner accounts (settings.BACKUP_MANAGER_EMAILS)."""
+    """Decorator: allow only the site owner accounts (settings.SITE_OWNER_EMAILS)."""
     @login_required(login_url='login')
     def wrapper(request, *args, **kwargs):
         if not can_manage_backups(request.user):
