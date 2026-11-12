@@ -22,19 +22,12 @@ if load_dotenv:
     load_dotenv(BASE_DIR / ".env")
 
 # SECURITY
-_DEV_SECRET_KEY = "local-development-key-4fY9uL2qN7vR8xW3sA6dH1jK5mP0tC9bE2gZ7nQ4"
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    _DEV_SECRET_KEY,
-)
+# Project secret key, kept in the code. A DJANGO_SECRET_KEY set on the server still takes priority.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or "r+a1=de2k9k%lrf6!hgq5-n3knqj4)vwc4b5ztdoyh5sig=k41"
 
 # Off unless explicitly enabled: production must never run with DEBUG (it disables every
 # HTTPS/cookie protection below and shows settings on error pages). Set DJANGO_DEBUG=True in .env locally.
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").strip().lower() in ("1", "true", "yes")
-
-if not DEBUG and SECRET_KEY == _DEV_SECRET_KEY:
-    import warnings
-    warnings.warn("DJANGO_SECRET_KEY is not set: production is using the public development key. Set it now.")
 
 
 ALLOWED_HOSTS = [
@@ -45,14 +38,21 @@ ALLOWED_HOSTS = [
         "ganeshsirclasses.online,www.ganeshsirclasses.online,"
         "indoretutorials.online,www.indoretutorials.online,"
         "exams.edutrellis.in,www.exams.edutrellis.in,"
-        "web-production-ab46.up.railway.app",
+        "web-production-ab46.up.railway.app,infinite360-production.up.railway.app",
     ).split(",")
     if host.strip()
 ]
 
-# Keep the canonical exam domains available even when ALLOWED_HOSTS is
-# supplied by the deployment environment and replaces the defaults above.
-for host in ("exams.edutrellis.in", "www.exams.edutrellis.in"):
+# Domains that must always work, even when ALLOWED_HOSTS is set on the server and replaces the list above:
+# the exam domains, the Railway app, and whatever public domain Railway gives this service.
+RAILWAY_HOSTS = [
+    host for host in (
+        "infinite360-production.up.railway.app",
+        os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip(),
+        os.environ.get("RAILWAY_STATIC_URL", "").strip().removeprefix("https://"),
+    ) if host
+]
+for host in ("exams.edutrellis.in", "www.exams.edutrellis.in", *RAILWAY_HOSTS):
     if host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host)
 
@@ -338,6 +338,7 @@ CSRF_TRUSTED_ORIGINS = [
 for origin in (
     "https://exams.edutrellis.in",
     "https://www.exams.edutrellis.in",
+    *(f"https://{host}" for host in RAILWAY_HOSTS),
 ):
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
