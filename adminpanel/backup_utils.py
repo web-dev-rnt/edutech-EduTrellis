@@ -18,7 +18,85 @@ from .branding import brand, default_backup_folder
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = str(Path(settings.BASE_DIR) / "db.sqlite3")
+DB_PATH = str(Path(settings.BASE_DIR) / "db.sqlite3")  # kept for older imports; see db_path()
+UPLOAD_PIECE_BYTES = 8 * 1024 * 1024
+
+
+def is_sqlite() -> bool:
+    return settings.DATABASES["default"]["ENGINE"].endswith("sqlite3")
+
+
+def db_path() -> str:
+    """The SQLite file the site is really using (DATABASE_URL can point somewhere else)."""
+    return str(settings.DATABASES["default"]["NAME"])
+
+
+def active_database_label() -> str:
+    if is_sqlite():
+        return os.path.basename(db_path())
+    engine = settings.DATABASES["default"]["ENGINE"].rsplit(".", 1)[-1]
+    return {"postgresql": "PostgreSQL", "mysql": "MySQL"}.get(engine, engine)
+
+
+def restore_marker_path() -> str:
+    """Touched after every restore so each server process drops its cached pages and data."""
+    return db_path() + ".restored"
+
+
+def _snapshot(dest_path: str) -> None:
+    """A consistent copy of the live database, even while the site is writing to it."""
+    import sqlite3
+
+    source = sqlite3.connect(db_path(), timeout=60)
+    target = sqlite3.connect(dest_path)
+    try:
+        source.backup(target)
+    finally:
+        target.close()
+        source.close()
+
+
+def _upload_file(dbx, local_path: str, dropbox_path: str) -> None:
+    """Upload a file of any size in pieces (a single request is limited to 150 MB)."""
+    import dropbox  # type: ignore
+    from dropbox.files import WriteMode  # type: ignore
+
+    size = os.path.getsize(local_path)
+    with open(local_path, "rb") as fh:
+        session_id = dbx.files_upload_session_start(fh.read(UPLOAD_PIECE_BYTES)).session_id
+        while fh.tell() < size:
+            cursor = dropbox.files.UploadSessionCursor(session_id=session_id, offset=fh.tell())
+            dbx.files_upload_session_append_v2(fh.read(UPLOAD_PIECE_BYTES), cursor)
+        cursor = dropbox.files.UploadSessionCursor(session_id=session_id, offset=size)
+        dbx.files_upload_session_finish(b"", cursor, dropbox.files.CommitInfo(path=dropbox_path, mode=WriteMode.overwrite))
+
+
+def load_into_live_database(source_path: str) -> None:
+    """Make the site use the database in `source_path`.
+
+    The backup is copied into the live database file in place (SQLite's backup API) rather than swapping
+    files: a swapped file stays invisible to server processes that already have the old one open, so the
+    site kept showing the old content. Afterwards the database is migrated to the current code (backups
+    from older versions), caches are cleared, and the restore marker tells every other process to do the same.
+    """
+    import sqlite3
+
+    from django.core.management import call_command
+    from django.db import connections
+
+    check_sqlite_file(source_path)
+    connections.close_all()
+    source = sqlite3.connect(f"file:{source_path}?mode=ro", uri=True)
+    target = sqlite3.connect(db_path(), timeout=60)
+    try:
+        source.backup(target)
+    finally:
+        target.close()
+        source.close()
+    connections.close_all()
+    call_command("migrate", interactive=False, verbosity=0)
+    cache.clear()
+    Path(restore_marker_path()).touch()
 # The listing is three Dropbox round trips (~2.5s); cache it and clear it on every change.
 BACKUP_LIST_CACHE_KEY = "dropbox-backup-list-v1"
 BACKUP_LIST_TIMEOUT = 60 * 10
@@ -95,41 +173,47 @@ class DropboxBackupManager:
     @staticmethod
     def create_backup() -> dict:
         """
-        Upload db.sqlite3 to Dropbox with a timestamped filename.
+        Back up everything: copy uploaded files still on local disk into Dropbox (the database only stores
+        their names), then upload a consistent snapshot of the database with a timestamped filename.
         Returns a dict with keys: success, filename, message.
         """
-        if not os.path.exists(DB_PATH):
-            return {"success": False, "message": f"Database file not found: {DB_PATH}"}
+        if not is_sqlite():
+            return {"success": False, "message": f"The site uses {active_database_label()}; only SQLite databases can be backed up here."}
+        if not os.path.exists(db_path()):
+            return {"success": False, "message": f"Database file not found: {db_path()}"}
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{brand()['slug'].replace('-', '_')}_backup_{timestamp}.sqlite3"
         _, _, _, backup_folder = _credentials()
         dropbox_path = f"{backup_folder}/{filename}"
+        snapshot = db_path() + ".backup-snapshot"
 
         try:
+            from video_courses.dropbox_storage import sync_local_media
+
+            media = sync_local_media()
             dbx = _get_dbx()
             _ensure_folder(dbx)
-
-            with open(DB_PATH, "rb") as fh:
-                data = fh.read()
-
-            import dropbox  # type: ignore
-            dbx.files_upload(
-                data,
-                dropbox_path,
-                mode=dropbox.files.WriteMode("overwrite"),
-            )
-            file_size = _human_size(len(data))
+            _snapshot(snapshot)
+            size = os.path.getsize(snapshot)
+            _upload_file(dbx, snapshot, dropbox_path)
+            file_size = _human_size(size)
             logger.info("Backup uploaded: %s (%s)", dropbox_path, file_size)
             clear_backup_list_cache()
+            note = f" {media['copied']} image/file(s) copied to Dropbox." if media["copied"] else ""
+            if media["missing"]:
+                note += f" {media['missing']} file(s) listed in the database were not found anywhere."
             return {
                 "success": True,
                 "filename": filename,
-                "message": f"Backup '{filename}' ({file_size}) uploaded successfully.",
+                "message": f"Backup '{filename}' ({file_size}) uploaded successfully.{note}",
             }
         except Exception as exc:
             logger.error("Backup failed: %s", exc)
             return {"success": False, "message": str(exc)}
+        finally:
+            if os.path.exists(snapshot):
+                os.remove(snapshot)
 
     # ------------------------------------------------------------------ #
     #  LIST                                                                #
@@ -177,32 +261,26 @@ class DropboxBackupManager:
     @staticmethod
     def restore_backup(filename: str) -> dict:
         """
-        Download the specified backup from Dropbox and replace db.sqlite3.
+        Download the specified backup from Dropbox and make the site use it.
         Returns dict with keys: success, message.
         """
+        if not is_sqlite():
+            return {"success": False, "message": f"The site uses {active_database_label()}; a SQLite backup cannot be restored into it."}
         _, _, _, backup_folder = _credentials()
         dropbox_path = f"{backup_folder}/{filename}"
+        tmp_path = db_path() + ".restore-download"
         try:
             dbx = _get_dbx()
-            _, response = dbx.files_download(dropbox_path)
-            data = response.content
-
-            # Write atomically: write to temp, check it is a healthy database of this site, then rename
-            tmp_path = DB_PATH + ".tmp_restore"
-            with open(tmp_path, "wb") as fh:
-                fh.write(data)
-            try:
-                check_sqlite_file(tmp_path)
-            except Exception:
-                os.remove(tmp_path)
-                raise
-            os.replace(tmp_path, DB_PATH)
-
+            dbx.files_download_to_file(tmp_path, dropbox_path)
+            load_into_live_database(tmp_path)
             logger.info("Database restored from: %s", dropbox_path)
             return {"success": True, "message": f"Database restored from '{filename}' successfully."}
         except Exception as exc:
             logger.error("Restore failed: %s", exc)
             return {"success": False, "message": str(exc)}
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     # ------------------------------------------------------------------ #
     #  DOWNLOAD URL (temporary link)                                      #

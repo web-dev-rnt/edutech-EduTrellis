@@ -283,6 +283,8 @@
   .upload-status { margin-top: 8px; font-size: .85rem; color: #475569; }
   .upload-status.is-error { color: #dc2626; font-weight: 600; }
   .upload-progress[hidden], .upload-status[hidden] { display: none; }
+  .upload-restore { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: .86rem; color: #475569; cursor: pointer; }
+  .upload-restore input { width: 16px; height: 16px; accent-color: #4f46e5; }
 
   @media (max-width: 600px) {
     .backup-action-card { flex-direction: column; }
@@ -336,7 +338,7 @@
       <div class="lbl">Available on Dropbox</div>
     </div>
     <div class="stat-card">
-      <div class="num" style="color:#dc2626;">db.sqlite3</div>
+      <div class="num" style="color:#dc2626;">{{ active_database }}</div>
       <div class="lbl">Active Database</div>
     </div>
     <div class="stat-card">
@@ -392,7 +394,7 @@
   <div class="backup-action-card">
     <div class="text">
       <h3><i class="fas fa-cloud-upload-alt me-2"></i>Backup Now</h3>
-      <p>Upload the current <strong>db.sqlite3</strong> to Dropbox with a timestamped filename. The folder will be created automatically if it does not exist.</p>
+      <p>Saves all content: any uploaded images still on this server are copied to Dropbox, then a snapshot of the database (courses, tests, questions, users, results) is uploaded with a timestamped filename.</p>
     </div>
     <form method="post" action="{% url 'backup_now' %}" id="backup-form">
       {% csrf_token %}
@@ -419,6 +421,9 @@
         <i class="fas fa-cloud-upload-alt"></i> <span id="upload-btn-text">Upload to Dropbox</span>
       </button>
     </div>
+    <label class="upload-restore">
+      <input type="checkbox" id="upload-restore"> Restore the site from this file straight away (replaces all current data)
+    </label>
     <div class="upload-progress" id="upload-progress" hidden><span id="upload-bar"></span></div>
     <div class="upload-status" id="upload-status" hidden></div>
   </div>
@@ -615,6 +620,8 @@
     btn.addEventListener('click', async function () {
       var file = input.files[0];
       if (!file) return;
+      var restoreNow = document.getElementById('upload-restore').checked;
+      if (restoreNow && !confirm('After uploading, the whole site will switch to this database. All current data will be replaced. Continue?')) return;
       btn.disabled = true; input.disabled = true;
       btnText.textContent = 'Uploading…';
       progress.hidden = false; bar.style.width = '0%';
@@ -643,10 +650,10 @@
           offset = res.size;
         }
         bar.style.width = '100%';
-        setStatus('Saving to Dropbox…');
-        var done = await send(card.dataset.finish, '', { 'X-Upload-Token': start.token });
+        setStatus(restoreNow ? 'Saving to Dropbox and restoring the site… this can take a minute.' : 'Saving to Dropbox…');
+        var done = await send(card.dataset.finish, '', { 'X-Upload-Token': start.token, 'X-Restore': restoreNow ? '1' : '0' });
         if (done.error) throw new Error(done.error);
-        setStatus('Uploaded as ' + done.filename + '. Refreshing the list…');
+        setStatus('Uploaded as ' + done.filename + (done.restored ? ' and restored' : '') + '. Refreshing…');
         window.location.reload();
       } catch (err) {
         setStatus('Upload failed: ' + (err.message || err), true);

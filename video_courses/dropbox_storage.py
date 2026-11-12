@@ -358,3 +358,46 @@ def direct_link(link):
     query = [(key, value) for key, value in parse_qsl(parts.query) if key not in ("dl", "raw")]
     query.append(("raw", "1"))
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+
+
+def media_file_names():
+    """Every file name stored in an image/file field that uses DropboxMediaStorage."""
+    from django.apps import apps
+    from django.db import models
+
+    names = set()
+    for model in apps.get_models():
+        for field in model._meta.get_fields():
+            if isinstance(field, models.FileField) and isinstance(field.storage, DropboxMediaStorage):
+                rows = model._default_manager.exclude(**{field.name: ""}).exclude(**{f"{field.name}__isnull": True})
+                names.update(rows.values_list(field.name, flat=True))
+    return sorted(names)
+
+
+def sync_local_media(log=None):
+    """Copy every uploaded file that is only on this server's disk into Dropbox, so backups are complete.
+
+    Returns {'total', 'copied', 'missing', 'failed'}. Files already in Dropbox are skipped.
+    """
+    storage = DropboxMediaStorage()
+    result = {"total": 0, "copied": 0, "missing": 0, "failed": 0}
+    if not storage._is_configured():
+        return result
+    for name in media_file_names():
+        result["total"] += 1
+        try:
+            if storage._in_dropbox(name):
+                continue
+            if storage.upload_local_copy(name):
+                result["copied"] += 1
+            else:
+                result["missing"] += 1
+                if log:
+                    log(f"missing: {name}")
+        except Exception as exc:
+            result["failed"] += 1
+            logger.warning("Could not copy %s to Dropbox: %s", name, exc)
+            if log:
+                log(f"failed: {name}: {exc}")
+    return result
+

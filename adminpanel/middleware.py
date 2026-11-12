@@ -1,3 +1,4 @@
+import os
 import logging
 
 from django.conf import settings
@@ -10,6 +11,36 @@ AUDITED_MODULES = {"adminpanel.views", "adminpanel.backup_views", "video_courses
                    "testseries.views", "live_class.views", "django.contrib.admin.options", "django.contrib.admin.sites"}
 UNAUDITED_VIEWS = {"apply_coupon", "use_coupon", "remove_coupon", "validate_coupon", "my_coupons", "live_class_join", "live_recording_chunk", "backup_upload_chunk",
                    "mark_notification_read", "mark_all_notifications_read"}
+
+
+class DatabaseRestoreMiddleware:
+    """After a database restore, drop this process's cached data and database connections.
+
+    The restore runs in one server process; the others only see the marker file it touches.
+    """
+
+    _seen = None
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from django.core.cache import cache
+        from django.db import connections
+
+        from .backup_utils import restore_marker_path
+
+        try:
+            stamp = os.stat(restore_marker_path()).st_mtime_ns
+        except (OSError, KeyError):
+            stamp = 0
+        if DatabaseRestoreMiddleware._seen is None:
+            DatabaseRestoreMiddleware._seen = stamp
+        elif stamp != DatabaseRestoreMiddleware._seen:
+            DatabaseRestoreMiddleware._seen = stamp
+            cache.clear()
+            connections.close_all()
+        return self.get_response(request)
 
 
 class ManagementAccessMiddleware:

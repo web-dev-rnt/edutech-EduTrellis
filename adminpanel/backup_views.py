@@ -23,6 +23,20 @@ from .permissions import can_manage_backups
 logger = logging.getLogger(__name__)
 
 
+def _stay_logged_in(request):
+    """The restored database has its own accounts and sessions; log the same person in again."""
+    from django.contrib.auth import get_user_model, login
+
+    email = request.user.email
+    # This request's session row was replaced with the backup's sessions; store the session under a new key
+    # (login() alone keeps the old key when the same person logs in again, and saving it would fail).
+    request.session.cycle_key()
+    user = get_user_model().objects.filter(email__iexact=email, is_active=True).first()
+    if user:
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return user
+
+
 def _superuser_required(view_fn):
     """Decorator: allow only the backup owner accounts (settings.BACKUP_MANAGER_EMAILS)."""
     @login_required(login_url='login')
@@ -62,6 +76,8 @@ def backup_dashboard(request):
         "dropbox_error": dropbox_error,
         "total_backups": len(backups),
         "backup_folder": active_config.backup_folder,
+        "active_database": backup_utils.active_database_label(),
+        "can_restore": backup_utils.is_sqlite(),
         "active_config": active_config,
         "has_saved_config": bool(saved_config),
         "config_form": form,
@@ -116,6 +132,7 @@ def backup_restore(request):
 
     result = DropboxBackupManager.restore_backup(filename)
     if result["success"]:
+        _stay_logged_in(request)
         messages.success(request, f"\u2705 {result['message']} The site is now using the restored database.")
     else:
         messages.error(request, f"\u274c Restore failed: {result['message']}")
@@ -215,5 +232,13 @@ def backup_upload_finish(request):
     except Exception as exc:
         logger.exception("Backup upload could not finish")
         return JsonResponse({"error": f"Dropbox error: {exc}"}, status=502)
+    if request.headers.get("X-Restore") == "1":
+        result = DropboxBackupManager.restore_backup(filename)
+        if not result["success"]:
+            messages.error(request, f"\u274c Uploaded '{filename}', but restoring it failed: {result['message']}")
+            return JsonResponse({"filename": filename, "restored": False})
+        _stay_logged_in(request)
+        messages.success(request, f"\u2705 Uploaded '{filename}' and restored it. The site is now using this database.")
+        return JsonResponse({"filename": filename, "restored": True})
     messages.success(request, f"\u2705 Uploaded '{filename}'. Use Restore to switch the site to it.")
     return JsonResponse({"filename": filename})

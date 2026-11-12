@@ -86,6 +86,7 @@ MIDDLEWARE = [
     "django.middleware.gzip.GZipMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "adminpanel.middleware.DatabaseRestoreMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.http.ConditionalGetMiddleware",
     "django.middleware.common.CommonMiddleware",

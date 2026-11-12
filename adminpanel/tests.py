@@ -336,3 +336,30 @@ class DropboxMediaStorageTests(TestCase):
 
     def test_tampered_token_is_rejected(self):
         self.assertEqual(self.client.get('/dropbox-media/abc:def/').status_code, 404)
+
+
+@override_settings(BACKUP_MANAGER_EMAILS=['owner@example.com'])
+class RestoreSessionTests(TestCase):
+    """A restore replaces the sessions table; the admin who clicked Restore must stay logged in."""
+
+    def test_admin_stays_logged_in_after_restore(self):
+        from django.contrib.sessions.models import Session
+
+        from .backup_utils import DropboxBackupManager
+
+        owner = get_user_model().objects.create_user(
+            email='owner@example.com', password='x', is_staff=True, is_superuser=True,
+        )
+        self.client.force_login(owner)
+
+        def fake_restore(filename):
+            Session.objects.all().delete()  # what loading another database does to this request's session
+            return {'success': True, 'message': 'Restored.'}
+
+        with patch.object(DropboxBackupManager, 'restore_backup', side_effect=fake_restore):
+            response = self.client.post('/backup/restore/', {'filename': 'x.sqlite3'})
+        self.assertRedirects(response, '/backup/', fetch_redirect_response=False)
+        with patch.object(DropboxBackupManager, 'list_backups', return_value=[]):
+            page = self.client.get('/backup/')
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'upload-card')
