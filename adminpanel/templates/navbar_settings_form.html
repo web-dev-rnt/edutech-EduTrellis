@@ -1,4 +1,5 @@
 {% extends 'admin_dashboard.html' %}
+{% load static %}
 
 {% block title %}Navbar Settings{% endblock %}
 
@@ -33,6 +34,36 @@
                         {% if form.logo.errors %}
                             <div class="form-error">{{ form.logo.errors.0 }}</div>
                         {% endif %}
+                    </div>
+
+                    <div class="logo-size-panel">
+                        <p class="logo-size-title"><i class="fas fa-up-right-and-down-left-from-center"></i> Logo Size</p>
+                        <div class="form-row">
+                            {% for field in form %}{% if field.name == 'logo_height' or field.name == 'logo_height_mobile' %}
+                            <div class="form-group logo-size-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                <div class="logo-size-control">
+                                    <button type="button" class="logo-size-step" data-step="-2" data-target="{{ field.id_for_label }}" aria-label="Make the logo smaller"><i class="fas fa-minus"></i></button>
+                                    {{ field }}
+                                    <button type="button" class="logo-size-step" data-step="2" data-target="{{ field.id_for_label }}" aria-label="Make the logo bigger"><i class="fas fa-plus"></i></button>
+                                    <output class="logo-size-value" for="{{ field.id_for_label }}">{{ field.value }} px</output>
+                                </div>
+                                <small class="form-help">{{ field.help_text }}</small>
+                                {% if field.errors %}<div class="form-error">{{ field.errors.0 }}</div>{% endif %}
+                            </div>
+                            {% endif %}{% endfor %}
+                        </div>
+                        <p class="preview-label">Preview (actual size):</p>
+                        <div class="logo-size-previews">
+                            <div class="logo-size-preview logo-size-preview--desktop">
+                                <span class="logo-size-device"><i class="fas fa-desktop"></i> Desktop</span>
+                                <div class="logo-size-bar"><img src="{% if navbar_settings and navbar_settings.logo %}{{ navbar_settings.logo.url }}{% else %}{% static 'img/mainlogo.png' %}{% endif %}" alt="" data-preview-img="desktop"></div>
+                            </div>
+                            <div class="logo-size-preview logo-size-preview--mobile">
+                                <span class="logo-size-device"><i class="fas fa-mobile-screen"></i> Mobile</span>
+                                <div class="logo-size-bar logo-size-bar--mobile"><img src="{% if navbar_settings and navbar_settings.logo %}{{ navbar_settings.logo.url }}{% else %}{% static 'img/mainlogo.png' %}{% endif %}" alt="" data-preview-img="mobile"><span class="logo-size-icons"><i class="fas fa-bell"></i><i class="fas fa-bars"></i></span></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -131,6 +162,37 @@
     </div>
 </div>
 
+<script>
+(function () {
+    function update(range) {
+        var px = range.value + 'px';
+        var out = document.querySelector('output[for="' + range.id + '"]');
+        if (out) out.textContent = range.value + ' px';
+        var img = document.querySelector('[data-preview-img="' + range.dataset.preview + '"]');
+        if (img) img.style.height = px;
+    }
+    document.querySelectorAll('.logo-size-range').forEach(function (range) {
+        range.addEventListener('input', function () { update(range); });
+        update(range);
+    });
+    document.querySelectorAll('.logo-size-step').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var range = document.getElementById(btn.dataset.target);
+            var v = Math.min(+range.max, Math.max(+range.min, +range.value + +btn.dataset.step));
+            range.value = v;
+            update(range);
+        });
+    });
+    // Show a newly chosen logo file in the preview before saving.
+    var file = document.getElementById('{{ form.logo.id_for_label }}');
+    if (file) file.addEventListener('change', function () {
+        if (!file.files || !file.files[0]) return;
+        var url = URL.createObjectURL(file.files[0]);
+        document.querySelectorAll('[data-preview-img]').forEach(function (img) { img.src = url; });
+    });
+})();
+</script>
+
 <style>
 .ad-main-content {
     font-family: var(--font-sans);
@@ -150,12 +212,12 @@
 }
 
 .form-section h3 {
-    color: #1A3FB0;
+    color: #9E1428;
     margin-bottom: 24px;
     font-size: 19px;
     font-weight: 700;
     padding-bottom: 12px;
-    border-bottom: 2px solid #2459E0;
+    border-bottom: 2px solid #D7263D;
     letter-spacing: -0.3px;
 }
 
@@ -202,10 +264,42 @@ select {
 .form-control:focus,
 input:focus,
 select:focus {
-    border-color: #2459E0;
+    border-color: #D7263D;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(36, 89, 224, 0.1);
+    box-shadow: 0 0 0 3px rgba(215, 38, 61, 0.1);
 }
+
+.logo-size-panel {
+    margin: 4px 0 26px;
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #ececf2;
+    border-radius: 12px;
+}
+.logo-size-title { margin: 0 0 14px; font-weight: 700; color: #1f0b12; display: flex; align-items: center; gap: 8px; }
+.logo-size-title i { color: var(--brand-primary, #D7263D); }
+.logo-size-group { margin-bottom: 8px; }
+.logo-size-control { display: flex; align-items: center; gap: 10px; }
+.logo-size-range { flex: 1; min-width: 0; accent-color: var(--brand-primary, #D7263D); height: 6px; cursor: pointer; }
+.logo-size-step {
+    flex: 0 0 34px; height: 34px; border-radius: 50%;
+    border: 1px solid #e3d4d7; background: #fff7f7; color: var(--brand-primary, #D7263D);
+    cursor: pointer; display: grid; place-items: center; font-size: 13px;
+}
+.logo-size-step:hover { background: var(--brand-primary, #D7263D); color: #fff; }
+.logo-size-value { flex: 0 0 58px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: #1f0b12; }
+.logo-size-previews { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+.logo-size-device { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 600; color: #6b5a60; margin-bottom: 6px; }
+.logo-size-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    min-height: 64px; padding: 10px 16px; overflow: hidden;
+    background: #fff; border: 1px solid #ececf2; border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(20, 20, 27, 0.06);
+}
+.logo-size-bar img { display: block; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+.logo-size-bar--mobile { max-width: 320px; }
+.logo-size-bar--mobile img { max-width: calc(100% - 70px); }
+.logo-size-icons { display: flex; gap: 14px; color: #1f0b12; flex: 0 0 auto; }
 
 .current-logo {
     margin-top: 18px;
@@ -291,7 +385,7 @@ select:focus {
 }
 
 .form-checkbox:hover {
-    border-color: #2459E0;
+    border-color: #D7263D;
     background: #fff5f5;
 }
 
@@ -348,15 +442,15 @@ select:focus {
 }
 
 .ad-btn-primary {
-    background: #2459E0;
+    background: #D7263D;
     color: #fff;
-    box-shadow: 0 4px 12px rgba(36, 89, 224, 0.3);
+    box-shadow: 0 4px 12px rgba(215, 38, 61, 0.3);
 }
 
 .ad-btn-primary:hover {
     background: #a01c26;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(36, 89, 224, 0.4);
+    box-shadow: 0 6px 16px rgba(215, 38, 61, 0.4);
 }
 
 .ad-btn-secondary {
@@ -382,6 +476,8 @@ select:focus {
     .form-section {
         padding: 22px 18px;
     }
+
+    .logo-size-previews { grid-template-columns: 1fr; }
 
     .form-section h3 {
         font-size: 17px;

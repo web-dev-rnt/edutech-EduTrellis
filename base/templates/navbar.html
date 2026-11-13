@@ -1,4 +1,5 @@
 {% load static %}
+{% if navbar_settings %}<style>:root { --nav-logo-h: {{ navbar_settings.logo_height|default:34 }}px; --nav-logo-h-m: {{ navbar_settings.logo_height_mobile|default:26 }}px; }</style>{% endif %}
 
 
 <!-- Dynamic Navbar -->
@@ -152,14 +153,14 @@
                 </span>
             </a>
         {% else %}
-            <a href="https://wa.me/918296893895?text=Hello"
+            <a href="{{ site_contact.whatsapp_url }}"
                class="navbar-phone-link" 
                target="_blank" 
                rel="noopener noreferrer">
                 <i class="fab fa-whatsapp"></i>
                 <span class="navbar-phone-text">
-                    82968 93895<br>
-                    <span style="font-size: 12px;">(10 AM to 8 PM)</span>
+                    {{ site_contact.phone_display }}<br>
+                    <span style="font-size: 12px;">({{ site_contact.hours }})</span>
                 </span>
             </a>
         {% endif %}
@@ -295,9 +296,9 @@
                 <span><strong>{{ navbar_settings.contact_number }}</strong><small>Chat with us {{ navbar_settings.contact_hours }}</small></span>
             </a>
         {% else %}
-            <a href="https://wa.me/918296893895?text=Hello" class="mnav-contact" target="_blank" rel="noopener noreferrer">
+            <a href="{{ site_contact.whatsapp_url }}" class="mnav-contact" target="_blank" rel="noopener noreferrer">
                 <i class="fab fa-whatsapp" aria-hidden="true"></i>
-                <span><strong>82968 93895</strong><small>Chat with us (10 AM to 8 PM)</small></span>
+                <span><strong>{{ site_contact.phone_display }}</strong><small>Chat with us ({{ site_contact.hours }})</small></span>
             </a>
         {% endif %}
         {% if user.is_authenticated %}

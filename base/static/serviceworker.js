@@ -1,4 +1,4 @@
-const CACHE_NAME = 'infinite360-static-v4';
+const CACHE_NAME = 'edutrellis-static-v5';
 const STATIC_CACHE_URLS = [
   '/offline/',
   '/static/css/style.css',

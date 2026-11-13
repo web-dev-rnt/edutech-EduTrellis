@@ -9,20 +9,20 @@ class Command(BaseCommand):
         # Create default About Us section
         about_us, created = AboutUsSection.objects.get_or_create(
             defaults={
-                'company_name': 'Infinite360',
-                'heading': 'About Infinite360',
-                'description': '''India's fastest-growing one-stop exam prep platform (Trusted by over 4 crore users!).
-We empower exam aspirants with affordable online live classes, mock tests, e-books, and personalized learning journeys across 1,600+ national and state exams. Maximize your success with best-in-class technology, analytics, and top educators!''',
-                'address': '8th Floor, DLF Cyber City, Tower A, Phase III, Gurugram - 122002, India',
-                'email': 'businessconsulting@gmail.com',
-                'phone': '8296893895',
-                'phone_hours': '(10 AM to 7 PM)',
+                'company_name': 'Edutrellis',
+                'heading': 'About Edutrellis',
+                'description': '''Edutrellis is an online test series platform that has trained 10,000+ students for competitive and board exams.
+Our exam-pattern mock tests, previous year papers, instant results and detailed solutions help students build speed, accuracy and confidence before the real exam.''',
+                'address': 'P-109, Prembagh, Shahpur, Chinhat, Lucknow, Uttar Pradesh 226028',
+                'email': 'support@edutrellis.in',
+                'phone': '+91 91941 30645',
+                'phone_hours': '(Mon to Fri, 10 AM to 7 PM)',
                 'facebook_url': '',
                 'twitter_url': '',
                 'linkedin_url': '',
                 'instagram_url': '',
                 'telegram_url': '',
-                'map_embed_url': 'https://www.google.com/maps?q=DLF+Cyber+City+Tower+A+Phase+III+Gurugram+Haryana+122002&output=embed',
+                'map_embed_url': 'https://www.google.com/maps?q=P-109+Prembagh+Shahpur+Chinhat+Lucknow+Uttar+Pradesh+226028&output=embed',
             }
         )
         
@@ -30,8 +30,8 @@ We empower exam aspirants with affordable online live classes, mock tests, e-boo
         why_choose_items = [
             {
                 'icon_class': 'fa fa-user-circle',
-                'title': 'Trusted by 4+ crore learners',
-                'description': 'Trusted by <b>4+ crore learners</b> and 10,000+ institutions',
+                'title': '10,000+ students trained',
+                'description': '<b>10,000+ students trained</b> for competitive and board exams',
                 'order': 1
             },
             {

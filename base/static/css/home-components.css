@@ -1060,7 +1060,7 @@ body {
     display: grid;
     place-items: center;
     font-size: 15px;
-    background: #eef2ff;
+    background: #fff1f2;
     color: #4f46e5;
 }
 
@@ -1325,7 +1325,7 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 17px;
-    background: #eef2ff;
+    background: #fff1f2;
     color: #4f46e5;
 }
 
@@ -2214,7 +2214,7 @@ body {
 
 .mnav-welcome {
     padding: 16px; border-radius: 16px;
-    background: radial-gradient(circle at 100% 0%, rgba(var(--brand-primary-rgb), .35), transparent 60%), #EEF2FF;
+    background: radial-gradient(circle at 100% 0%, rgba(var(--brand-primary-rgb), .35), transparent 60%), #fff1f2;
     border: 1px solid rgba(var(--brand-primary-rgb), .35);
 }
 .mnav-welcome strong { display: block; font-size: 16px; font-weight: 800; color: #14141b; }
@@ -3317,7 +3317,7 @@ body {
     font-weight: 700;
     font-size: 15px;
     line-height: 1.3;
-    color: #162033;
+    color: #2A0F17;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -3343,7 +3343,7 @@ body {
 
   .instructor-name {
     font-size: 12px;
-    color: #162033;
+    color: #2A0F17;
     font-weight: 600;
   }
 
@@ -3402,7 +3402,7 @@ body {
   }
 
   .rating-value {
-    color: #162033;
+    color: #2A0F17;
     font-weight: 600;
   }
 
@@ -3414,7 +3414,7 @@ body {
   .course-pricing {
     font-weight: 700;
     font-size: 16px;
-    color: #162033;
+    color: #2A0F17;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -3891,7 +3891,7 @@ body {
   gap: 8px;
   margin-top: 14px;
   padding: 10px 22px;
-  border: 1.5px solid var(--brand-primary, #2459E0);
+  border: 1.5px solid var(--brand-primary, #D7263D);
   border-radius: 999px;
   color: var(--brand-primary-text);
   font-size: 14px;
@@ -3901,7 +3901,7 @@ body {
 }
 
 .ts-view-all-btn:hover {
-  background: var(--brand-primary, #2459E0);
+  background: var(--brand-primary, #D7263D);
   color: var(--brand-on-primary, #fff);
 }
 
@@ -4149,7 +4149,7 @@ body {
     font-weight: 700;
     font-size: 15px;
     line-height: 1.3;
-    color: #162033;
+    color: #2A0F17;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -4178,7 +4178,7 @@ body {
 
   .elibrary-card .instructor-name {
     font-size: 12px;
-    color: #162033;
+    color: #2A0F17;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -4244,7 +4244,7 @@ body {
   }
 
   .elibrary-card .rating-value {
-    color: #162033;
+    color: #2A0F17;
     font-weight: 600;
   }
 
@@ -4256,7 +4256,7 @@ body {
   .elibrary-card .course-pricing {
     font-weight: 700;
     font-size: 16px;
-    color: #162033;
+    color: #2A0F17;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -4504,7 +4504,7 @@ body {
     font-weight: 700;
     font-size: 15px;
     line-height: 1.3;
-    color: #162033;
+    color: #2A0F17;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -4601,7 +4601,7 @@ body {
   }
 
   .bundle-section .rating-value {
-    color: #162033;
+    color: #2A0F17;
     font-weight: 600;
   }
 
@@ -4613,7 +4613,7 @@ body {
   .bundle-section .course-pricing {
     font-weight: 700;
     font-size: 16px;
-    color: #162033;
+    color: #2A0F17;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -4778,7 +4778,7 @@ body {
         justify-content: center;
         overflow: hidden;
         background: #fff;
-        border: 2px solid var(--brand-primary, #2459E0) !important;
+        border: 2px solid var(--brand-primary, #D7263D) !important;
         font-size: 0;
     }
     .navbar-user-profile-btn .navbar-user-avatar {
@@ -4833,16 +4833,18 @@ body {
     .navbar-user-profile-btn { width: 36px; height: 36px; min-width: 36px; }
 }
 
-/* ========== Infinite360 logo sizing (single source of truth) ==========
-   The Infinite360 wordmark is wide (about 8:1), so it needs less height than the old logo.
+/* ========== Navbar logo sizing (single source of truth) ==========
+   --nav-logo-h / --nav-logo-h-m come from Navbar Settings > Logo Size (set in navbar.html).
+   Narrower desktop screens scale the desktop size down so the menu still fits.
    These rules come last and override the per-breakpoint heights above. */
-.navbar-logo-wrapper img { height: 34px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
-.mnav-logo img { height: 28px; }
-@media (max-width: 1366px) { .navbar-logo-wrapper img { height: 30px; } }
-@media (max-width: 1100px) { .navbar-logo-wrapper img { height: 26px; } }
-@media (min-width: 769px) and (max-width: 900px) { .navbar-logo-wrapper img { height: 22px; } }
-@media (max-width: 768px) { .navbar-logo-wrapper img { height: 26px; } }
-@media (max-width: 360px) { .navbar-logo-wrapper img { height: 22px; } }
+:root { --nav-logo-h: 34px; --nav-logo-h-m: 26px; }
+.navbar-logo-wrapper img { height: var(--nav-logo-h); width: auto; max-width: 100%; object-fit: contain; object-position: left center; }
+.mnav-logo img { height: calc(var(--nav-logo-h-m) + 2px); width: auto; max-width: 100%; object-fit: contain; }
+@media (max-width: 1366px) { .navbar-logo-wrapper img { height: calc(var(--nav-logo-h) * 0.88); } }
+@media (max-width: 1100px) { .navbar-logo-wrapper img { height: calc(var(--nav-logo-h) * 0.76); } }
+@media (min-width: 769px) and (max-width: 900px) { .navbar-logo-wrapper img { height: calc(var(--nav-logo-h) * 0.65); } }
+@media (max-width: 768px) { .navbar-logo-wrapper img { height: var(--nav-logo-h-m); } }
+@media (max-width: 360px) { .navbar-logo-wrapper img { height: calc(var(--nav-logo-h-m) * 0.85); } }
 
 /* ========== Account avatar (navbar + mobile menu) ==========
    No photo: a brand-coloured circle with the student's initial instead of the grey placeholder image. */
@@ -4850,7 +4852,7 @@ body {
     display: inline-grid;
     place-items: center;
     flex-shrink: 0;
-    background: linear-gradient(135deg, var(--brand-primary, #2459E0), #7B3FE4);
+    background: linear-gradient(135deg, var(--brand-primary, #D7263D), #9E1428);
     color: var(--brand-on-primary, #fff);
     border: 0;
     font: 800 14px/1 var(--font-sans);
@@ -4859,10 +4861,10 @@ body {
     flex: 0 0 44px; min-width: 44px;
     width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
     display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--brand-primary, #2459E0), #7B3FE4);
+    background: linear-gradient(135deg, var(--brand-primary, #D7263D), #9E1428);
     color: var(--brand-on-primary, #fff);
     font: 800 18px/1 var(--font-sans);
-    border: 2px solid #fff; box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb, 36, 89, 224), .6);
+    border: 2px solid #fff; box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb, 215, 38, 61), .6);
 }
 
 @media (max-width: 768px) {

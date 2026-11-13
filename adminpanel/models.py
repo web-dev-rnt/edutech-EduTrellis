@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.core.validators import MinValueValidator , FileExtensionValidator, RegexValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator, RegexValidator
 from django.utils import timezone
 from django.core.mail import get_connection, send_mail
 from django.core.exceptions import ValidationError
@@ -404,7 +404,7 @@ class CTASection(models.Model):
     button_text = models.CharField(max_length=100, help_text="Button text")
     button_link = models.URLField(blank=True, help_text="Optional button link")
     button_color = models.CharField(
-        max_length=7, default='#2459E0', help_text="Hex color code for the CTA button (e.g., #D4AF37)"
+        max_length=7, default='#D7263D', help_text="Hex color code for the CTA button (e.g., #D4AF37)"
     )
     background_image = models.ImageField(
         upload_to='cta/', blank=True, null=True, help_text="Optional background image (recommended 1920x600px)"
@@ -423,7 +423,7 @@ class CTASection(models.Model):
     @property
     def button_color_rgb(self):
         """button_color as an 'r, g, b' triplet, for use in the button's shadow/hover styling."""
-        return hex_to_rgb_str(self.button_color or '#2459E0', fallback=(36, 89, 224))
+        return hex_to_rgb_str(self.button_color or '#D7263D', fallback=(215, 38, 61))
 
     @property
     def button_text_color(self):
@@ -433,16 +433,16 @@ class CTASection(models.Model):
 
 
 class AboutUsSection(models.Model):
-    company_name = models.CharField(max_length=200, default="Infinite360")
-    heading = models.CharField(max_length=200, default="About Infinite360")
-    description = models.TextField(default="India's fastest-growing one-stop exam prep platform")
+    company_name = models.CharField(max_length=200, default="Edutrellis")
+    heading = models.CharField(max_length=200, default="About Edutrellis")
+    description = models.TextField(default="Online test series and mock tests for competitive and board exams. 10,000+ students trained.")
     logo = models.ImageField(upload_to='about/', blank=True, help_text="Company logo image")
 
     # Contact Information
-    address = models.TextField(default="8th Floor, DLF Cyber City, Tower A, Phase III, Gurugram - 122002, India")
-    email = models.EmailField(default="businessconsulting@gmail.com")
-    phone = models.CharField(max_length=50, default="8296893895")
-    phone_hours = models.CharField(max_length=100, default="(10 AM to 7 PM)")
+    address = models.TextField(default="P-109, Prembagh, Shahpur, Chinhat, Lucknow, Uttar Pradesh 226028")
+    email = models.EmailField(default="support@edutrellis.in")
+    phone = models.CharField(max_length=50, default="+91 91941 30645")
+    phone_hours = models.CharField(max_length=100, default="(Mon to Fri, 10 AM to 7 PM)")
 
     # Social Media Links
     facebook_url = models.URLField(blank=True, default="")
@@ -454,7 +454,7 @@ class AboutUsSection(models.Model):
     # Map
     map_embed_url = models.TextField(
         blank=True,
-        default="https://www.google.com/maps?q=DLF+Cyber+City+Tower+A+Phase+III+Gurugram+Haryana+122002&output=embed",
+        default="https://www.google.com/maps?q=P-109+Prembagh+Shahpur+Chinhat+Lucknow+Uttar+Pradesh+226028&output=embed",
         help_text="Google Maps embed URL"
     )
 
@@ -504,17 +504,17 @@ class ThemeSettings(models.Model):
     """Site-wide brand name and color. The name is used in page titles, emails, SEO and the admin panel."""
     site_name = models.CharField(
         max_length=60,
-        default='Infinite360',
+        default='Edutrellis',
         help_text="Short brand name shown in page titles, emails, the admin panel and search results."
     )
     site_full_name = models.CharField(
         max_length=120,
-        default='Infinite360 Tech Academy',
+        default='Edutrellis',
         help_text="Full or legal name, used in the homepage title, search results and structured data."
     )
     primary_color = models.CharField(
         max_length=7,
-        default='#2459E0',
+        default='#D7263D',
         help_text="Main brand color used for buttons, links, and hover states across the site."
     )
     updated_at = models.DateTimeField(auto_now=True)
@@ -528,18 +528,18 @@ class ThemeSettings(models.Model):
 
     @property
     def primary_color_rgb(self):
-        return hex_to_rgb_str(self.primary_color, fallback=(36, 89, 224))
+        return hex_to_rgb_str(self.primary_color, fallback=(215, 38, 61))
 
     @property
     def primary_color_dark(self):
         """A ~18% darker shade of primary_color, for hover/active states."""
-        hex_color = (self.primary_color or '#2459E0').lstrip('#')
+        hex_color = (self.primary_color or '#D7263D').lstrip('#')
         if len(hex_color) == 3:
             hex_color = ''.join(c * 2 for c in hex_color)
         try:
             r, g, b = (int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
         except ValueError:
-            r, g, b = (36, 89, 224)
+            r, g, b = (215, 38, 61)
         r, g, b = (max(0, round(c * 0.82)) for c in (r, g, b))
         return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -641,8 +641,14 @@ class NavbarSettings(models.Model):
     
     logo = models.ImageField(upload_to='navbar/', blank=True, null=True, help_text="Website logo")
     favicon = models.ImageField(upload_to='navbar/favicon/', blank=True, null=True, help_text="Website favicon (16x16 or 32x32 px)")
-    contact_number = models.CharField(max_length=20, default="8296893895", help_text="Contact phone number")
-    contact_hours = models.CharField(max_length=50, default="(10 AM to 7 PM)", help_text="Contact hours")
+    logo_height = models.PositiveSmallIntegerField(
+        default=34, validators=[MinValueValidator(16), MaxValueValidator(96)],
+        help_text="Logo height on desktop, in pixels (16-96). Smaller laptop screens scale it down automatically.")
+    logo_height_mobile = models.PositiveSmallIntegerField(
+        default=26, validators=[MinValueValidator(16), MaxValueValidator(64)],
+        help_text="Logo height on phones, in pixels (16-64).")
+    contact_number = models.CharField(max_length=20, default="91941 30645", help_text="Contact phone number")
+    contact_hours = models.CharField(max_length=50, default="(Mon-Fri, 10 AM-7 PM)", help_text="Contact hours")
     contact_type = models.CharField(max_length=10, choices=CONTACT_TYPE_CHOICES, default='whatsapp', help_text="Contact method type")
     search_placeholder = models.CharField(max_length=100, default="Search courses", help_text="Search box placeholder text")
     is_active = models.BooleanField(default=True)
@@ -686,8 +692,8 @@ class NavbarSettings(models.Model):
 
 class FooterSettings(models.Model):
     logo = models.ImageField(upload_to='footer/', blank=True, null=True, help_text="Footer logo image")
-    email = models.EmailField(default="businessconsulting@gmail.com", help_text="Contact email")
-    copyright_text = models.CharField(max_length=200, default="Copyright © 2026 Infinite360. All rights reserved.")
+    email = models.EmailField(default="support@edutrellis.in", help_text="Contact email")
+    copyright_text = models.CharField(max_length=200, default="Copyright © 2026 Edutrellis. All rights reserved.")
 
     google_play_url = models.URLField(blank=True, default="https://play.google.com/store/apps", help_text="Google Play Store URL")
     app_store_url = models.URLField(blank=True, default="https://apps.apple.com/app", help_text="Apple App Store URL")

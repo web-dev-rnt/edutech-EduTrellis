@@ -1,6 +1,6 @@
-// Service Worker for Infinite360 PWA
-const CACHE_VERSION = 'infinite360-v2.0.0';
-const CACHE_NAME = `infinite360-cache-${CACHE_VERSION}`;
+// Service Worker for Edutrellis PWA
+const CACHE_VERSION = 'edutrellis-v3.0.0';
+const CACHE_NAME = `edutrellis-cache-${CACHE_VERSION}`;
 
 // Files to cache immediately on install
 const STATIC_CACHE_URLS = [

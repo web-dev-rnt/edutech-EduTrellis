@@ -6,7 +6,7 @@ def generate_room_name(session_id, class_name):
     """Generate one stable, hard-to-guess room name for a saved session."""
     unique_string = f"{settings.SECRET_KEY}:{session_id}:{class_name}"
     room_hash = hashlib.sha256(unique_string.encode()).hexdigest()[:24]
-    return f"Infinite360LiveClass{room_hash}"
+    return f"EdutrellisLiveClass{room_hash}"
 
 def is_room_moderator(user):
     """Determine if user should be a moderator"""

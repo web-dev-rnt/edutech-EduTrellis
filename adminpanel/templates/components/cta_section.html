@@ -6,9 +6,9 @@
             <p class="cta-description">{{ cta.description }}</p>
         {% endif %}
         {% if cta.button_link %}
-            <a href="{{ cta.button_link }}" class="cta-btn" style="--cta-color: {{ cta.button_color|default:'#2459E0' }}; --cta-color-rgb: {{ cta.button_color_rgb }}; --cta-on: {{ cta.button_text_color }};" target="_blank">{{ cta.button_text }}</a>
+            <a href="{{ cta.button_link }}" class="cta-btn" style="--cta-color: {{ cta.button_color|default:'#D7263D' }}; --cta-color-rgb: {{ cta.button_color_rgb }}; --cta-on: {{ cta.button_text_color }};" target="_blank">{{ cta.button_text }}</a>
         {% else %}
-            <button class="cta-btn" style="--cta-color: {{ cta.button_color|default:'#2459E0' }}; --cta-color-rgb: {{ cta.button_color_rgb }}; --cta-on: {{ cta.button_text_color }};" type="button">{{ cta.button_text }}</button>
+            <button class="cta-btn" style="--cta-color: {{ cta.button_color|default:'#D7263D' }}; --cta-color-rgb: {{ cta.button_color_rgb }}; --cta-on: {{ cta.button_text_color }};" type="button">{{ cta.button_text }}</button>
         {% endif %}
     </div>
 </div>
@@ -59,8 +59,8 @@
 }
 
 .cta-btn {
-    --cta-color: #2459E0;
-    --cta-color-rgb: 36, 89, 224;
+    --cta-color: #D7263D;
+    --cta-color-rgb: 215, 38, 61;
     --cta-on: #14141b;
     background: var(--cta-color);
     color: var(--cta-on);

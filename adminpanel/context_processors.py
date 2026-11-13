@@ -8,37 +8,49 @@ from django.templatetags.static import static
 from .branding import brand
 
 # ── Site-wide contact constants ──────────────────────────────────────────────
-SITE_EMAIL = "businessconsulting@gmail.com"
-SITE_PHONE = "8296893895"
-SITE_PHONE_DISPLAY = "+91 82968 93895"
-SITE_WHATSAPP_NUMBER = "918296893895"  # country code + number, no +
+SITE_EMAIL = "support@edutrellis.in"
+SITE_CEO_EMAIL = "ceo@edutrellis.in"
+SITE_PHONE = "9194130645"
+SITE_PHONE_DISPLAY = "+91 91941 30645"
+SITE_WHATSAPP_NUMBER = "919194130645"  # country code + number, no +
+SITE_SUPPORT_HOURS = "Mon to Fri, 10 AM to 7 PM"
+# schema.org opening hours of the support desk (Monday to Friday, 10:00-19:00 IST).
+SITE_SUPPORT_HOURS_SPEC = {
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    "opens": "10:00",
+    "closes": "19:00",
+}
+SITE_STUDENTS_TRAINED_COUNT = 10000  # shown as "10,000+" (home page counter, footer, SEO)
+SITE_STUDENTS_TRAINED = f"{SITE_STUDENTS_TRAINED_COUNT:,}+"
 SITE_WHATSAPP_URL = (
     f"https://wa.me/{SITE_WHATSAPP_NUMBER}"
     "?text=Hello%2C%20I%20would%20like%20to%20know%20more%20about%20your%20courses"
 )
-SITE_ADDRESS = "8th Floor, DLF Cyber City, Tower A, Phase III, Gurugram - 122002, India"
-SITE_MAPS_URL = "https://maps.google.com/?q=DLF+Cyber+City+Tower+A+Phase+III+Gurugram+Haryana+122002"
+SITE_ADDRESS = "P-109, Prembagh, Shahpur, Chinhat, Lucknow, Uttar Pradesh 226028"
+SITE_MAPS_URL = "https://maps.google.com/?q=P-109+Prembagh+Shahpur+Chinhat+Lucknow+Uttar+Pradesh+226028"
 # Same address split into schema.org PostalAddress parts for structured data.
 SITE_POSTAL_ADDRESS = {
-    "streetAddress": "8th Floor, DLF Cyber City, Tower A, Phase III",
-    "addressLocality": "Gurugram",
-    "addressRegion": "Haryana",
-    "postalCode": "122002",
+    "streetAddress": "P-109, Prembagh, Shahpur, Chinhat",
+    "addressLocality": "Lucknow",
+    "addressRegion": "Uttar Pradesh",
+    "postalCode": "226028",
     "addressCountry": "IN",
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── SEO defaults ─────────────────────────────────────────────────────────────
 # The brand name itself lives in the database (Brand & Theme settings); see adminpanel/branding.py.
-SEO_TITLE_SUFFIX = "Online Live Classes, Video Courses & Test Series"
+SEO_TITLE_SUFFIX = "Online Test Series & Mock Tests for Competitive and Board Exams"
 SEO_DESCRIPTION_BODY = (
-    "live online classes, video courses, mock test series, "
-    "previous year papers and e-books for board and competitive exams. Learn anytime, anywhere."
+    "online test series & mock tests for competitive and board exams, with PYQs, "
+    f"instant results and solutions. {SITE_STUDENTS_TRAINED} students trained."
 )
 SEO_KEYWORD_TOPICS = (
-    "online coaching, live online classes, video courses, online test series, "
-    "mock tests, previous year papers, e-library, e-books, CBSE, board exam preparation, "
-    "competitive exam preparation"
+    "online test series, mock tests, online mock test, test series for competitive exams, "
+    "previous year papers, PYQ, practice tests, SSC test series, banking test series, "
+    "railway test series, UPSC test series, JEE mock test, NEET mock test, CBSE test series, "
+    "board exam mock tests, all-India rank, exam preparation, test series Lucknow"
 )
 
 
@@ -46,7 +58,7 @@ def seo_texts(site_brand=None):
     """Default title, description and keywords built from the saved brand name."""
     site_brand = site_brand or brand()
     name, full_name = site_brand["name"], site_brand["full_name"]
-    names = list(dict.fromkeys([name, full_name, f"{name} academy"]))
+    names = list(dict.fromkeys([name, full_name, f"{name} test series"]))
     return {
         "title": f"{full_name} | {SEO_TITLE_SUFFIX}",
         "description": f"{full_name}: {SEO_DESCRIPTION_BODY}",
@@ -60,15 +72,18 @@ def site_contact(request):
     """
     Injects sitewide contact details into every template context.
     Usage in templates:
-        {{ site_contact.email }}
-        {{ site_contact.phone }}
+        {{ site_contact.email }}  {{ site_contact.ceo_email }}
+        {{ site_contact.phone }}  {{ site_contact.hours }}
         {{ site_contact.whatsapp_url }}
         {{ site_contact.address }}
     """
     return {
         "site_contact": {
             "email": SITE_EMAIL,
+            "ceo_email": SITE_CEO_EMAIL,
             "phone": SITE_PHONE,
+            "hours": SITE_SUPPORT_HOURS,
+            "students_trained": SITE_STUDENTS_TRAINED,
             "phone_display": SITE_PHONE_DISPLAY,
             "whatsapp_number": SITE_WHATSAPP_NUMBER,
             "whatsapp_url": SITE_WHATSAPP_URL,

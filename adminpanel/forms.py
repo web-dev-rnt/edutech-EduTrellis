@@ -81,7 +81,7 @@ class DropboxConfigurationForm(forms.ModelForm):
             "app_key": forms.TextInput(attrs={"class": "backup-input", "autocomplete": "off"}),
             "app_secret": forms.PasswordInput(attrs={"class": "backup-input", "autocomplete": "new-password"}, render_value=False),
             "refresh_token": forms.PasswordInput(attrs={"class": "backup-input", "autocomplete": "new-password"}, render_value=False),
-            "backup_folder": forms.TextInput(attrs={"class": "backup-input", "placeholder": "/infinite360-backup"}),
+            "backup_folder": forms.TextInput(attrs={"class": "backup-input", "placeholder": "/edutrellis-backup"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -533,8 +533,8 @@ class ThemeSettingsForm(forms.ModelForm):
         model = ThemeSettings
         fields = ['site_name', 'site_full_name', 'primary_color']
         widgets = {
-            'site_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Infinite360'}),
-            'site_full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Infinite360 Tech Academy'}),
+            'site_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Edutrellis'}),
+            'site_full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Edutrellis'}),
             'primary_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
         }
 
@@ -563,7 +563,8 @@ class AuthPageSettingsForm(forms.ModelForm):
 class NavbarSettingsForm(forms.ModelForm):
     class Meta:
         model = NavbarSettings
-        fields = ['logo', 'favicon', 'contact_number', 'contact_hours', 'contact_type', 'search_placeholder', 'is_active']
+        fields = ['logo', 'logo_height', 'logo_height_mobile', 'favicon', 'contact_number', 'contact_hours',
+                  'contact_type', 'search_placeholder', 'is_active']
         widgets = {
             'logo': forms.ClearableFileInput(
                 attrs={'class': 'form-control', 'accept': 'image/*'}
@@ -571,8 +572,16 @@ class NavbarSettingsForm(forms.ModelForm):
             'favicon': forms.ClearableFileInput(
                 attrs={'class': 'form-control', 'accept': 'image/x-icon,image/png,image/jpeg'}
             ),
+            'logo_height': forms.NumberInput(
+                attrs={'type': 'range', 'class': 'logo-size-range', 'min': 16, 'max': 96, 'step': 1,
+                       'data-preview': 'desktop'}
+            ),
+            'logo_height_mobile': forms.NumberInput(
+                attrs={'type': 'range', 'class': 'logo-size-range', 'min': 16, 'max': 64, 'step': 1,
+                       'data-preview': 'mobile'}
+            ),
             'contact_number': forms.TextInput(
-                attrs={'class': 'form-control', 'placeholder': '7905817391'}
+                attrs={'class': 'form-control', 'placeholder': '9194130645'}
             ),
             'contact_hours': forms.TextInput(
                 attrs={'class': 'form-control', 'placeholder': '(10 AM to 7 PM)'}
@@ -586,6 +595,8 @@ class NavbarSettingsForm(forms.ModelForm):
         }
         labels = {
             'logo': 'Website Logo',
+            'logo_height': 'Logo Size on Desktop',
+            'logo_height_mobile': 'Logo Size on Mobile',
             'favicon': 'Website Favicon',
             'contact_number': 'Contact Number',
             'contact_hours': 'Contact Hours',

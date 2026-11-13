@@ -1,5 +1,5 @@
 """
-Django settings for the Infinite360 project (Django 5.2+ ready).
+Django settings for the Edutrellis project (Django 5.2+ ready).
 Optimized for performance, caching, security, and Core Web Vitals.
 """
 
@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
         "localhost,127.0.0.1,testserver,www.thevedaeducation.info,"
         "ganeshsirclasses.online,www.ganeshsirclasses.online,"
         "indoretutorials.online,www.indoretutorials.online,"
-        "exams.edutrellis.in,www.exams.edutrellis.in,"
+        "edutrellis.in,www.edutrellis.in,exams.edutrellis.in,www.exams.edutrellis.in,"
         "web-production-ab46.up.railway.app,infinite360-production.up.railway.app",
     ).split(",")
     if host.strip()
@@ -53,7 +53,7 @@ RAILWAY_HOSTS = [
         os.environ.get("RAILWAY_STATIC_URL", "").strip().removeprefix("https://"),
     ) if host
 ]
-for host in ("exams.edutrellis.in", "www.exams.edutrellis.in", *RAILWAY_HOSTS):
+for host in ("edutrellis.in", "www.edutrellis.in", "exams.edutrellis.in", "www.exams.edutrellis.in", *RAILWAY_HOSTS):
     if host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host)
 
@@ -212,7 +212,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 if len(sys.argv) > 1 and sys.argv[1] == "test":
     # Data migrations copy banner artwork into MEDIA_ROOT; keep test runs out of the real media folder.
     import tempfile
-    MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="infinite360-test-media-"))
+    MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="edutrellis-test-media-"))
 
 # WhiteNoise: serve compressed static files with aggressive browser caching (1 year)
 # Uploaded files (banners, logos, favicon, thumbnails, question images...) are stored in Dropbox and
@@ -333,9 +333,9 @@ SITE_URL = (
 # --------------------
 # PWA SETTINGS
 # --------------------
-PWA_APP_NAME = 'Infinite360'
-PWA_APP_DESCRIPTION = 'Online live classes, video courses, test series and e-library by Infinite360'
-PWA_APP_THEME_COLOR = '#2459E0'
+PWA_APP_NAME = 'Edutrellis'
+PWA_APP_DESCRIPTION = 'Online test series and mock tests for competitive and board exams by Edutrellis'
+PWA_APP_THEME_COLOR = '#D7263D'
 PWA_APP_BACKGROUND_COLOR = '#ffffff'
 PWA_APP_DISPLAY = 'standalone'
 PWA_APP_SCOPE = '/'
@@ -357,6 +357,7 @@ CSRF_TRUSTED_ORIGINS = [
         "https://www.thevedaeducation.info,"
         "https://ganeshsirclasses.online,https://www.ganeshsirclasses.online,"
         "https://indoretutorials.online,https://www.indoretutorials.online,"
+        "https://edutrellis.in,https://www.edutrellis.in,"
         "https://exams.edutrellis.in,https://www.exams.edutrellis.in,"
         "https://web-production-ab46.up.railway.app",
     ).split(",")
@@ -364,6 +365,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 for origin in (
+    "https://edutrellis.in",
+    "https://www.edutrellis.in",
     "https://exams.edutrellis.in",
     "https://www.exams.edutrellis.in",
     *(f"https://{host}" for host in RAILWAY_HOSTS),

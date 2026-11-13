@@ -1,7 +1,10 @@
 import hashlib
 import logging
+import os
 import posixpath
 import re
+import tempfile
+from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import dropbox
@@ -220,6 +223,10 @@ class DropboxMediaStorage(DropboxStorage):
     BASE_PATH = "/media"
     LINK_CACHE_SECONDS = 24 * 60 * 60
     SHARING_RETRY_SECONDS = 10 * 60
+    # Files without a permanent link are downloaded once into this server's disk cache and served from
+    # there; Dropbox temporary links cost several API calls per view and change every few hours, so
+    # browsers could not cache them. Bigger files fall back to a temporary link.
+    DISK_CACHE_MAX_BYTES = 25 * 1024 * 1024
 
     def __init__(self):
         super().__init__()
@@ -231,6 +238,7 @@ class DropboxMediaStorage(DropboxStorage):
             return self.local._save(name, content)
         try:
             name = super()._save(name, content)
+            self._disk_cache_path(name).unlink(missing_ok=True)  # the name may be reused for new content
         except Exception as exc:
             logger.warning("Dropbox upload failed for %s; keeping it on local disk: %s", name, exc)
             content.seek(0)
@@ -269,6 +277,7 @@ class DropboxMediaStorage(DropboxStorage):
         if not name:
             return
         self.local.delete(name)
+        self._disk_cache_path(name).unlink(missing_ok=True)
         if self._is_configured():
             super().delete(name)
         path = self._clean_path(name)
@@ -338,8 +347,41 @@ class DropboxMediaStorage(DropboxStorage):
         cache.set(self._link_cache_key(name), link, self.LINK_CACHE_SECONDS)
         return link
 
+    # -- this server's disk cache ------------------------------------------------------------------------
+    def _disk_cache_path(self, name):
+        root = getattr(settings, "DROPBOX_MEDIA_CACHE_DIR", "") or os.path.join(tempfile.gettempdir(), "dropbox-media-cache")
+        digest = hashlib.sha256(self._clean_path(name).encode("utf-8")).hexdigest()
+        return Path(root) / f"{digest}{posixpath.splitext(str(name))[1].lower()}"
+
+    def cached_file(self, name):
+        """This server's cached copy of the file, or None (no network)."""
+        path = self._disk_cache_path(name)
+        return path if path.is_file() else None
+
+    def local_or_downloaded(self, name):
+        """A path on this server's disk holding the file: the local upload, or a fresh download from
+        Dropbox into the disk cache. None if the file is missing or too big to cache."""
+        if self.local.exists(name):
+            return Path(self.local.path(name))
+        metadata, response = self.client.files_download(self._clean_path(name))
+        try:
+            if metadata.size > self.DISK_CACHE_MAX_BYTES:
+                return None
+            path = self._disk_cache_path(name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            part = path.with_name(f"{path.name}.{os.getpid()}.{get_random_string(6)}.part")
+            part.write_bytes(response.content)
+            os.replace(part, path)  # atomic, so a parallel request never serves half a file
+            return path
+        finally:
+            response.close()
+
     def resolve(self, name):
-        """(url, permanent) for the redirect view: uploads a local-only file, then links it."""
+        """(url, permanent) for the media view: uploads a local-only file, then links it.
+
+        Returns ("", False) when the file exists but no permanent link can be made; the view then
+        serves it from this server's disk (see local_or_downloaded).
+        """
         link = self.saved_link(name)
         if link:
             return link, True
@@ -348,8 +390,8 @@ class DropboxMediaStorage(DropboxStorage):
         try:
             return self.create_link(name), True
         except Exception as exc:
-            logger.info("Using a temporary Dropbox link for %s: %s", name, exc)
-        return self.temporary_url(name), False
+            logger.info("No permanent Dropbox link for %s; serving it from this server: %s", name, exc)
+        return "", False
 
 
 def direct_link(link):

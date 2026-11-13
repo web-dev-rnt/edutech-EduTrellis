@@ -1,5 +1,5 @@
 """
-URL configuration for the Infinite360 project.
+URL configuration for the Edutrellis project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/

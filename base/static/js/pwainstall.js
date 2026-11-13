@@ -1,4 +1,4 @@
-// PWA Installation Handler for Infinite360
+// PWA Installation Handler for Edutrellis
 (function() {
   'use strict';
 
@@ -121,7 +121,7 @@
     }
     
     setTimeout(() => {
-      alert('🎉 App installed successfully! You can now access Infinite360 from your home screen.');
+      alert('🎉 App installed successfully! You can now access Edutrellis from your home screen.');
     }, 500);
   });
 

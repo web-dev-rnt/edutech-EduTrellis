@@ -238,7 +238,7 @@
 
 .login-welcome {
   font-size: 2.25rem;
-  color: #232540;
+  color: #33141C;
   font-weight: 900;
   margin-bottom: 30px;
   text-align: center;
@@ -786,28 +786,28 @@ select[name="gender"]:focus {
     padding: 12px 18px;
   }
 }
-/* ========== Infinite360 auth pages (login / signup) ==========
-   Brand look from the logo: soft warm-to-violet glow on the page, a card with the
-   orange -> magenta -> violet -> blue spectrum along its top edge, and a blue-violet button. */
+/* ========== Edutrellis auth pages (login / signup) ==========
+   Brand look from the logo: soft warm-to-red glow on the page, a card with the
+   amber -> orange -> red -> crimson gradient along its top edge, and a red button. */
 :root {
-  --i360-spectrum: linear-gradient(90deg, #FFC21A 0%, #FF7A1A 24%, #E2338C 50%, #7B3FF2 74%, #2F6BFF 100%);
-  --i360-ink: #10142E;
-  --i360-violet: #7B3FF2;
+  --i360-spectrum: linear-gradient(90deg, #FFB21A 0%, #FF6B2B 30%, #E8283F 62%, #B0102A 100%);
+  --i360-ink: #1F0B12;
+  --i360-violet: #9E1428;
 }
 
 .login-background {
   background:
     radial-gradient(900px 520px at 0% 0%, rgba(255, 154, 31, .14), transparent 60%),
-    radial-gradient(900px 600px at 100% 100%, rgba(123, 63, 242, .16), transparent 60%),
-    radial-gradient(700px 500px at 100% 0%, rgba(36, 89, 224, .10), transparent 60%),
-    #F5F7FF;
+    radial-gradient(900px 600px at 100% 100%, rgba(158, 20, 40, .16), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgba(215, 38, 61, .10), transparent 60%),
+    #FFF7F7;
 }
 
 .login-card {
   position: relative;
   border-radius: 24px;
-  border: 1px solid #E3E8F7;
-  box-shadow: 0 24px 60px -18px rgba(16, 20, 46, .22), 0 2px 6px rgba(16, 20, 46, .04);
+  border: 1px solid #F3DEE1;
+  box-shadow: 0 24px 60px -18px rgba(31, 11, 18, .22), 0 2px 6px rgba(31, 11, 18, .04);
 }
 .login-card::before {
   content: "";
@@ -880,7 +880,7 @@ select[name="gender"] {
 }
 .login-btn:hover:not(:disabled) {
   filter: brightness(1.06);
-  box-shadow: 0 14px 28px -10px rgba(123, 63, 242, .55);
+  box-shadow: 0 14px 28px -10px rgba(158, 20, 40, .55);
 }
 
 .login-signup { border-top-color: #E8ECF8; }
@@ -907,7 +907,7 @@ select[name="gender"] {
 /* ========== Accessibility & consistency (site-wide) ========== */
 .skip-link {
   position: absolute; left: 12px; top: -60px; z-index: 100000;
-  padding: 10px 16px; border-radius: 10px; background: #2459E0; color: #fff;
+  padding: 10px 16px; border-radius: 10px; background: #D7263D; color: #fff;
   font-weight: 700; text-decoration: none; transition: top .15s;
 }
 .skip-link:focus { top: 12px; }
@@ -915,7 +915,7 @@ select[name="gender"] {
 /* Visible keyboard focus everywhere, without showing rings on mouse clicks */
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
 textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
-  outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), .65);
+  outline: 3px solid rgba(var(--brand-primary-rgb, 215, 38, 61), .65);
   outline-offset: 2px;
 }
 

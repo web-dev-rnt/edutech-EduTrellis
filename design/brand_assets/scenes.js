@@ -11,13 +11,13 @@ ASSETS.logo_compact = { w: 1400, h: 340, trim: true, draw: () => logoCompact(20,
 ASSETS.logo_compact_light = { w: 1400, h: 340, trim: true, draw: () => logoCompact(20, 40, 240, true) };
 ASSETS.logo_stacked = { w: 1300, h: 900, trim: true, draw: () => logoStacked(650, 40, 1100) };
 ASSETS.logo_stacked_light = { w: 1300, h: 900, trim: true, draw: () => logoStacked(650, 40, 1100, true) };
-ASSETS.logo_badge = {
-  w: 512, h: 512,
-  draw: () => `<circle cx="256" cy="256" r="250" fill="#fff"/><circle cx="256" cy="256" r="236" fill="none" stroke="url(#gBrandH)" stroke-width="6"/>
-    ${emblem(256 - 190 * EMBLEM_W / 2, 256 - 95, 190)}`,
-};
+ASSETS.logo_badge = { w: 512, h: 512, draw: () => monogram(0, 0, 512) };
+// Full logo for print/social: wordmark, tagline and the Made in India seal.
+ASSETS.logo_full = { w: 1600, h: 1200, trim: true, draw: () => logoStacked(800, 100, 1300) };
+// Made in India seal on its own, for the dark footer.
+ASSETS.india_seal_light = { w: 800, h: 400, trim: true, draw: () => indiaSeal(400, 40, 640, true) };
 ASSETS.icon_512 = { w: 512, h: 512, draw: () => appIcon(512) };
-// Maskable PWA icon: full-bleed square, emblem inside the 80% safe zone.
+// Maskable PWA icon: full-bleed square, monogram inside the 80% safe zone.
 ASSETS.icon_maskable_512 = { w: 512, h: 512, draw: () => appIcon(512, 0.24, 0) };
 
 /* ---------- text helpers ---------- */
@@ -57,7 +57,7 @@ function bannerBgLight() {
   return `<rect width="1920" height="300" fill="${C.paper}"/>
     <rect width="1920" height="300" fill="url(#bgWarm)"/>
     <defs><linearGradient id="bgWarm" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#E6EDFF"/><stop offset=".45" stop-color="#F8FAFF"/><stop offset="1" stop-color="#F1E8FF"/></linearGradient></defs>
+      <stop offset="0" stop-color="#FFE8E6"/><stop offset=".45" stop-color="#FFF9F8"/><stop offset="1" stop-color="#FFEFE3"/></linearGradient></defs>
     <path d="M0 0 H210 C150 90 170 210 90 300 H0 Z" fill="url(#gWarm)"/>
     <path d="M0 0 H150 C100 80 110 200 40 300 H0 Z" fill="${C.ink}"/>
     ${rings(250, 30, 120, 3, C.violet, 0.3, 3)}
@@ -96,22 +96,22 @@ ASSETS.banner_2_desktop = {
     ${rings(1840, 160, 150, 4, C.accent, 0.4, 3)}` +
     markLine(320, 92, 50, 'Boost Your', 'Score', '', true) +
     markLine(320, 148, 50, 'with', 'Smart Tests', '', true) +
-    T(320, 184, 20, 'Mock tests · PYQs · All-India rank · Detailed analysis', { weight: 600, color: '#C3C9E6' }) +
-    contactRow(320, 206, 44, [['phone', BRAND.phone], ['mail', BRAND.email]], { bg: '#1E2550', stroke: '#323B70' }) +
+    T(320, 184, 20, 'Mock tests · PYQs · All-India rank · Detailed analysis', { weight: 600, color: '#F0CDD2' }) +
+    contactRow(320, 206, 44, [['phone', BRAND.phone], ['mail', BRAND.email]], { bg: '#4A1522', stroke: '#6B2635' }) +
     // test paper card
     `<g filter="url(#fShadow)" transform="rotate(-4 1000 160)">
-      <rect x="880" y="40" width="240" height="250" rx="18" fill="#F8FAFF"/>
+      <rect x="880" y="40" width="240" height="250" rx="18" fill="#FFF9F8"/>
       <rect x="880" y="40" width="240" height="50" rx="18" fill="${C.accent}"/><rect x="880" y="70" width="240" height="20" fill="${C.accent}"/>
       ${T(904, 74, 20, 'MOCK TEST 12', { color: C.ink })}
-      ${[0, 1, 2, 3].map(i => `<circle cx="912" cy="${122 + i * 38}" r="12" fill="${i === 2 ? '#E2E8F5' : C.ink}"/>
+      ${[0, 1, 2, 3].map(i => `<circle cx="912" cy="${122 + i * 38}" r="12" fill="${i === 2 ? '#F3E2E4' : C.ink}"/>
         ${i === 2 ? '' : icon('check', 912, 122 + i * 38, 14, C.accent)}
-        <rect x="934" y="${114 + i * 38}" width="${150 - i * 14}" height="8" rx="4" fill="#DCE2EF"/>
-        <rect x="934" y="${128 + i * 38}" width="${100 - i * 10}" height="6" rx="3" fill="#E8ECF5"/>`).join('')}
+        <rect x="934" y="${114 + i * 38}" width="${150 - i * 14}" height="8" rx="4" fill="#EFDDE0"/>
+        <rect x="934" y="${128 + i * 38}" width="${100 - i * 10}" height="6" rx="3" fill="#F5E9EA"/>`).join('')}
     </g>` +
     student(1130, 60, 0.8, { skin: 'light', hair: 'ponytail', top: C.accent, topShade: 'rgba(160,70,0,.25)', collar: 'shirt', pose: 'think', glasses: true }) +
     // score ring
     `<g filter="url(#fShadow)"><circle cx="1470" cy="110" r="64" fill="#fff"/>
-      <circle cx="1470" cy="110" r="48" fill="none" stroke="#E6EAF4" stroke-width="12"/>
+      <circle cx="1470" cy="110" r="48" fill="none" stroke="#F3E5E7" stroke-width="12"/>
       <circle cx="1470" cy="110" r="48" fill="none" stroke="${C.accent}" stroke-width="12" stroke-linecap="round"
         stroke-dasharray="${2 * Math.PI * 48 * 0.92} 999" transform="rotate(-90 1470 110)"/>
       ${T(1470, 118, 26, '92%', { anchor: 'middle' })}</g>` +
@@ -125,14 +125,14 @@ ASSETS.banner_3_desktop = {
   draw: () => bannerBgLight() +
     markLine(320, 90, 40, 'Knowledge That Costs Nothing,', '') +
     markLine(320, 144, 40, '', 'Empowers Everything.') +
-    T(320, 180, 20, 'Join 900+ students preparing smarter with Infinite360.', { weight: 600, color: C.mute }) +
+    T(320, 180, 20, 'Trusted by 10,000+ students. Prepare smarter with Edutrellis.', { weight: 600, color: C.mute }) +
     contactRow(320, 206, 44, [['phone', BRAND.phone], ['mail', BRAND.email]]) +
     `<path d="M980 300 C1030 170 1470 170 1520 300 Z" fill="url(#gBrand)"/>
      ${rings(1250, 300, 260, 3, C.ink, 0.1, 2.5)}` +
     student(1010, 92, 0.7, { skin: 'brown', hair: 'braid', top: C.navy, pose: 'books', mouth: 'open' }) +
     student(1340, 92, 0.7, { skin: 'wheat', hair: 'short', top: C.ink, collar: 'shirt', pose: 'wave', mouth: 'open' }) +
     student(1158, 66, 0.8, { skin: 'light', hair: 'long', pose: 'grad', collar: 'gown', top: C.ink, cap: true, mouth: 'open' }) +
-    infoCard(975, 22, 200, 64, 'users', '900+', 'Happy students') +
+    infoCard(975, 22, 200, 64, 'users', '10,000+', 'Students trained') +
     infoCard(1500, 60, 230, 66, 'book', 'E-Library', 'Notes &amp; e-books') +
     sparkle(1290, 40, 14) + sparkle(1510, 170, 9, C.ink) + sparkle(950, 160, 10) +
     formulaChip(1700, 190, 'E = mc²', 22, -6),
@@ -146,7 +146,7 @@ function bannerBgMobile(dark = false) {
        <circle cx="560" cy="230" r="250" fill="url(#gGlow)" opacity=".55"/>${rings(700, 60, 120, 3, C.accent, 0.45, 3)}`
     : `<rect width="750" height="400" fill="url(#bgWarmM)"/>
        <defs><linearGradient id="bgWarmM" x1="0" y1="0" x2="1" y2="1">
-         <stop offset="0" stop-color="#F8FAFF"/><stop offset="1" stop-color="#E4ECFF"/></linearGradient></defs>
+         <stop offset="0" stop-color="#FFF9F8"/><stop offset="1" stop-color="#FFE4E6"/></linearGradient></defs>
        <rect x="600" y="16" width="140" height="90" fill="url(#pDots)" opacity=".45"/>
        <path d="M0 400 V330 C40 350 60 380 120 400 Z" fill="${C.accent}"/>`;
 }
@@ -162,7 +162,7 @@ ASSETS.banner_1_mobile = {
     markLine(30, 154, 44, '', 'Score Higher.') +
     T(30, 194, 21, 'Live classes · Videos · Test series', { weight: 600, color: C.mute }) +
     pill(30, 228, 46, 'phone', BRAND.phone) +
-    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#DCE4F7' }) +
+    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#F6D8DC' }) +
     sparkle(720, 150, 10, C.ink),
 };
 
@@ -170,24 +170,24 @@ ASSETS.banner_2_mobile = {
   w: 750, h: 400, scale: 2,
   draw: () => bannerBgMobile(true) +
     `<g filter="url(#fShadow)" transform="rotate(-5 470 250)">
-      <rect x="400" y="160" width="170" height="190" rx="16" fill="#F8FAFF"/>
+      <rect x="400" y="160" width="170" height="190" rx="16" fill="#FFF9F8"/>
       <rect x="400" y="160" width="170" height="40" rx="16" fill="${C.accent}"/><rect x="400" y="184" width="170" height="16" fill="${C.accent}"/>
       ${T(418, 187, 16, 'MOCK TEST 12', { color: C.ink })}
       ${[0, 1, 2].map(i => `<circle cx="424" cy="${226 + i * 36}" r="11" fill="${C.ink}"/>${icon('check', 424, 226 + i * 36, 13, C.accent)}
-        <rect x="444" y="${219 + i * 36}" width="${100 - i * 12}" height="7" rx="3.5" fill="#DCE2EF"/>
-        <rect x="444" y="${231 + i * 36}" width="${70 - i * 8}" height="5" rx="2.5" fill="#E8ECF5"/>`).join('')}
+        <rect x="444" y="${219 + i * 36}" width="${100 - i * 12}" height="7" rx="3.5" fill="#EFDDE0"/>
+        <rect x="444" y="${231 + i * 36}" width="${70 - i * 8}" height="5" rx="2.5" fill="#F5E9EA"/>`).join('')}
     </g>` +
     student(520, 176, 0.75, { skin: 'light', hair: 'ponytail', top: C.accent, topShade: 'rgba(160,70,0,.25)', collar: 'shirt', pose: 'think', glasses: true }) +
     `<g filter="url(#fShadow)"><circle cx="672" cy="196" r="48" fill="#fff"/>
-      <circle cx="672" cy="196" r="35" fill="none" stroke="#E6EAF4" stroke-width="9"/>
+      <circle cx="672" cy="196" r="35" fill="none" stroke="#F3E5E7" stroke-width="9"/>
       <circle cx="672" cy="196" r="35" fill="none" stroke="${C.accent}" stroke-width="9" stroke-linecap="round"
         stroke-dasharray="${2 * Math.PI * 35 * 0.92} 999" transform="rotate(-90 672 196)"/>
       ${T(672, 203, 20, '92%', { anchor: 'middle' })}</g>` +
     markLine(30, 100, 44, 'Boost Your', 'Score', '', true) +
     markLine(30, 154, 44, 'with', 'Smart Tests', '', true) +
-    T(30, 194, 21, 'Mock tests · PYQs · All-India rank', { weight: 600, color: '#C3C9E6' }) +
-    pill(30, 228, 46, 'phone', BRAND.phone, { bg: '#1E2550', stroke: '#323B70' }) +
-    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#1E2550', stroke: '#323B70' }) +
+    T(30, 194, 21, 'Mock tests · PYQs · All-India rank', { weight: 600, color: '#F0CDD2' }) +
+    pill(30, 228, 46, 'phone', BRAND.phone, { bg: '#4A1522', stroke: '#6B2635' }) +
+    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#4A1522', stroke: '#6B2635' }) +
     sparkle(470, 120, 10) + sparkle(720, 300, 8, '#fff'),
 };
 
@@ -198,16 +198,16 @@ ASSETS.banner_3_mobile = {
     student(420, 220, 0.6, { skin: 'brown', hair: 'braid', top: C.navy, pose: 'books', mouth: 'open' }) +
     student(600, 220, 0.6, { skin: 'wheat', hair: 'short', top: C.ink, collar: 'shirt', pose: 'wave', mouth: 'open' }) +
     student(506, 186, 0.7, { skin: 'light', hair: 'long', pose: 'grad', collar: 'gown', top: C.ink, cap: true, mouth: 'open' }) +
-    infoCard(470, 90, 200, 62, 'users', '900+', 'Happy students') +
+    infoCard(470, 90, 200, 62, 'users', '10,000+', 'Students trained') +
     markLine(30, 96, 36, 'Knowledge That', '') +
     markLine(30, 142, 36, 'Costs Nothing,', '') +
     markLine(30, 188, 36, '', 'Empowers Everything.') +
     pill(30, 228, 46, 'phone', BRAND.phone) +
-    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#DCE4F7' }) +
+    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#F6D8DC' }) +
     sparkle(700, 140, 10, C.ink) + sparkle(440, 120, 8),
 };
 
-/* ---------- banner 4: brand spectrum background (blue -> violet -> magenta) ---------- */
+/* ---------- banner 4: brand background (deep crimson -> red -> rose) ---------- */
 
 function bannerBgBrand(w, h) {
   return `<defs><linearGradient id="bgBrand${w}" x1="0" y1="0" x2="1" y2="1">
@@ -250,16 +250,17 @@ ASSETS.banner_4_mobile = {
     markLine(30, 154, 44, '', 'Anywhere.', '', true) +
     T(30, 194, 21, 'Videos · Notes · E-books', { weight: 600, color: 'rgba(255,255,255,.86)' }) +
     pill(30, 228, 46, 'phone', BRAND.phone) +
-    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#DCE4F7' }) +
+    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#F6D8DC' }) +
     sparkle(720, 160, 10, '#fff'),
 };
 
 /* ---------- banners 5-7: colourful campaign banners (same layout, warm amber + ink accents) ---------- */
 
+// Three shades of the brand red so the campaign banners differ but stay on theme.
 const HUES = {
-  violet: { a: '#8B5CF6', b: '#5B2EE0', c: '#2A1078', glow: '#C4B5FD' },
-  magenta: { a: '#F0529C', b: '#B5247A', c: '#4A0D47', glow: '#F9A8D4' },
-  blue:   { a: '#3B82F6', b: '#1D4ED8', c: '#0F1E5C', glow: '#93C5FD' },
+  crimson: { a: '#F0435A', b: '#C21A33', c: '#4A0614', glow: '#FCA5B0' },
+  berry:   { a: '#F2557F', b: '#B3174A', c: '#3E0820', glow: '#F9A8C4' },
+  scarlet: { a: '#FF7A45', b: '#E0362F', c: '#5C0A12', glow: '#FDBA9A' },
 };
 const CONFETTI = ['#FFB21E', '#FF6B8A', '#4ADE80', '#FFFFFF', '#38BDF8', '#FB923C'];
 
@@ -348,13 +349,13 @@ function tagChip(x, y, h, text, color, rot = 0, solid = false) {
 function reportCard(x, y, w, rot, accent) {
   const h = w * 1.05, rows = [['Maths', 'A+', 0.96, '#3B82F6'], ['Science', 'A+', 0.92, '#22C55E'], ['English', 'A', 0.86, '#F97316'], ['SST', 'A+', 0.9, '#EC4899']];
   return `<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})" filter="url(#fShadow)">
-    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w * 0.08}" fill="#F8FAFF"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w * 0.08}" fill="#FFF9F8"/>
     <rect x="${x}" y="${y}" width="${w}" height="${h * 0.2}" rx="${w * 0.08}" fill="${accent}"/><rect x="${x}" y="${y + h * 0.12}" width="${w}" height="${h * 0.08}" fill="${accent}"/>
     ${T(x + w * 0.08, y + h * 0.135, w * 0.085, 'REPORT CARD', { color: '#fff', ls: 1 })}
     ${rows.map(([s, g, v, c], i) => {
       const ry = y + h * (0.32 + i * 0.165);
       return `${T(x + w * 0.08, ry, w * 0.07, s, { weight: 700, color: C.ink2 })}
-        <rect x="${x + w * 0.08}" y="${ry + w * 0.03}" width="${w * 0.62}" height="${w * 0.035}" rx="${w * 0.018}" fill="#E6EAF4"/>
+        <rect x="${x + w * 0.08}" y="${ry + w * 0.03}" width="${w * 0.62}" height="${w * 0.035}" rx="${w * 0.018}" fill="#F3E5E7"/>
         <rect x="${x + w * 0.08}" y="${ry + w * 0.03}" width="${w * 0.62 * v}" height="${w * 0.035}" rx="${w * 0.018}" fill="${c}"/>
         ${T(x + w * 0.9, ry + w * 0.06, w * 0.1, g, { anchor: 'end', color: c })}`;
     }).join('')}
@@ -371,10 +372,10 @@ function target(cx, cy, r) {
     <path d="M${cx + r * 1.1} ${cy - r * 1.1} l${r * 0.06} ${-r * 0.3} l${r * 0.2} ${r * 0.1} Z M${cx + r * 1.1} ${cy - r * 1.1} l${r * 0.3} ${-r * 0.06} l${-r * 0.1} ${r * 0.2} Z" fill="${C.accent}"/>`;
 }
 
-// Banner 5: free test series offer (violet).
+// Banner 5: free test series offer (crimson).
 ASSETS.banner_5_desktop = {
   w: 1920, h: 300,
-  draw: () => bannerBgHue('violet', 1920, 300) +
+  draw: () => bannerBgHue('crimson', 1920, 300) +
     confetti(860, 14, 1660, 120, 34, 11) + confetti(1480, 150, 1680, 290, 10, 5) +
     tagChip(320, 22, 34, 'LIMITED-TIME OFFER', C.accent, 0, true) +
     markLine(320, 110, 50, '', 'FREE', ' Test Series', true) +
@@ -392,7 +393,7 @@ ASSETS.banner_5_desktop = {
 
 ASSETS.banner_5_mobile = {
   w: 750, h: 400, scale: 2,
-  draw: () => bannerBgHue('violet', 750, 400) +
+  draw: () => bannerBgHue('crimson', 750, 400) +
     confetti(400, 20, 740, 160, 22, 11, 1.1) +
     `<circle cx="600" cy="430" r="190" fill="#fff" opacity=".14"/>` +
     ticket(430, 44, 250, 128, -8, '3', 'MONTHS', 'FREE', 'TEST SERIES PASS') +
@@ -403,16 +404,16 @@ ASSETS.banner_5_mobile = {
     markLine(30, 170, 46, 'for', '3 Months!', '', true) +
     T(30, 206, 21, 'All mock tests unlocked · ₹0', { weight: 600, color: SUB_ON_HUE }) +
     pill(30, 232, 46, 'phone', BRAND.phone) +
-    pill(30, 290, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#E9E3FF' }) +
+    pill(30, 290, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#FFE0E4' }) +
     sparkle(720, 220, 9, '#fff') + sparkle(420, 210, 8, C.accent),
 };
 
-// Banner 6: school boards (magenta).
+// Banner 6: school boards (berry).
 const BOARD_CHIPS = [['CBSE', '#2563EB'], ['ICSE', '#EA580C'], ['UP Board', '#16A34A'], ['NIOS', '#0D9488'], ['+20 State Boards', '#DB2777']];
 
 ASSETS.banner_6_desktop = {
   w: 1920, h: 300,
-  draw: () => bannerBgHue('magenta', 1920, 300) +
+  draw: () => bannerBgHue('berry', 1920, 300) +
     markLine(320, 92, 50, 'Ace Your', 'Board Exams', '', true) +
     markLine(320, 148, 50, 'Class', '1 to 12.', '', true) +
     T(320, 184, 20, 'Chapter-wise tests &amp; board mocks for every major board.', { weight: 600, color: SUB_ON_HUE }) +
@@ -423,7 +424,7 @@ ASSETS.banner_6_desktop = {
     tagChip(945, 190, 44, BOARD_CHIPS[2][0], BOARD_CHIPS[2][1], -3) +
     tagChip(1290, 26, 40, BOARD_CHIPS[3][0], BOARD_CHIPS[3][1], 6) +
     student(1100, 70, 0.76, { skin: 'brown', hair: 'braid', top: C.ink, collar: 'shirt', pose: 'books', mouth: 'open', glasses: true }) +
-    reportCard(1380, 54, 190, 5, '#B5247A') +
+    reportCard(1380, 54, 190, 5, '#B3174A') +
     tagChip(1580, 240, 40, BOARD_CHIPS[4][0], BOARD_CHIPS[4][1], -4, true) +
     sparkle(1300, 110, 13, C.accent) + sparkle(1610, 60, 10, '#fff') + sparkle(880, 268, 9, C.accent) +
     formulaChip(1700, 186, 'H₂SO₄', 22, -6),
@@ -431,7 +432,7 @@ ASSETS.banner_6_desktop = {
 
 ASSETS.banner_6_mobile = {
   w: 750, h: 400, scale: 2,
-  draw: () => bannerBgHue('magenta', 750, 400) +
+  draw: () => bannerBgHue('berry', 750, 400) +
     `<path d="M440 400 C470 270 720 270 750 400 Z" fill="#fff" opacity=".16"/>` +
     tagChip(460, 40, 36, 'CBSE', '#2563EB', -6) + tagChip(590, 30, 36, 'ICSE', '#EA580C', 5) +
     tagChip(450, 100, 36, 'UP Board', '#16A34A', 3) + tagChip(610, 92, 36, 'NIOS', '#0D9488', -4) +
@@ -445,12 +446,12 @@ ASSETS.banner_6_mobile = {
     sparkle(720, 250, 9, '#fff') + sparkle(440, 180, 8, C.accent),
 };
 
-// Banner 7: competitive exams (blue).
+// Banner 7: competitive exams (scarlet).
 const EXAM_CHIPS = [['JEE', '#F97316'], ['NEET', '#22C55E'], ['UPSC', '#EC4899'], ['SSC', '#8B5CF6'], ['Banking', '#0EA5E9'], ['CUET', '#EAB308'], ['GATE', '#EF4444'], ['NDA', '#14B8A6']];
 
 ASSETS.banner_7_desktop = {
   w: 1920, h: 300,
-  draw: () => bannerBgHue('blue', 1920, 300) +
+  draw: () => bannerBgHue('scarlet', 1920, 300) +
     markLine(320, 92, 46, 'Crack Your', 'Dream Exam', '', true) +
     markLine(320, 148, 46, 'with', 'Real Mocks.', '', true) +
     T(320, 184, 20, 'Full mocks · PYQ papers · Topic tests · 100+ exams', { weight: 600, color: SUB_ON_HUE }) +
@@ -469,7 +470,7 @@ ASSETS.banner_7_desktop = {
 
 ASSETS.banner_7_mobile = {
   w: 750, h: 400, scale: 2,
-  draw: () => bannerBgHue('blue', 750, 400) +
+  draw: () => bannerBgHue('scarlet', 750, 400) +
     `<circle cx="590" cy="430" r="200" fill="#fff" opacity=".13"/>` +
     tagChip(440, 36, 34, 'JEE', '#F97316', -5) + tagChip(540, 26, 34, 'NEET', '#22C55E', 4) +
     tagChip(650, 40, 34, 'UPSC', '#EC4899', -3) + tagChip(430, 104, 34, 'SSC', '#8B5CF6', 3) +
@@ -480,7 +481,7 @@ ASSETS.banner_7_mobile = {
     markLine(30, 152, 46, '', 'Dream Exam', '', true) +
     T(30, 194, 21, 'Mocks · PYQs · 100+ exams', { weight: 600, color: SUB_ON_HUE }) +
     pill(30, 228, 46, 'phone', BRAND.phone) +
-    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#DCE8FF' }) +
+    pill(30, 286, 46, 'mail', BRAND.email, { bg: '#fff', fg: C.ink, stroke: '#FFD9DE' }) +
     sparkle(420, 200, 8, C.accent),
 };
 
@@ -505,9 +506,9 @@ function deskScene(cx, top, k, person, dark) {
     ${rings(cx, top + 190 * k, 210 * k, 3, dark ? C.accent : C.ink, dark ? 0.35 : 0.12, 3)}` +
     deskLamp(cx - 205 * k, deskY, 160 * k, dark) +
     student(cx - 120 * k, top, k, person) +
-    `<rect x="${cx - 215 * k}" y="${deskY - 2}" width="${430 * k}" height="${22 * k}" rx="${6 * k}" fill="${dark ? '#252C5C' : C.ink}"/>
-     <rect x="${cx - 190 * k}" y="${deskY + 20 * k}" width="${12 * k}" height="${70 * k}" fill="${dark ? '#252C5C' : C.ink}"/>
-     <rect x="${cx + 178 * k}" y="${deskY + 20 * k}" width="${12 * k}" height="${70 * k}" fill="${dark ? '#252C5C' : C.ink}"/>` +
+    `<rect x="${cx - 215 * k}" y="${deskY - 2}" width="${430 * k}" height="${22 * k}" rx="${6 * k}" fill="${dark ? '#4E1724' : C.ink}"/>
+     <rect x="${cx - 190 * k}" y="${deskY + 20 * k}" width="${12 * k}" height="${70 * k}" fill="${dark ? '#4E1724' : C.ink}"/>
+     <rect x="${cx + 178 * k}" y="${deskY + 20 * k}" width="${12 * k}" height="${70 * k}" fill="${dark ? '#4E1724' : C.ink}"/>` +
     laptopBack(cx, deskY, 190 * k, dark) +
     bookStack(cx + 110 * k, deskY, 80 * k) + mug(cx + 128 * k, deskY - 64 * k, 30 * k) +
     plant(cx - 165 * k, deskY, 60 * k);
@@ -519,27 +520,27 @@ ASSETS.auth_login_desktop = {
     <rect width="1000" height="1400" fill="url(#pDotsW)" opacity=".6"/>
     <circle cx="500" cy="860" r="460" fill="url(#gGlow)" opacity=".5"/>
     ${rings(-40, 200, 260, 4, C.violet, 0.45, 3)}${rings(1060, 1180, 260, 4, C.accent, 0.3, 3)}` +
-    logoStacked(500, 110, 440, true) +
+    logoStacked(500, 120, 400, true, false) +
     centerLine(500, 418, 56, 'Your success story', '', true) +
     centerLine(500, 484, 56, '', 'continues here.', true) +
-    T(500, 538, 26, 'Pick up right where you left off.', { anchor: 'middle', weight: 600, color: '#B8BFE0' }) +
+    T(500, 538, 26, 'Pick up right where you left off.', { anchor: 'middle', weight: 600, color: '#EBC3C9' }) +
     deskScene(500, 640, 1.45, { skin: 'wheat', hair: 'bun', top: C.navyL, pose: 'desk', eyes: 'down', earring: true }, true) +
     infoCard(185, 640, 250, 76, 'clock', 'Live at 6 PM', 'Physics · Chapter 4', {}) +
     infoCard(565, 780, 250, 76, 'trophy', 'Score 98%', 'Mock Test #12', { bar: 0.98 }) +
     sparkle(250, 790, 16) + sparkle(770, 660, 12, '#fff') + sparkle(820, 980, 9) +
-    centeredPill(500, 1150, 56, 'phone', BRAND.phone, { bg: '#1E2550', stroke: '#323B70' }) +
-    centeredPill(500, 1218, 50, 'mail', BRAND.email, { bg: 'transparent', shadow: false, iconBg: '#1E2550', iconColor: C.accent, fg: '#D4D9F0' }),
+    centeredPill(500, 1150, 56, 'phone', BRAND.phone, { bg: '#4A1522', stroke: '#6B2635' }) +
+    centeredPill(500, 1218, 50, 'mail', BRAND.email, { bg: 'transparent', shadow: false, iconBg: '#4A1522', iconColor: C.accent, fg: '#F5D9DD' }),
 };
 
 ASSETS.auth_signup_desktop = {
   w: 1000, h: 1400,
   draw: () => `<rect width="1000" height="1400" fill="url(#bgSign)"/>
     <defs><linearGradient id="bgSign" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#F8FAFF"/><stop offset=".6" stop-color="#EEF2FF"/><stop offset="1" stop-color="#DDE5FF"/></linearGradient></defs>
+      <stop offset="0" stop-color="#FFF9F8"/><stop offset=".6" stop-color="#FFF1F2"/><stop offset="1" stop-color="#FFDCE0"/></linearGradient></defs>
     <rect x="60" y="560" width="200" height="160" fill="url(#pDots)" opacity=".45"/>
     <rect x="760" y="380" width="180" height="140" fill="url(#pDots)" opacity=".45"/>
     ${rings(1040, 160, 240, 4, C.accent, 0.4, 3)}` +
-    logoStacked(500, 100, 440) +
+    logoStacked(500, 112, 400, false, false) +
     centerLine(500, 404, 54, 'Start your journey') +
     markLine(500 - textW('to success today.', 54, SANS, 800) / 2, 470, 54, '', 'to success today.') +
     T(500, 524, 25, 'Create a free account in under a minute.', { anchor: 'middle', weight: 600, color: C.mute }) +
@@ -552,7 +553,7 @@ ASSETS.auth_signup_desktop = {
      <rect x="0" y="990" width="1000" height="410" fill="url(#pDotsW)" opacity=".5"/>` +
     [['play', 'Video Courses'], ['live', 'Live Classes'], ['check', 'Test Series'], ['book', 'E-Library']].map(([ic, label], i) => {
       const x = 196 + (i % 2) * 312, y = 1030 + Math.floor(i / 2) * 70;
-      return `<rect x="${x}" y="${y}" width="296" height="56" rx="28" fill="#1A2048" stroke="#2C3566" stroke-width="2"/>
+      return `<rect x="${x}" y="${y}" width="296" height="56" rx="28" fill="#3E111C" stroke="#62212F" stroke-width="2"/>
         <circle cx="${x + 28}" cy="${y + 28}" r="19" fill="${C.accent}"/>${icon(ic, x + 28, y + 28, 18, C.ink)}
         ${T(x + 58, y + 36, 22, label, { color: '#fff', weight: 700 })}`;
     }).join('') +
@@ -569,8 +570,8 @@ ASSETS.auth_login_mobile = {
     ${rings(1180, 40, 160, 3, C.accent, 0.35, 3)}` +
     logoHorizontal(90, 60, 74, true) +
     T(90, 250, 66, 'Welcome back!', { color: '#fff' }) +
-    `<text x="90" y="312" font-family="${SANS}" font-weight="700" font-size="34" fill="#C3C9E6">Your success story <tspan fill="${C.accentL}">continues here.</tspan></text>` +
-    pill(90, 352, 62, 'phone', BRAND.phone, { bg: '#1E2550', stroke: '#323B70' }) +
+    `<text x="90" y="312" font-family="${SANS}" font-weight="700" font-size="34" fill="#F0CDD2">Your success story <tspan fill="${C.accentL}">continues here.</tspan></text>` +
+    pill(90, 352, 62, 'phone', BRAND.phone, { bg: '#4A1522', stroke: '#6B2635' }) +
     deskScene(890, 150, 1.05, { skin: 'wheat', hair: 'bun', top: C.navyL, pose: 'desk', eyes: 'down', earring: true }, true),
 };
 
@@ -578,7 +579,7 @@ ASSETS.auth_signup_mobile = {
   w: 1200, h: 480,
   draw: () => `<rect width="1200" height="480" fill="url(#bgSignM)"/>
     <defs><linearGradient id="bgSignM" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F8FAFF"/><stop offset="1" stop-color="#E2E9FF"/></linearGradient></defs>
+      <stop offset="0" stop-color="#FFF9F8"/><stop offset="1" stop-color="#FFE1E4"/></linearGradient></defs>
     <rect x="620" y="30" width="160" height="110" fill="url(#pDots)" opacity=".45"/>` +
     logoHorizontal(90, 60, 74) +
     T(90, 250, 62, 'Start your journey', {}) +
@@ -596,7 +597,7 @@ ASSETS.default_thumb = {
   w: 800, h: 450,
   draw: () => `<rect width="800" height="450" fill="url(#bgThumb)"/>
     <defs><linearGradient id="bgThumb" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F8FAFF"/><stop offset="1" stop-color="#E5EBFF"/></linearGradient></defs>
+      <stop offset="0" stop-color="#FFF9F8"/><stop offset="1" stop-color="#FFE5E8"/></linearGradient></defs>
     <rect x="40" y="40" width="160" height="110" fill="url(#pDots)" opacity=".45"/>
     <circle cx="420" cy="250" r="170" fill="url(#gBrand)"/>${rings(420, 250, 210, 3, C.ink, 0.12, 3)}
     <rect x="160" y="356" width="520" height="18" rx="6" fill="${C.ink}"/>` +

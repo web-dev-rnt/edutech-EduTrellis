@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -99,7 +100,7 @@ class SignupAnalyticsTests(TestCase):
             password='test-password',
             first_name='Amit',
             last_name='Sharma',
-            contact_number='8296893895',
+            contact_number='9194130645',
         )
         User.objects.create_user(
             email='different@example.com',
@@ -145,7 +146,7 @@ class BrandNameTests(TestCase):
     def rename(self):
         self.client.force_login(self.admin)
         response = self.client.post(reverse('theme_settings_edit'), {
-            'site_name': 'BrightPath', 'site_full_name': 'BrightPath Learning', 'primary_color': '#2459e0',
+            'site_name': 'BrightPath', 'site_full_name': 'BrightPath Learning', 'primary_color': '#D7263D',
         })
         self.assertEqual(response.status_code, 302)
 
@@ -162,7 +163,7 @@ class BrandNameTests(TestCase):
         self.assertIn('content="BrightPath"', home)  # app name meta
         login = self.client.get('/login/').content.decode()
         self.assertIn('Login | BrightPath', login)
-        self.assertNotIn('Infinite360', login)
+        self.assertNotIn('Edutrellis', login)
         manifest = self.client.get('/manifest.json').json()
         self.assertEqual(manifest['short_name'], 'BrightPath')
 
@@ -185,11 +186,11 @@ class BrandNameTests(TestCase):
     def test_blank_name_is_rejected(self):
         self.client.force_login(self.admin)
         response = self.client.post(reverse('theme_settings_edit'), {
-            'site_name': '  ', 'site_full_name': '', 'primary_color': '#2459e0',
+            'site_name': '  ', 'site_full_name': '', 'primary_color': '#D7263D',
         })
         self.assertEqual(response.status_code, 200)
         from .branding import brand_name
-        self.assertEqual(brand_name(), 'Infinite360')
+        self.assertEqual(brand_name(), 'Edutrellis')
 
 
 @override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
@@ -333,6 +334,37 @@ class DropboxMediaStorageTests(TestCase):
         self.assertIn('max-age=86400', response['Cache-Control'])
         self.assertEqual(DropboxFileLink.objects.get(name=name).url, response['Location'])
         self.assertEqual(storage.url(name), response['Location'])  # pages now link straight to Dropbox
+
+    def test_without_permanent_links_the_file_is_served_from_the_disk_cache(self):
+        from video_courses.dropbox_storage import DropboxMediaStorage, DropboxStorage
+
+        storage = self.storage()
+        name = 'banners/new.webp'
+        calls = []
+
+        class Response:
+            content = b'banner bytes'
+
+            def close(self):
+                pass
+
+        def download(_client, path):
+            calls.append(path)
+            return type('Meta', (), {'size': 12})(), Response()
+
+        fake_client = type('Client', (), {'files_download': download})()
+        with override_settings(DROPBOX_MEDIA_CACHE_DIR=os.path.join(self.media, 'cache')), \
+                patch.object(DropboxMediaStorage, 'upload_local_copy', return_value=True), \
+                patch.object(DropboxMediaStorage, 'create_link', side_effect=PermissionError('no sharing')), \
+                patch.object(DropboxStorage, 'client', new_callable=lambda: property(lambda self: fake_client)):
+            first = self.client.get(storage.url(name))
+            second = self.client.get(storage.url(name))
+        for response in (first, second):
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(b''.join(response.streaming_content), b'banner bytes')
+            self.assertEqual(response['Content-Type'], 'image/webp')
+            self.assertIn('max-age=86400', response['Cache-Control'])
+        self.assertEqual(calls, ['/media/banners/new.webp'])  # downloaded once, then served from disk
 
     def test_tampered_token_is_rejected(self):
         self.assertEqual(self.client.get('/dropbox-media/abc:def/').status_code, 404)

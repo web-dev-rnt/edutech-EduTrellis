@@ -16,17 +16,17 @@ from adminpanel.models import (
 )
 
 BRAND_DIR = Path(settings.BASE_DIR) / "base" / "static" / "img" / "brand"
-BRAND_COLOR = "#2459E0"
+BRAND_COLOR = "#D7263D"
 
 # (title, alt text, display order, artwork number -> banner-<n>-desktop/mobile.webp)
 BANNERS = [
-    ("Free Test Series for 3 Months", "Infinite360 - free test series for 3 months, all mock tests unlocked", 1, 5),
-    ("Learn Smarter, Score Higher", "Infinite360 - live classes, video courses and test series", 2, 1),
-    ("Ace Your Board Exams", "Infinite360 - chapter-wise tests and board mocks for CBSE, ICSE, UP Board, NIOS and state boards", 3, 6),
-    ("Boost Your Score with Smart Tests", "Infinite360 - mock tests, PYQs and all-India rank", 4, 2),
-    ("Crack Your Dream Exam", "Infinite360 - full mocks, PYQ papers and topic tests for 100+ competitive exams", 5, 7),
-    ("Knowledge That Costs Nothing", "Infinite360 - knowledge that costs nothing, empowers everything", 6, 3),
-    ("Learn Anytime, Anywhere", "Infinite360 - video lectures, notes and e-books", 7, 4),
+    ("Free Test Series for 3 Months", "Edutrellis - free test series for 3 months, all mock tests unlocked", 1, 5),
+    ("Learn Smarter, Score Higher", "Edutrellis - live classes, video courses and test series", 2, 1),
+    ("Ace Your Board Exams", "Edutrellis - chapter-wise tests and board mocks for CBSE, ICSE, UP Board, NIOS and state boards", 3, 6),
+    ("Boost Your Score with Smart Tests", "Edutrellis - mock tests, PYQs and all-India rank", 4, 2),
+    ("Crack Your Dream Exam", "Edutrellis - full mocks, PYQ papers and topic tests for 100+ competitive exams", 5, 7),
+    ("Knowledge That Costs Nothing", "Edutrellis - knowledge that costs nothing, empowers everything", 6, 3),
+    ("Learn Anytime, Anywhere", "Edutrellis - video lectures, notes and e-books", 7, 4),
 ]
 
 
@@ -50,7 +50,7 @@ def attach(instance, field_name, filename):
 
 class Command(BaseCommand):
     help = (
-        "Apply the Infinite360 brand artwork (logo, favicon, banners, login/signup images) "
+        "Apply the Edutrellis brand artwork (logo, favicon, banners, login/signup images) "
         "and brand color to the site settings. Run design/brand_assets/export.py first if you "
         "re-rendered the artwork. Safe to run more than once."
     )

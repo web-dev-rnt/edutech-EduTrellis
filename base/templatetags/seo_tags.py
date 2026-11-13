@@ -8,9 +8,11 @@ from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 
 from adminpanel.context_processors import (
+    SITE_CEO_EMAIL,
     SITE_EMAIL,
     SITE_PHONE,
     SITE_POSTAL_ADDRESS,
+    SITE_SUPPORT_HOURS_SPEC,
     seo_texts,
 )
 from adminpanel.branding import brand
@@ -48,7 +50,7 @@ def _organization(footer_settings=None):
         "@id": f"{settings.SITE_URL}/#organization",
         "name": site_brand["name"],
         "legalName": site_brand["full_name"],
-        "alternateName": list(dict.fromkeys([site_brand["full_name"], f"{site_brand['name']} Academy"])),
+        "alternateName": list(dict.fromkeys([site_brand["full_name"], f"{site_brand['name']} Test Series"])),
         "url": f"{settings.SITE_URL}/",
         "logo": _absolute(static("img/brand/logo-badge.png")),
         "image": _absolute(static("img/brand/logo-horizontal.png")),
@@ -56,14 +58,24 @@ def _organization(footer_settings=None):
         "email": SITE_EMAIL,
         "telephone": f"+91-{SITE_PHONE}",
         "address": {"@type": "PostalAddress", **SITE_POSTAL_ADDRESS},
-        "contactPoint": {
-            "@type": "ContactPoint",
-            "telephone": f"+91-{SITE_PHONE}",
-            "email": SITE_EMAIL,
-            "contactType": "customer support",
-            "areaServed": "IN",
-            "availableLanguage": ["English", "Hindi"],
-        },
+        "areaServed": "IN",
+        "openingHoursSpecification": SITE_SUPPORT_HOURS_SPEC,
+        "contactPoint": [
+            {
+                "@type": "ContactPoint",
+                "telephone": f"+91-{SITE_PHONE}",
+                "email": SITE_EMAIL,
+                "contactType": "customer support",
+                "areaServed": "IN",
+                "availableLanguage": ["English", "Hindi"],
+                "hoursAvailable": SITE_SUPPORT_HOURS_SPEC,
+            },
+            {
+                "@type": "ContactPoint",
+                "email": SITE_CEO_EMAIL,
+                "contactType": "management",
+            },
+        ],
     }
     if same_as:
         org["sameAs"] = same_as

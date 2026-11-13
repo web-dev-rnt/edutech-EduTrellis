@@ -7,24 +7,32 @@
   <div class="contact-flex">
     <div class="contact-info-card">
       <div class="contact-info-item">
+        <span class="contact-info-icon"><i class="fa-solid fa-phone"></i></span>
+        <div>
+          <strong>Phone / WhatsApp</strong>
+          <p><a href="tel:+91{{ site_contact.phone }}">{{ site_contact.phone_display }}</a></p>
+        </div>
+      </div>
+      <div class="contact-info-item">
         <span class="contact-info-icon"><i class="fa-solid fa-envelope"></i></span>
         <div>
           <strong>Email</strong>
-          <p>We reply within 24 hours</p>
+          <p>Support: <a href="mailto:{{ site_contact.email }}">{{ site_contact.email }}</a><br>
+             CEO: <a href="mailto:{{ site_contact.ceo_email }}">{{ site_contact.ceo_email }}</a></p>
         </div>
       </div>
       <div class="contact-info-item">
         <span class="contact-info-icon"><i class="fa-solid fa-clock"></i></span>
         <div>
           <strong>Support Hours</strong>
-          <p>Mon - Sat, 10 AM to 7 PM</p>
+          <p>{{ site_contact.hours }}</p>
         </div>
       </div>
       <div class="contact-info-item">
-        <span class="contact-info-icon"><i class="fa-solid fa-circle-question"></i></span>
+        <span class="contact-info-icon"><i class="fa-solid fa-location-dot"></i></span>
         <div>
-          <strong>Anything else?</strong>
-          <p>Tell us what you're stuck on and we'll point you in the right direction.</p>
+          <strong>Address</strong>
+          <p><a href="{{ site_contact.maps_url }}" target="_blank" rel="noopener noreferrer">{{ site_contact.address }}</a></p>
         </div>
       </div>
     </div>
@@ -138,10 +146,18 @@
 
 .contact-info-item p {
   margin: 0;
-  color: #646fa3;
+  color: #6b5a60;
   font-size: 0.92rem;
-  line-height: 1.4;
+  line-height: 1.5;
 }
+
+.contact-info-item a {
+  color: var(--brand-primary-text, #D7263D);
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-word;
+}
+.contact-info-item a:hover { text-decoration: underline; }
 
 .contact-form-card {
   flex: 2;

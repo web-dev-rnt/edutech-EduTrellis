@@ -1,4 +1,4 @@
-"""Render the Infinite360 Tech Academy brand assets to PNG with headless Chromium.
+"""Render the Edutrellis brand assets to PNG with headless Chromium.
 
 Usage:
     python design/brand_assets/render.py            # render everything into out/

@@ -19,7 +19,8 @@
                     <img loading="lazy" decoding="async" src="{% static 'img/footerlogo.png' %}" alt="{{ brand.name }} logo" class="footer-logo-img">
                 {% endif %}
             </a>
-            <p class="footer-tagline">Exam-pattern mock tests for school boards and competitive exams, with instant results and detailed solutions.</p>
+            <p class="footer-tagline">Online test series for competitive and board exams, with instant results and detailed solutions. {{ site_contact.students_trained }} students trained.</p>
+            <img loading="lazy" decoding="async" src="{% static 'img/brand/made-in-india-light.png' %}" alt="Made in India, 100% Indian owned" class="footer-india" width="656" height="223">
 
             <ul class="footer-contact">
                 <li>
@@ -27,8 +28,16 @@
                     <a href="mailto:{{ footer_settings.email }}">{{ footer_settings.email }}</a>
                 </li>
                 <li>
+                    <span class="footer-contact__icon"><i class="fas fa-user-tie" aria-hidden="true"></i></span>
+                    <a href="mailto:{{ site_contact.ceo_email }}">{{ site_contact.ceo_email }}</a>
+                </li>
+                <li>
                     <span class="footer-contact__icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
                     <a href="tel:+91{{ site_contact.phone }}">{{ site_contact.phone_display }}</a>
+                </li>
+                <li>
+                    <span class="footer-contact__icon"><i class="fas fa-clock" aria-hidden="true"></i></span>
+                    <span>{{ site_contact.hours }}</span>
                 </li>
                 <li>
                     <span class="footer-contact__icon"><i class="fas fa-location-dot" aria-hidden="true"></i></span>
@@ -86,14 +95,14 @@
 
 <style>
 .footer {
-    --footer-bg: #0E1230;
-    --footer-panel: #181D42;
+    --footer-bg: #1A0A10;
+    --footer-panel: #2A1018;
     --footer-line: rgba(255, 255, 255, 0.08);
     --footer-text: #c3c6d0;
     --footer-muted: #8a8f9c;
-    --footer-accent: var(--brand-primary, #2459E0);
+    --footer-accent: var(--brand-primary, #D7263D);
     /* Lighter tint of the brand blue for text and icons on the dark navy footer */
-    --footer-accent-text: #8FB0FF;
+    --footer-accent-text: #FF8A99;
     background: var(--footer-bg);
     color: var(--footer-text);
     font-family: var(--font-sans);
@@ -113,16 +122,16 @@
     display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap;
     padding: 22px 28px;
     border-radius: 18px;
-    background: linear-gradient(120deg, var(--footer-accent) 0%, #5B3FE6 70%, #7B3FF2 100%);
+    background: linear-gradient(120deg, var(--footer-accent) 0%, #E8283F 70%, #9E1428 100%);
     color: var(--brand-on-primary, #fff);
-    box-shadow: 0 18px 40px rgba(var(--brand-primary-rgb, 36, 89, 224), 0.28);
+    box-shadow: 0 18px 40px rgba(var(--brand-primary-rgb, 215, 38, 61), 0.28);
 }
 .footer-cta__text strong { display: block; font-size: clamp(18px, 2vw, 22px); font-weight: 800; }
 .footer-cta__text span { font-size: 15px; font-weight: 500; opacity: 0.85; }
 .footer-cta__btn {
     display: inline-flex; align-items: center; gap: 10px;
     padding: 12px 24px; border-radius: 999px;
-    background: #10142E; color: #fff; font-weight: 700; text-decoration: none;
+    background: #1F0B12; color: #fff; font-weight: 700; text-decoration: none;
     transition: transform .2s ease, background .2s ease;
 }
 .footer-cta__btn:hover { transform: translateY(-2px); background: #000; color: #fff; }
@@ -136,7 +145,8 @@
     gap: 40px 56px;
 }
 
-.footer-logo-img { height: 46px; width: auto; max-width: 100%; display: block; }
+.footer-logo-img { height: 58px; width: auto; max-width: 100%; display: block; }
+.footer-india { display: block; height: 62px; width: auto; margin: 0 0 20px; }
 .footer-tagline { margin: 14px 0 18px; line-height: 1.6; color: var(--footer-muted); max-width: 340px; }
 
 .footer-contact { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
@@ -144,9 +154,10 @@
 .footer-contact__icon {
     flex: 0 0 32px; height: 32px; border-radius: 9px;
     display: grid; place-items: center;
-    background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.12); color: var(--footer-accent-text); font-size: 13px;
+    background: rgba(var(--brand-primary-rgb, 215, 38, 61), 0.12); color: var(--footer-accent-text); font-size: 13px;
 }
 .footer-contact address { font-style: normal; max-width: 300px; }
+.footer-contact li > span:not(.footer-contact__icon) { color: #e8e9ee; line-height: 1.5; padding-top: 5px; display: inline-block; }
 .footer-contact a { color: #e8e9ee; text-decoration: none; line-height: 1.5; padding-top: 5px; display: inline-block; word-break: break-word; }
 .footer-contact a:hover { color: var(--footer-accent-text); }
 
@@ -190,7 +201,7 @@
 .footer-app__text strong { color: #fff; margin-right: 6px; }
 .footer-app__icon {
     flex: 0 0 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
-    background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.12); color: var(--footer-accent-text); font-size: 18px;
+    background: rgba(var(--brand-primary-rgb, 215, 38, 61), 0.12); color: var(--footer-accent-text); font-size: 18px;
 }
 .footer-install-btn {
     display: flex; align-items: center; gap: 8px;
@@ -199,7 +210,7 @@
     font: 700 14px/1 var(--font-sans);
     transition: background .2s ease, transform .2s ease;
 }
-.footer-install-btn:hover { background: var(--brand-primary-dark, #1d49b8); transform: translateY(-2px); }
+.footer-install-btn:hover { background: var(--brand-primary-dark, #B01F32); transform: translateY(-2px); }
 
 .footer-legal {
     max-width: 1192px;
@@ -234,7 +245,7 @@
     .footer-install-btn { width: 100%; justify-content: center; }
     .footer-legal { justify-content: center; text-align: center; }
     .footer-legal-links { justify-content: center; }
-    .footer-logo-img { height: 38px; }
+    .footer-logo-img { height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .footer * { transition: none !important; }

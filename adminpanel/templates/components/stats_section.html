@@ -12,12 +12,13 @@
             <a class="ts-stat" href="{{ stat.url }}" style="--accent: {{ stat.color }};">
                 <span class="ts-stat__icon" aria-hidden="true"><i class="fas fa-{{ stat.icon }}"></i></span>
                 <span class="ts-stat__body">
-                    <span class="ts-stat__num" data-count="{{ stat.value }}">{{ stat.display }}</span>
+                    <span class="ts-stat__num" data-count="{{ stat.value }}"{% if stat.suffix %} data-suffix="{{ stat.suffix }}"{% endif %}>{{ stat.display }}{{ stat.suffix }}</span>
                     <span class="ts-stat__label">{{ stat.label }}</span>
                 </span>
             </a>
             {% endfor %}
         </div>
+
 
         <div class="ts-steps">
             <div class="ts-step">
@@ -55,21 +56,21 @@
 <style>
 .ts-stats {
     background:
-        radial-gradient(circle at 12% 0%, rgba(var(--brand-primary-rgb, 36, 89, 224), 0.10), transparent 42%),
+        radial-gradient(circle at 12% 0%, rgba(var(--brand-primary-rgb, 215, 38, 61), 0.10), transparent 42%),
         linear-gradient(180deg, #f8fafc 0%, #ffffff 70%);
     border-top: 1px solid rgba(15, 23, 42, 0.05);
     padding: clamp(36px, 5vw, 64px) 16px clamp(32px, 4vw, 52px);
 }
 .banner-slider-container + .ts-stats { padding-top: clamp(28px, 4vw, 52px); }
 
-.ts-stats__inner { max-width: 1120px; margin: 0 auto; }
+.ts-stats__inner { max-width: 1200px; margin: 0 auto; }
 
 .ts-stats__head { text-align: center; max-width: 820px; margin: 0 auto clamp(24px, 3vw, 36px); }
 .ts-stats__eyebrow {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 6px 14px; border-radius: 999px;
-    background: rgba(var(--brand-primary-rgb, 36, 89, 224), 0.16);
-    color: var(--brand-primary-text, #2459E0);
+    background: rgba(var(--brand-primary-rgb, 215, 38, 61), 0.16);
+    color: var(--brand-primary-text, #D7263D);
     font: 700 13px/1 var(--font-sans); letter-spacing: 0.4px; text-transform: uppercase;
 }
 .ts-stats__title {
@@ -81,7 +82,7 @@
 .ts-stats__sub { font: 500 clamp(14px, 1.4vw, 16px)/1.6 var(--font-sans); color: #5b6474; margin: 0 auto; max-width: 640px; }
 
 .ts-stats__grid {
-    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px;
 }
 .ts-stat {
     --accent: 37, 99, 235;
@@ -119,13 +120,13 @@
     display: flex; align-items: center; justify-content: center; gap: 14px;
     margin: clamp(24px, 3vw, 34px) auto 0; padding: 16px 20px;
     max-width: 980px; border-radius: 16px;
-    background: var(--brand-ink, #10142E); color: #fff;
+    background: var(--brand-ink, #1F0B12); color: #fff;
 }
 .ts-step { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .ts-step__no {
     flex: 0 0 34px; height: 34px; border-radius: 50%;
     display: grid; place-items: center;
-    background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff);
+    background: var(--brand-primary, #D7263D); color: var(--brand-on-primary, #fff);
     font: 800 15px/1 var(--font-sans);
 }
 /* Warm amber from the logo reads better than the blue primary on this dark panel. */
@@ -144,16 +145,24 @@
     transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
 }
 .ts-btn--primary {
-    background: var(--brand-primary, #2459E0); color: var(--brand-on-primary, #fff);
-    box-shadow: 0 8px 22px rgba(var(--brand-primary-rgb, 36, 89, 224), 0.35);
+    background: var(--brand-primary, #D7263D); color: var(--brand-on-primary, #fff);
+    box-shadow: 0 8px 22px rgba(var(--brand-primary-rgb, 215, 38, 61), 0.35);
 }
-.ts-btn--primary:hover { background: var(--brand-primary-dark, #1d49b8); transform: translateY(-2px); color: var(--brand-on-primary, #fff); }
-.ts-btn--primary:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 36, 89, 224), 0.45); outline-offset: 3px; }
+.ts-btn--primary:hover { background: var(--brand-primary-dark, #B01F32); transform: translateY(-2px); color: var(--brand-on-primary, #fff); }
+.ts-btn--primary:focus-visible { outline: 3px solid rgba(var(--brand-primary-rgb, 215, 38, 61), 0.45); outline-offset: 3px; }
 .ts-stats__note { font: 600 14px/1.4 var(--font-sans); color: #5b6474; }
 .ts-stats__note i { color: #16a34a; margin-right: 6px; }
 
+@media (min-width: 1025px) {
+    .ts-stat { padding: 18px 16px; gap: 12px; }
+    .ts-stat__icon { flex-basis: 46px; height: 46px; font-size: 20px; border-radius: 13px; }
+    .ts-stat__num { font-size: clamp(20px, 2vw, 26px); }
+    .ts-stat__label { font-size: 13.5px; }
+}
 @media (max-width: 1024px) {
-    .ts-stats__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ts-stats__grid { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Odd card out (the fifth) spans the full row. */
+    .ts-stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 @media (max-width: 768px) {
     .ts-steps { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -187,7 +196,7 @@
                 var start = performance.now();
                 (function tick(now) {
                     var p = Math.min((now - start) / 1400, 1);
-                    el.textContent = fmt.format(Math.floor(end * (1 - Math.pow(1 - p, 4))));
+                    el.textContent = fmt.format(Math.floor(end * (1 - Math.pow(1 - p, 4)))) + (el.getAttribute('data-suffix') || '');
                     if (p < 1) requestAnimationFrame(tick);
                 })(start);
             });

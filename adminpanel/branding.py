@@ -5,8 +5,8 @@ needs no code change.
 """
 from django.utils.text import slugify
 
-DEFAULT_NAME = 'Infinite360'
-DEFAULT_FULL_NAME = 'Infinite360 Tech Academy'
+DEFAULT_NAME = 'Edutrellis'
+DEFAULT_FULL_NAME = 'Edutrellis'
 
 
 def brand():

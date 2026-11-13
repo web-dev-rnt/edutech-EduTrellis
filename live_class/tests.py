@@ -41,7 +41,7 @@ class LiveRoomTests(TestCase):
     def test_room_name_is_stable_and_branded(self):
         first = generate_room_name(self.session.pk, self.session.class_name)
         self.assertEqual(first, generate_room_name(self.session.pk, self.session.class_name))
-        self.assertTrue(first.startswith('Infinite360LiveClass'))
+        self.assertTrue(first.startswith('EdutrellisLiveClass'))
 
     def test_logged_out_and_not_enrolled_students_cannot_get_the_room_link(self):
         page = self.client.get(self.url, secure=True)
@@ -225,7 +225,7 @@ class JaasTests(TestCase):
         page = self.client.get(self.url, secure=True).content.decode()
         page = page.replace(chr(92) + 'u002D', '-')  # escapejs writes '-' as backslash-u002D
         self.assertIn('https://8x8.vc/vpaas-magic-cookie-test/external_api.js', page)
-        self.assertIn("roomName: 'vpaas-magic-cookie-test/Infinite360LiveClass", page)
+        self.assertIn("roomName: 'vpaas-magic-cookie-test/EdutrellisLiveClass", page)
         self.assertNotIn('meet.jit.si', page)
         jwt = re.search(r"jwt: '([^']+)'", page).group(1)
         head, body, sig = jwt.split('.')

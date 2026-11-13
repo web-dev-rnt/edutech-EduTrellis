@@ -105,7 +105,7 @@ function book(x, y, w, h, color, opts = {}) {
   return `<g transform="rotate(${opts.rot || 0} ${x + w / 2} ${y + h / 2})">
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(5, h / 4)}" fill="${color}"/>
     <rect x="${x + w * 0.06}" y="${y + h * 0.22}" width="${w * 0.9}" height="${h * 0.5}" rx="${h * 0.12}" fill="#FFFDF6"/>
-    <path d="M${x + w * 0.06} ${y + h * 0.36} H${x + w * 0.96} M${x + w * 0.06} ${y + h * 0.56} H${x + w * 0.96}" stroke="#DCE2EE" stroke-width="1.4"/>
+    <path d="M${x + w * 0.06} ${y + h * 0.36} H${x + w * 0.96} M${x + w * 0.06} ${y + h * 0.56} H${x + w * 0.96}" stroke="#EFDDE0" stroke-width="1.4"/>
     <rect x="${x}" y="${y}" width="${w * 0.07}" height="${h}" fill="${spine}"/>
     ${opts.label ? `<rect x="${x + w * 0.62}" y="${y + h * 0.05}" width="${w * 0.2}" height="${h * 0.12}" fill="${C.accent}"/>` : ''}
   </g>`;
@@ -140,7 +140,7 @@ function poseDesk(o) {
 function poseGrad(o) {
   const s = SKIN[o.skin];
   return limb('M64 212 Q50 270 100 272', C.ink) + limb('M176 212 Q190 270 140 272', C.ink) +
-    `<g transform="rotate(-12 120 268)"><rect x="70" y="258" width="104" height="22" rx="11" fill="#FFFDF6"/><circle cx="174" cy="269" r="11" fill="#E2E8F5"/>
+    `<g transform="rotate(-12 120 268)"><rect x="70" y="258" width="104" height="22" rx="11" fill="#FFFDF6"/><circle cx="174" cy="269" r="11" fill="#F3E2E4"/>
      <rect x="112" y="256" width="12" height="26" fill="${C.coral}"/><path d="M118 282 l-8 18 l8 -5 l8 5 z" fill="${C.coral}"/></g>` +
     hand(96, 274, s) + hand(146, 266, s);
 }
@@ -189,18 +189,18 @@ function openBook(cx, cy, w, color = C.accent) {
     <path d="M${w / 2} ${h * 0.14} C${w * 0.66} ${-h * 0.02} ${w * 0.88} ${-h * 0.02} ${w} ${h * 0.06} L${w} ${h} C${w * 0.86} ${h * 0.92} ${w * 0.66} ${h * 0.92} ${w / 2} ${h * 1.06} Z" fill="${color}"/>
     <path d="M${w / 2} ${h * 0.08} C${w * 0.36} ${-h * 0.08} ${w * 0.14} ${-h * 0.08} ${w * 0.04} 0 L${w * 0.04} ${h * 0.9} C${w * 0.16} ${h * 0.82} ${w * 0.36} ${h * 0.84} ${w / 2} ${h * 0.98} Z" fill="#FFFDF6"/>
     <path d="M${w / 2} ${h * 0.08} C${w * 0.64} ${-h * 0.08} ${w * 0.86} ${-h * 0.08} ${w * 0.96} 0 L${w * 0.96} ${h * 0.9} C${w * 0.84} ${h * 0.82} ${w * 0.64} ${h * 0.84} ${w / 2} ${h * 0.98} Z" fill="#EEF1F8"/>
-    <g stroke="#D3DAEA" stroke-width="${w / 120}" stroke-linecap="round">
+    <g stroke="#ECD6DA" stroke-width="${w / 120}" stroke-linecap="round">
       ${[0.22, 0.36, 0.5, 0.64].map(t => `<path d="M${w * 0.12} ${h * t} H${w * 0.42}"/><path d="M${w * 0.58} ${h * t} H${w * 0.88}"/>`).join('')}</g>
   </g>`;
 }
 
-// Laptop seen from behind on a desk, brand emblem on the lid.
+// Laptop seen from behind on a desk, brand monogram on the lid.
 function laptopBack(cx, bottom, w, light = false) {
   const h = w * 0.66;
   return `<g transform="translate(${cx - w / 2} ${bottom - h})">
     <rect x="0" y="0" width="${w}" height="${h}" rx="${w * 0.05}" fill="${light ? '#E3E7EF' : C.ink2}"/>
     <rect x="${w * 0.02}" y="${w * 0.02}" width="${w * 0.96}" height="${h - w * 0.04}" rx="${w * 0.04}" fill="${light ? '#F1F3F8' : C.ink3}" opacity=".5"/>
-    ${emblem(w / 2 - h * 0.3 * EMBLEM_W / 2, h * 0.35, h * 0.3, !light)}
+    ${monogram(w / 2 - h * 0.15, h * 0.35, h * 0.3)}
   </g>`;
 }
 
@@ -209,10 +209,10 @@ function laptopFront(cx, bottom, w) {
   const h = w * 0.62;
   return `<g transform="translate(${cx - w / 2} ${bottom - h})">
     <rect x="${w * 0.06}" y="0" width="${w * 0.88}" height="${h * 0.86}" rx="${w * 0.03}" fill="${C.ink}"/>
-    <rect x="${w * 0.09}" y="${h * 0.05}" width="${w * 0.82}" height="${h * 0.72}" rx="${w * 0.015}" fill="#F8FAFF"/>
+    <rect x="${w * 0.09}" y="${h * 0.05}" width="${w * 0.82}" height="${h * 0.72}" rx="${w * 0.015}" fill="#FFF9F8"/>
     <rect x="${w * 0.09}" y="${h * 0.05}" width="${w * 0.82}" height="${h * 0.12}" fill="${C.accent}"/>
     <circle cx="${w * 0.5}" cy="${h * 0.43}" r="${h * 0.14}" fill="${C.ink}"/><path d="M${w * 0.485} ${h * 0.36} L${w * 0.54} ${h * 0.43} L${w * 0.485} ${h * 0.5} Z" fill="${C.accent}"/>
-    <rect x="${w * 0.16}" y="${h * 0.64}" width="${w * 0.68}" height="${h * 0.035}" rx="${h * 0.02}" fill="#DDE3EF"/>
+    <rect x="${w * 0.16}" y="${h * 0.64}" width="${w * 0.68}" height="${h * 0.035}" rx="${h * 0.02}" fill="#EFDFE1"/>
     <rect x="${w * 0.16}" y="${h * 0.64}" width="${w * 0.4}" height="${h * 0.035}" rx="${h * 0.02}" fill="${C.accent}"/>
     <path d="M0 ${h * 0.86} H${w} L${w * 0.96} ${h} H${w * 0.04} Z" fill="#C3C8D4"/>
     <rect x="${w * 0.42}" y="${h * 0.86}" width="${w * 0.16}" height="${h * 0.04}" rx="${h * 0.02}" fill="#9EA5B4"/>
@@ -297,8 +297,8 @@ function infoCard(x, y, w, h, iconName, title, sub, opts = {}) {
     <circle cx="${x + h * 0.5}" cy="${y + h / 2}" r="${d / 2}" fill="${opts.iconBg || C.accent}"/>
     ${icon(iconName, x + h * 0.5, y + h / 2, d * 0.5, opts.iconColor || C.ink)}
     <text x="${x + h * 0.95}" y="${y + h * 0.47}" font-family="${SANS}" font-weight="800" font-size="${h * 0.26}" fill="${dark ? '#fff' : C.ink}">${title}</text>
-    <text x="${x + h * 0.95}" y="${y + h * 0.76}" font-family="${SANS}" font-weight="600" font-size="${h * 0.19}" fill="${dark ? '#B8BFE0' : C.mute}">${sub}</text>
-    ${opts.bar ? `<rect x="${x + h * 0.95}" y="${y + h * 0.84}" width="${w - h * 1.25}" height="${h * 0.05}" rx="${h * 0.025}" fill="${dark ? '#323B70' : '#E6EAF4'}"/>
+    <text x="${x + h * 0.95}" y="${y + h * 0.76}" font-family="${SANS}" font-weight="600" font-size="${h * 0.19}" fill="${dark ? '#EBC3C9' : C.mute}">${sub}</text>
+    ${opts.bar ? `<rect x="${x + h * 0.95}" y="${y + h * 0.84}" width="${w - h * 1.25}" height="${h * 0.05}" rx="${h * 0.025}" fill="${dark ? '#6B2635' : '#F3E5E7'}"/>
       <rect x="${x + h * 0.95}" y="${y + h * 0.84}" width="${(w - h * 1.25) * opts.bar}" height="${h * 0.05}" rx="${h * 0.025}" fill="${C.accent}"/>` : ''}
   </g>`;
 }

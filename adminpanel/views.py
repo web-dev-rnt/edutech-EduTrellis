@@ -1539,7 +1539,7 @@ def auth_page_settings_edit(request):
 @login_required
 def navbar_settings_edit(request):
     navbar_settings, _ = NavbarSettings.objects.get_or_create(
-        defaults={'contact_number': '8296893895', 'contact_hours': '(10 AM to 7 PM)', 'search_placeholder': 'Search courses'}
+        defaults={'contact_number': '91941 30645', 'contact_hours': '(Mon-Fri, 10 AM-7 PM)', 'search_placeholder': 'Search courses'}
     )
     if request.method == 'POST':
         form = NavbarSettingsForm(request.POST, request.FILES, instance=navbar_settings)
@@ -1571,7 +1571,7 @@ def footer_edit(request):
 @login_required
 def footer_settings_edit(request):
     footer_settings, _ = FooterSettings.objects.get_or_create(
-        defaults={'email': 'businessconsulting@gmail.com', 'copyright_text': f'Copyright © 2026 {brand_name()}. All rights reserved.'}
+        defaults={'email': 'support@edutrellis.in', 'copyright_text': f'Copyright © 2026 {brand_name()}. All rights reserved.'}
     )
     if request.method == 'POST':
         form = FooterSettingsForm(request.POST, request.FILES, instance=footer_settings)

@@ -126,7 +126,8 @@ def dropbox_media_redirect(request, token):
 
     Pages normally link to the file's saved permanent Dropbox link directly; this view only runs for files
     without one yet. It copies a file still on local disk to Dropbox, creates and saves the permanent link,
-    and redirects. If permanent links are not allowed for the Dropbox app, it uses a temporary link.
+    and redirects. If permanent links are not allowed for the Dropbox app, it serves the file itself from
+    this server's disk cache (downloaded from Dropbox once), so repeat views make no Dropbox calls at all.
     """
     try:
         name = signing.Signer(salt="dropbox-public-media").unsign_object(token)
@@ -135,15 +136,36 @@ def dropbox_media_redirect(request, token):
 
     from video_courses.dropbox_storage import DropboxMediaStorage
 
+    storage = DropboxMediaStorage()
+    cached = storage.cached_file(name)
+    if cached:
+        return _media_file_response(cached, name)
+    target, permanent = "", False
     try:
-        target, permanent = DropboxMediaStorage().resolve(name)
+        target, permanent = storage.resolve(name)
+        if not permanent:
+            path = storage.local_or_downloaded(name)
+            if path:
+                return _media_file_response(path, name)
+            target = storage.temporary_url(name)  # too big for the disk cache
     except Exception:
         logger.exception("Could not load uploaded file %s from Dropbox", name)
-        target, permanent = "", False
     if not target:
         raise Http404("File not found")
     response = redirect(target)
     patch_cache_control(response, public=True, max_age=86400 if permanent else 300)
+    return response
+
+
+def _media_file_response(path, name):
+    """Serve an uploaded file from this server's disk; browsers keep it for a day."""
+    import mimetypes
+    from django.http import FileResponse
+
+    content_type = mimetypes.guess_type(str(name))[0] or "application/octet-stream"
+    response = FileResponse(open(path, "rb"), content_type=content_type)
+    patch_cache_control(response, public=True, max_age=86400)
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -181,7 +203,7 @@ def manifest(request):
     manifest_data = {
         "name": f"{site_brand['full_name']} - Complete Learning Platform",
         "short_name": site_brand['name'],
-        "description": f"Prepare smarter with {site_brand['name']}: live online classes, video courses, mock test series, previous year papers and e-books.",
+        "description": f"Prepare smarter with {site_brand['name']}: online test series, mock tests and previous year papers for competitive and board exams.",
         "start_url": "/",
         "scope": "/",
         "display": "standalone",

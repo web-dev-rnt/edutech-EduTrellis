@@ -1,5 +1,5 @@
 """
-WSGI config for the Infinite360 project.
+WSGI config for the Edutrellis project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

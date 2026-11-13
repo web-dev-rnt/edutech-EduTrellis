@@ -273,7 +273,7 @@ class Command(BaseCommand):
                 defaults={
                     **course_defaults,
                     "category": categories[board],
-                    "instructor": "Infinite360 Academic Team",
+                    "instructor": "Edutrellis Academic Team",
                     "is_free": True,
                     "price": Decimal("0.00"),
                     "discount_price": None,
@@ -298,7 +298,7 @@ class Command(BaseCommand):
                     defaults={
                         "title": series_title,
                         "category": categories[board],
-                        "description": "Original curriculum-aligned competency practice. These are Infinite360 practice papers, not official board papers.",
+                        "description": "Original curriculum-aligned competency practice. These are Edutrellis practice papers, not official board papers.",
                         "is_free": True,
                         "price": Decimal("0.00"),
                         "difficulty": "medium",
@@ -352,7 +352,7 @@ class Command(BaseCommand):
                         "category": categories[board],
                         "description": (
                             f"Original {board} Class {grade} foundation practice in Mathematics, "
-                            "English and Science/EVS. This is Infinite360 learning material, not an "
+                            "English and Science/EVS. This is Edutrellis learning material, not an "
                             "official board paper."
                         ),
                         "is_free": True,

@@ -52,6 +52,8 @@ def main():
     png(load("logo_stacked"), BRAND / "logo-stacked.png")
     png(load("logo_stacked_light"), BRAND / "logo-stacked-light.png")
     png(load("logo_badge"), BRAND / "logo-badge.png", (256, 256))
+    png(load("logo_full"), BRAND / "logo-full.png")
+    png(load("india_seal_light"), BRAND / "made-in-india-light.png")
 
     icon, maskable = load("icon_512"), load("icon_maskable_512")
     png(icon, BRAND / "favicon.png", (192, 192))

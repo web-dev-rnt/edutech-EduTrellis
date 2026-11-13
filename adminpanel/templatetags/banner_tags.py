@@ -55,7 +55,15 @@ def _indian_number(value):
 @register.inclusion_tag('components/stats_section.html')
 def render_stats_section():
     from django.urls import reverse
+    from adminpanel.context_processors import SITE_STUDENTS_TRAINED_COUNT
+
     stats = [dict(s, display=_indian_number(s['value'])) for s in _test_series_stats() if s['value']]
+    if stats:
+        stats.append({
+            'value': SITE_STUDENTS_TRAINED_COUNT, 'display': _indian_number(SITE_STUDENTS_TRAINED_COUNT),
+            'suffix': '+', 'label': 'Students Trained', 'icon': 'user-graduate', 'color': '215, 38, 61',
+            'url': reverse('all_test_series'),
+        })
     return {'test_stats': stats, 'test_series_url': reverse('all_test_series')}
 
 @register.inclusion_tag('components/cta_section.html')
@@ -78,7 +86,8 @@ def render_about_us_section():
 
 @register.inclusion_tag('components/contact_section.html')
 def render_contact_section():
-    return {}
+    from adminpanel.context_processors import site_contact
+    return site_contact(None)  # inclusion tags don't see the page context
 
 
 @register.inclusion_tag('components/footer_section.html', takes_context=True)
