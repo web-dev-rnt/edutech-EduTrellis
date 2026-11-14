@@ -533,8 +533,8 @@ class ThemeSettingsForm(forms.ModelForm):
         model = ThemeSettings
         fields = ['site_name', 'site_full_name', 'primary_color']
         widgets = {
-            'site_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Edutrellis'}),
-            'site_full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Edutrellis'}),
+            'site_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'EduTrellis'}),
+            'site_full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'EduTrellis Test Series'}),
             'primary_color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
         }
 
@@ -1013,3 +1013,75 @@ class TutorSettingsForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+from .models import AppSettings  # noqa: E402
+
+
+class AppSettingsForm(forms.ModelForm):
+    """Website > App & Sharing: installable app and link-preview settings (blank = brand default)."""
+
+    COLOR_RE = r"^#[0-9A-Fa-f]{6}$"
+
+    class Meta:
+        model = AppSettings
+        fields = ["app_name", "short_name", "description", "icon", "theme_color", "background_color",
+                  "share_title", "share_description", "share_image"]
+        widgets = {
+            "app_name": forms.TextInput(attrs={"class": "form-control", "maxlength": 60}),
+            "short_name": forms.TextInput(attrs={"class": "form-control", "maxlength": 30}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "maxlength": 300}),
+            "icon": forms.ClearableFileInput(attrs={"class": "form-control", "accept": "image/png,image/jpeg,image/webp"}),
+            "theme_color": forms.TextInput(attrs={"class": "form-control app-color-text", "maxlength": 7}),
+            "background_color": forms.TextInput(attrs={"class": "form-control app-color-text", "maxlength": 7}),
+            "share_title": forms.TextInput(attrs={"class": "form-control", "maxlength": 120}),
+            "share_description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "maxlength": 300}),
+            "share_image": forms.ClearableFileInput(attrs={"class": "form-control", "accept": "image/png,image/jpeg,image/webp"}),
+        }
+        labels = {
+            "app_name": "App name", "short_name": "Short name (under the icon)", "description": "App description",
+            "icon": "App icon", "theme_color": "Title bar colour", "background_color": "Splash screen colour",
+            "share_title": "Preview title", "share_description": "Preview description", "share_image": "Preview image",
+        }
+
+    def __init__(self, *args, **kwargs):
+        from .app_profile import default_texts
+
+        super().__init__(*args, **kwargs)
+        for name, text in default_texts().items():
+            if name in self.fields:
+                self.fields[name].widget.attrs["placeholder"] = text
+        self.fields["theme_color"].widget.attrs["placeholder"] = "Brand colour"
+
+    def _clean_color(self, name, required=False):
+        import re
+
+        value = (self.cleaned_data.get(name) or "").strip()
+        if not value and not required:
+            return ""
+        if not re.match(self.COLOR_RE, value):
+            raise forms.ValidationError("Use a colour like #D7263D.")
+        return value.upper()
+
+    def clean_theme_color(self):
+        return self._clean_color("theme_color")
+
+    def clean_background_color(self):
+        return self._clean_color("background_color", required=True)
+
+    def clean_icon(self):
+        from .app_profile import check_icon
+
+        icon = self.cleaned_data.get("icon")
+        if icon and hasattr(icon, "content_type"):  # a new upload
+            try:
+                check_icon(icon)
+            except ValueError as exc:
+                raise forms.ValidationError(str(exc))
+        return icon
+
+    def clean_share_image(self):
+        image = self.cleaned_data.get("share_image")
+        if image and hasattr(image, "content_type") and image.size > 8 * 1024 * 1024:
+            raise forms.ValidationError("Use an image under 8 MB.")
+        return image

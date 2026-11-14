@@ -159,11 +159,12 @@ class BrandNameTests(TestCase):
 
         self.client.logout()
         home = self.client.get('/').content.decode()
-        self.assertIn('<title>BrightPath Learning |', home)
+        self.assertIn('<title>BrightPath Learning —', home)
         self.assertIn('content="BrightPath"', home)  # app name meta
         login = self.client.get('/login/').content.decode()
         self.assertIn('Login | BrightPath', login)
-        self.assertNotIn('Edutrellis', login)
+        # The old site name is gone; "Powered by EduTrellis" (the parent company) rightly stays.
+        self.assertNotIn('EduTrellis Test Series', login)
         manifest = self.client.get('/manifest.json').json()
         self.assertEqual(manifest['short_name'], 'BrightPath')
 
@@ -190,7 +191,7 @@ class BrandNameTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         from .branding import brand_name
-        self.assertEqual(brand_name(), 'Edutrellis')
+        self.assertEqual(brand_name(), 'EduTrellis')
 
 
 @override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
@@ -366,6 +367,35 @@ class DropboxMediaStorageTests(TestCase):
             self.assertIn('max-age=86400', response['Cache-Control'])
         self.assertEqual(calls, ['/media/banners/new.webp'])  # downloaded once, then served from disk
 
+    def test_organize_media_moves_files_into_folders_and_saves_links(self):
+        from django.core.files.base import ContentFile
+        from base.models import DropboxFileLink
+        from video_courses import media_organizer
+        from video_courses.dropbox_storage import DropboxMediaStorage, DropboxStorage
+        from .models import NavbarSettings
+
+        storage = self.storage()
+        storage.local.save('navbar/logo.png', ContentFile(b'logo'))  # an old upload, only on local disk
+        navbar = NavbarSettings.objects.create(logo='navbar/logo.png')
+        uploaded = []
+
+        def create_link(_self, name):
+            DropboxFileLink.objects.create(path=_self._clean_path(name), name=name, url=f'https://dl.example/{name}')
+
+        field = NavbarSettings._meta.get_field('logo')
+        with patch.object(media_organizer, '_list_paths', return_value={}), \
+                patch.object(DropboxStorage, '_save', side_effect=lambda _self, n, c: uploaded.append((n, c.read())) or n), \
+                patch.object(DropboxMediaStorage, 'create_link', create_link), \
+                patch.object(DropboxStorage, 'client', new_callable=lambda: property(lambda self: object())):
+            stats, sharing_error = media_organizer.organize_media(log=lambda line: None, fields=[(NavbarSettings, field)])
+
+        navbar.refresh_from_db()
+        self.assertEqual(navbar.logo.name, 'site/navbar/logo/logo.png')
+        self.assertEqual(uploaded, [('site/navbar/logo/logo.png', b'logo')])
+        self.assertTrue(DropboxFileLink.objects.filter(path='/media/site/navbar/logo/logo.png').exists())
+        self.assertIsNone(sharing_error)
+        self.assertEqual((stats['moved'], stats['uploaded'], stats['linked']), (1, 1, 1))
+
     def test_tampered_token_is_rejected(self):
         self.assertEqual(self.client.get('/dropbox-media/abc:def/').status_code, 404)
 
@@ -396,6 +426,72 @@ class RestoreSessionTests(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'upload-card')
 
+    def _owner(self):
+        owner = get_user_model().objects.create_user(
+            email='owner@example.com', password='x', is_staff=True, is_superuser=True,
+        )
+        self.client.force_login(owner)
+        return owner
+
+    def _job_settings(self):
+        import tempfile
+        return override_settings(BACKUP_JOBS_INLINE=True, BACKUP_JOB_DIR=tempfile.mkdtemp())
+
+    def test_background_restore_finishes_and_keeps_the_admin_logged_in(self):
+        from django.contrib.sessions.models import Session
+
+        from .backup_utils import DropboxBackupManager
+
+        self._owner()
+        calls = []
+
+        def fake_restore(filename, progress, safety_backup=False):
+            calls.append((filename, safety_backup))
+            progress('Downloading the backup from Dropbox', done=50, total=100)
+            Session.objects.all().delete()  # loading another database replaces the sessions
+            return {'success': True, 'message': 'Restored.'}
+
+        with self._job_settings(), patch.object(DropboxBackupManager, 'restore_backup', side_effect=fake_restore):
+            started = self.client.post('/backup/api/start/', {'action': 'restore', 'filename': 'x.sqlite3', 'safety_backup': '1'})
+            self.assertEqual(started.status_code, 202)
+            status = self.client.get(f"/backup/api/job/{started.json()['token']}/").json()['job']
+        self.assertEqual(calls, [('x.sqlite3', True)])
+        self.assertEqual(status['status'], 'done')
+        self.assertIn('Downloading the backup from Dropbox', status['stages'])
+        with patch.object(DropboxBackupManager, 'list_backups', return_value=[]):
+            self.assertEqual(self.client.get('/backup/').status_code, 200)  # logged in again
+
+    def test_background_backup_reports_progress_and_blocks_a_second_job(self):
+        from . import backup_jobs, backup_utils
+        from .backup_utils import DropboxBackupManager
+
+        self._owner()
+
+        def fake_backup(progress):
+            progress('Uploading to Dropbox', done=10, total=10)
+            return {'success': True, 'filename': 'b.sqlite3', 'message': 'Backup done.'}
+
+        with self._job_settings(), patch.object(DropboxBackupManager, 'create_backup', side_effect=fake_backup), \
+                patch.object(backup_utils, 'apply_retention', return_value=[]):
+            started = self.client.post('/backup/api/start/', {'action': 'backup'})
+            job = self.client.get(f"/backup/api/job/{started.json()['token']}/").json()['job']
+            self.assertEqual((job['status'], job['percent']), ('done', 100))
+            self.assertEqual(job['result']['message'], 'Backup done.')
+
+            running = backup_jobs.start('backup', None, lambda progress: None)  # finished inline
+            busy = dict(running, id='f' * 32, status='running')
+            backup_jobs._write(busy)
+            second = self.client.post('/backup/api/start/', {'action': 'backup'})
+        self.assertEqual(second.status_code, 409)
+
+    def test_folder_names_are_checked(self):
+        from .backup_utils import normalize_folder
+
+        self.assertEqual(normalize_folder('My Backups/'), '/My Backups')
+        for bad in ('', '../x', 'a/../b', 'bad*name'):
+            with self.assertRaises(ValueError):
+                normalize_folder(bad)
+
 
 @override_settings(SITE_OWNER_EMAILS=['owner@example.com'])
 class SiteOwnerOnlyTests(TestCase):
@@ -420,3 +516,66 @@ class SiteOwnerOnlyTests(TestCase):
         self.assertContains(dashboard, 'Tutor AI')
         self.assertEqual(self.client.get(reverse('audit_log')).status_code, 200)
         self.assertEqual(self.client.get(reverse('tutor_admin')).status_code, 200)
+
+
+class AppSettingsTests(TestCase):
+    """Website > App & Sharing drives the PWA manifest and the link-preview (Open Graph) tags."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.admin = get_user_model().objects.create_user(email='staff@example.com', password='x', is_staff=True)
+
+    def _png(self, size, color=(215, 38, 61, 255)):
+        from io import BytesIO
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        out = BytesIO()
+        Image.new('RGBA', size, color).save(out, 'PNG')
+        return SimpleUploadedFile('icon.png', out.getvalue(), content_type='image/png')
+
+    def test_defaults_describe_the_test_series_platform(self):
+        manifest = self.client.get('/manifest.json').json()
+        self.assertIn('Test Series', manifest['name'])
+        self.assertEqual({icon['purpose'] for icon in manifest['icons']}, {'any', 'maskable'})
+        page = self.client.get('/').content.decode()
+        self.assertIn("India&#x27;s Best Platform for Online Test Series", page)
+        self.assertIn('og-share', page)
+        self.assertIn('<meta property="og:image:width" content="1200">', page)
+
+    def test_admin_changes_app_name_icon_and_share_preview(self):
+        from .models import AppSettings
+
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('app_settings_edit'), {
+            'app_name': 'EduTrellis Exams', 'short_name': 'EduTrellis', 'description': 'Mock tests that feel real.',
+            'theme_color': '#0c1e45', 'background_color': '#ffffff',
+            'share_title': 'Best test series app', 'share_description': 'Practise with 10,000+ students.',
+            'icon': self._png((600, 600)), 'share_image': self._png((800, 800)),
+        })
+        self.assertRedirects(response, reverse('app_settings_edit'), fetch_redirect_response=False)
+        settings_obj = AppSettings.objects.get(pk=1)
+        self.assertEqual(settings_obj.theme_color, '#0C1E45')
+        for field in ('icon_192', 'icon_512', 'icon_maskable', 'icon_apple'):
+            self.assertTrue(getattr(settings_obj, field).name, field)
+        from PIL import Image
+        with settings_obj.share_image.open('rb') as fh:
+            self.assertEqual(Image.open(fh).size, (1200, 630))  # cropped for link previews
+
+        manifest = self.client.get('/manifest.json').json()
+        self.assertEqual((manifest['name'], manifest['short_name'], manifest['theme_color']),
+                         ('EduTrellis Exams', 'EduTrellis', '#0C1E45'))
+        self.assertTrue(any(settings_obj.icon_maskable.url in icon['src'] for icon in manifest['icons']))
+        page = self.client.get('/').content.decode()
+        self.assertIn('<meta property="og:title" content="Best test series app">', page)
+        self.assertIn('<meta property="og:description" content="Practise with 10,000+ students.">', page)
+        self.assertIn(f'?v={settings_obj.version}', page)  # browsers fetch the new manifest
+
+    def test_small_icon_is_rejected(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('app_settings_edit'), {
+            'background_color': '#ffffff', 'icon': self._png((64, 64)),
+        })
+        self.assertContains(response, 'at least 192')

@@ -1,5 +1,5 @@
 """
-Django settings for the Edutrellis project (Django 5.2+ ready).
+Django settings for the EduTrellis project (Django 5.2+ ready).
 Optimized for performance, caching, security, and Core Web Vitals.
 """
 
@@ -333,8 +333,8 @@ SITE_URL = (
 # --------------------
 # PWA SETTINGS
 # --------------------
-PWA_APP_NAME = 'Edutrellis'
-PWA_APP_DESCRIPTION = 'Online test series and mock tests for competitive and board exams by Edutrellis'
+PWA_APP_NAME = 'EduTrellis'
+PWA_APP_DESCRIPTION = 'Online test series and mock tests for competitive and board exams by EduTrellis'
 PWA_APP_THEME_COLOR = '#D7263D'
 PWA_APP_BACKGROUND_COLOR = '#ffffff'
 PWA_APP_DISPLAY = 'standalone'

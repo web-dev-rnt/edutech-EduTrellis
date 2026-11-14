@@ -56,22 +56,67 @@ def _snapshot(dest_path: str) -> None:
         source.close()
 
 
-def _upload_file(dbx, local_path: str, dropbox_path: str) -> None:
+def _noop_progress(*args, **kwargs):
+    pass
+
+
+def _retry(call, attempts=4):
+    """Run a Dropbox call, retrying network hiccups and rate limits with a growing pause."""
+    import time
+
+    import dropbox  # type: ignore
+
+    for attempt in range(attempts):
+        try:
+            return call()
+        except (dropbox.exceptions.InternalServerError, dropbox.exceptions.RateLimitError, OSError) as exc:
+            if attempt == attempts - 1:
+                raise
+            wait = getattr(exc, "backoff", None) or 2 * (attempt + 1)
+            logger.warning("Dropbox call failed (%s); retrying in %ss", exc, wait)
+            time.sleep(wait)
+
+
+def _upload_file(dbx, local_path: str, dropbox_path: str, progress=_noop_progress) -> None:
     """Upload a file of any size in pieces (a single request is limited to 150 MB)."""
     import dropbox  # type: ignore
     from dropbox.files import WriteMode  # type: ignore
 
     size = os.path.getsize(local_path)
+    progress(done=0, total=size)
     with open(local_path, "rb") as fh:
-        session_id = dbx.files_upload_session_start(fh.read(UPLOAD_PIECE_BYTES)).session_id
+        first = fh.read(UPLOAD_PIECE_BYTES)
+        session_id = _retry(lambda: dbx.files_upload_session_start(first)).session_id
+        progress(done=fh.tell(), total=size)
         while fh.tell() < size:
-            cursor = dropbox.files.UploadSessionCursor(session_id=session_id, offset=fh.tell())
-            dbx.files_upload_session_append_v2(fh.read(UPLOAD_PIECE_BYTES), cursor)
+            offset = fh.tell()
+            piece = fh.read(UPLOAD_PIECE_BYTES)
+            cursor = dropbox.files.UploadSessionCursor(session_id=session_id, offset=offset)
+            _retry(lambda: dbx.files_upload_session_append_v2(piece, cursor))
+            progress(done=fh.tell(), total=size)
         cursor = dropbox.files.UploadSessionCursor(session_id=session_id, offset=size)
-        dbx.files_upload_session_finish(b"", cursor, dropbox.files.CommitInfo(path=dropbox_path, mode=WriteMode.overwrite))
+        commit = dropbox.files.CommitInfo(path=dropbox_path, mode=WriteMode.overwrite)
+        _retry(lambda: dbx.files_upload_session_finish(b"", cursor, commit))
 
 
-def load_into_live_database(source_path: str) -> None:
+def _download_file(dbx, dropbox_path: str, local_path: str, progress=_noop_progress) -> None:
+    """Download a file in a stream, reporting progress, into local_path."""
+    metadata, response = _retry(lambda: dbx.files_download(dropbox_path))
+    done = 0
+    progress(done=0, total=metadata.size)
+    try:
+        with open(local_path, "wb") as fh:
+            for piece in response.iter_content(chunk_size=1024 * 1024):
+                fh.write(piece)
+                done += len(piece)
+                progress(done=done, total=metadata.size)
+    finally:
+        response.close()
+    if done != metadata.size:
+        raise RuntimeError(f"The download stopped early ({_human_size(done)} of {_human_size(metadata.size)}). Please try again.")
+
+
+def load_into_live_database(source_path: str, progress=_noop_progress) -> None:
     """Make the site use the database in `source_path`.
 
     The backup is copied into the live database file in place (SQLite's backup API) rather than swapping
@@ -84,7 +129,9 @@ def load_into_live_database(source_path: str) -> None:
     from django.core.management import call_command
     from django.db import connections
 
+    progress("Checking the backup file", force=True)
     check_sqlite_file(source_path)
+    progress("Loading it into the site")
     connections.close_all()
     source = sqlite3.connect(f"file:{source_path}?mode=ro", uri=True)
     target = sqlite3.connect(db_path(), timeout=60)
@@ -94,6 +141,7 @@ def load_into_live_database(source_path: str) -> None:
         target.close()
         source.close()
     connections.close_all()
+    progress("Updating the database to this version of the site")
     call_command("migrate", interactive=False, verbosity=0)
     cache.clear()
     Path(restore_marker_path()).touch()
@@ -107,8 +155,8 @@ def clear_backup_list_cache():
 
 
 def _credentials():
-    """Use the active admin-saved configuration, falling back to settings."""
-    from .models import DropboxConfiguration
+    """Use the active admin-saved configuration, falling back to settings (and the chosen folder)."""
+    from .models import BackupPreference, DropboxConfiguration
 
     config = DropboxConfiguration.objects.filter(is_active=True).first()
     if config:
@@ -117,21 +165,56 @@ def _credentials():
         settings.DROPBOX_APP_KEY,
         settings.DROPBOX_APP_SECRET,
         settings.DROPBOX_REFRESH_TOKEN,
-        default_backup_folder(),
+        BackupPreference.get_solo().folder or default_backup_folder(),
     )
+
+
+def backup_folder() -> str:
+    return _credentials()[3]
+
+
+def normalize_folder(value: str) -> str:
+    """'My Backups/' -> '/My Backups'. Raises ValueError for an unusable folder name."""
+    value = (value or "").strip().replace("\\", "/").strip("/")
+    if not value or ".." in value.split("/") or len(value) > 200 or not re.fullmatch(r"[A-Za-z0-9 _().&@+-]+(/[A-Za-z0-9 _().&@+-]+)*", value):
+        raise ValueError("Use letters, numbers, spaces, - and _ for the folder name (e.g. /edutrellis-backup).")
+    return "/" + value
+
+
+def _client(app_key, app_secret, refresh_token):
+    import dropbox  # type: ignore
+
+    return dropbox.Dropbox(oauth2_refresh_token=refresh_token, app_key=app_key, app_secret=app_secret, timeout=120)
+
+
+def check_credentials(app_key, app_secret, refresh_token) -> str:
+    """Raise RuntimeError unless the credentials work. Returns the account's display name."""
+    try:
+        return _client(app_key, app_secret, refresh_token).users_get_current_account().name.display_name
+    except Exception as exc:
+        raise RuntimeError(f"Dropbox did not accept these credentials: {exc}")
+
+
+# A checked client is reused for a few minutes: each check is a token refresh plus an account lookup.
+_CLIENT_CACHE: dict = {}
+CLIENT_REUSE_SECONDS = 5 * 60
 
 
 def _get_dbx():
     """Return an authenticated Dropbox client, auto-refreshing the token."""
+    import time
+
     try:
-        import dropbox  # type: ignore
+        import dropbox  # type: ignore  # noqa: F401
         app_key, app_secret, refresh_token, _ = _credentials()
-        dbx = dropbox.Dropbox(
-            oauth2_refresh_token=refresh_token,
-            app_key=app_key,
-            app_secret=app_secret,
-        )
+        key = (app_key, app_secret, refresh_token)
+        cached = _CLIENT_CACHE.get(key)
+        if cached and time.monotonic() - cached[1] < CLIENT_REUSE_SECONDS:
+            return cached[0]
+        dbx = _client(app_key, app_secret, refresh_token)
         dbx.users_get_current_account()  # validates credentials
+        _CLIENT_CACHE.clear()
+        _CLIENT_CACHE[key] = (dbx, time.monotonic())
         return dbx
     except ImportError:
         raise RuntimeError("dropbox SDK not installed. Run: pip install dropbox")
@@ -143,13 +226,13 @@ def _ensure_folder(dbx) -> None:
     """Create the backup folder on Dropbox if it does not already exist."""
     try:
         import dropbox  # type: ignore
-        _, _, _, backup_folder = _credentials()
-        dbx.files_get_metadata(backup_folder)
+        folder = backup_folder()
+        dbx.files_get_metadata(folder)
     except Exception:
         try:
             import dropbox  # type: ignore
-            dbx.files_create_folder_v2(backup_folder)
-            logger.info("Created Dropbox folder: %s", backup_folder)
+            dbx.files_create_folder_v2(folder)
+            logger.info("Created Dropbox folder: %s", folder)
         except Exception as exc:
             # Folder may have been created concurrently – ignore
             logger.warning("Could not create Dropbox folder: %s", exc)
@@ -171,10 +254,11 @@ class DropboxBackupManager:
     #  CREATE                                                              #
     # ------------------------------------------------------------------ #
     @staticmethod
-    def create_backup() -> dict:
+    def create_backup(progress=_noop_progress, label: str = "backup") -> dict:
         """
         Back up everything: copy uploaded files still on local disk into Dropbox (the database only stores
         their names), then upload a consistent snapshot of the database with a timestamped filename.
+        `label` names the file (<site>_<label>_<time>.sqlite3), e.g. "before_restore" for safety copies.
         Returns a dict with keys: success, filename, message.
         """
         if not is_sqlite():
@@ -183,20 +267,23 @@ class DropboxBackupManager:
             return {"success": False, "message": f"Database file not found: {db_path()}"}
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{brand()['slug'].replace('-', '_')}_backup_{timestamp}.sqlite3"
-        _, _, _, backup_folder = _credentials()
-        dropbox_path = f"{backup_folder}/{filename}"
-        snapshot = db_path() + ".backup-snapshot"
+        filename = f"{brand()['slug'].replace('-', '_')}_{label}_{timestamp}.sqlite3"
+        dropbox_path = f"{backup_folder()}/{filename}"
+        snapshot = db_path() + f".backup-snapshot-{timestamp}"
 
         try:
             from video_courses.dropbox_storage import sync_local_media
 
-            media = sync_local_media()
+            progress("Connecting to Dropbox")
             dbx = _get_dbx()
             _ensure_folder(dbx)
+            progress("Copying uploaded images to Dropbox")
+            media = sync_local_media()
+            progress("Taking a snapshot of the database")
             _snapshot(snapshot)
             size = os.path.getsize(snapshot)
-            _upload_file(dbx, snapshot, dropbox_path)
+            progress("Uploading to Dropbox", done=0, total=size)
+            _upload_file(dbx, snapshot, dropbox_path, progress)
             file_size = _human_size(size)
             logger.info("Backup uploaded: %s (%s)", dropbox_path, file_size)
             clear_backup_list_cache()
@@ -206,6 +293,7 @@ class DropboxBackupManager:
             return {
                 "success": True,
                 "filename": filename,
+                "size": size,
                 "message": f"Backup '{filename}' ({file_size}) uploaded successfully.{note}",
             }
         except Exception as exc:
@@ -230,8 +318,7 @@ class DropboxBackupManager:
         try:
             dbx = _get_dbx()
             _ensure_folder(dbx)
-            _, _, _, backup_folder = _credentials()
-            result = dbx.files_list_folder(backup_folder)
+            result = dbx.files_list_folder(backup_folder())
             backups = []
             while True:
                 for entry in result.entries:
@@ -243,6 +330,7 @@ class DropboxBackupManager:
                             "size_bytes": entry.size,
                             "size_human": _human_size(entry.size),
                             "modified": entry.server_modified,
+                            "kind": backup_kind(entry.name),
                         })
                 if not result.has_more:
                     break
@@ -259,22 +347,34 @@ class DropboxBackupManager:
     #  RESTORE                                                             #
     # ------------------------------------------------------------------ #
     @staticmethod
-    def restore_backup(filename: str) -> dict:
+    def restore_backup(filename: str, progress=_noop_progress, safety_backup: bool = False) -> dict:
         """
-        Download the specified backup from Dropbox and make the site use it.
-        Returns dict with keys: success, message.
+        Download the specified backup from Dropbox and make the site use it. With safety_backup, the
+        current database is backed up first, so the restore can be undone.
+        Returns dict with keys: success, message (and safety_backup: the safety copy's file name).
         """
         if not is_sqlite():
             return {"success": False, "message": f"The site uses {active_database_label()}; a SQLite backup cannot be restored into it."}
-        _, _, _, backup_folder = _credentials()
-        dropbox_path = f"{backup_folder}/{filename}"
+        dropbox_path = f"{backup_folder()}/{filename}"
         tmp_path = db_path() + ".restore-download"
+        safety_name = None
         try:
+            if safety_backup:
+                safety = DropboxBackupManager.create_backup(
+                    lambda stage=None, **kw: progress(f"Safety backup: {stage}" if stage else None, **kw),
+                    label="before_restore",
+                )
+                if not safety["success"]:
+                    return {"success": False, "message": f"The safety backup failed, so nothing was restored: {safety['message']}"}
+                safety_name = safety["filename"]
+            progress("Downloading the backup from Dropbox", done=0, total=0)
             dbx = _get_dbx()
-            dbx.files_download_to_file(tmp_path, dropbox_path)
-            load_into_live_database(tmp_path)
+            _download_file(dbx, dropbox_path, tmp_path, progress)
+            load_into_live_database(tmp_path, progress)
             logger.info("Database restored from: %s", dropbox_path)
-            return {"success": True, "message": f"Database restored from '{filename}' successfully."}
+            note = f" The previous data was saved as '{safety_name}'." if safety_name else ""
+            return {"success": True, "message": f"Database restored from '{filename}' successfully.{note}",
+                    "safety_backup": safety_name}
         except Exception as exc:
             logger.error("Restore failed: %s", exc)
             return {"success": False, "message": str(exc)}
@@ -288,15 +388,14 @@ class DropboxBackupManager:
     @staticmethod
     def get_download_url(filename: str) -> dict:
         """
-        Return a temporary direct download link (4 hour expiry).
-        Returns dict with keys: success, url / message.
+        Return a temporary direct download link (4 hour expiry) and the file size.
+        Returns dict with keys: success, url, size / message.
         """
-        _, _, _, backup_folder = _credentials()
-        dropbox_path = f"{backup_folder}/{filename}"
+        dropbox_path = f"{backup_folder()}/{filename}"
         try:
             dbx = _get_dbx()
             link = dbx.files_get_temporary_link(dropbox_path)
-            return {"success": True, "url": link.link}
+            return {"success": True, "url": link.link, "size": link.metadata.size}
         except Exception as exc:
             logger.error("get_download_url failed: %s", exc)
             return {"success": False, "message": str(exc)}
@@ -310,8 +409,7 @@ class DropboxBackupManager:
         Permanently delete a backup file from Dropbox.
         Returns dict with keys: success, message.
         """
-        _, _, _, backup_folder = _credentials()
-        dropbox_path = f"{backup_folder}/{filename}"
+        dropbox_path = f"{backup_folder()}/{filename}"
         try:
             dbx = _get_dbx()
             dbx.files_delete_v2(dropbox_path)
@@ -321,6 +419,155 @@ class DropboxBackupManager:
         except Exception as exc:
             logger.error("Delete backup failed: %s", exc)
             return {"success": False, "message": str(exc)}
+
+
+def backup_kind(filename: str) -> str:
+    name = filename.lower()
+    if "_before_restore_" in name:
+        return "safety"
+    if "_uploaded_" in name:
+        return "uploaded"
+    return "backup"
+
+
+# ---------------------------------------------------------------------- #
+#  CONNECTION STATUS AND FOLDERS                                          #
+# ---------------------------------------------------------------------- #
+def connection_status() -> dict:
+    """Is Dropbox connected? Account, storage space, the backup folder and what is in it."""
+    from .models import DropboxConfiguration
+
+    saved = DropboxConfiguration.objects.filter(is_active=True).first()
+    status = {
+        "connected": False,
+        "source": "Saved on this page" if saved else "Server settings (environment)",
+        "folder": backup_folder(),
+        "default_folder": default_backup_folder(),
+    }
+    try:
+        dbx = _get_dbx()
+        account = dbx.users_get_current_account()
+        status.update(connected=True, account_name=account.name.display_name, account_email=account.email,
+                      keep_last=_keep_last())
+        try:
+            space = dbx.users_get_space_usage()
+            allocation = space.allocation
+            allocated = (allocation.get_individual().allocated if allocation.is_individual()
+                         else allocation.get_team().allocated)
+            status.update(space_used=space.used, space_allocated=allocated)
+        except Exception as exc:  # missing account_info.read scope or similar: not essential
+            logger.info("Could not read Dropbox space usage: %s", exc)
+        try:
+            dbx.files_get_metadata(status["folder"])
+            status["folder_exists"] = True
+        except Exception:
+            status["folder_exists"] = False
+    except Exception as exc:
+        status["error"] = str(exc)
+        return status
+    backups = DropboxBackupManager.list_backups()
+    status.update(
+        backup_count=len(backups),
+        backup_bytes=sum(b["size_bytes"] for b in backups),
+        latest=backups[0]["modified"].isoformat() if backups else None,
+        latest_name=backups[0]["filename"] if backups else None,
+    )
+    return status
+
+
+def backup_folders() -> list[dict]:
+    """Top-level Dropbox folders that hold database backups (plus the current folder), with counts."""
+    import dropbox  # type: ignore
+
+    dbx = _get_dbx()
+    current = backup_folder()
+    candidates = {current.lower(): current}
+    result = dbx.files_list_folder("")
+    while True:
+        for entry in result.entries:
+            if isinstance(entry, dropbox.files.FolderMetadata) and "backup" in entry.name.lower():
+                candidates.setdefault(entry.path_lower, entry.path_display)
+        if not result.has_more:
+            break
+        result = dbx.files_list_folder_continue(result.cursor)
+    folders = []
+    for key, path in candidates.items():
+        count = size = 0
+        latest = None
+        try:
+            listing = dbx.files_list_folder(path)
+            while True:
+                for entry in listing.entries:
+                    if isinstance(entry, dropbox.files.FileMetadata) and entry.name.lower().endswith(UPLOAD_EXTENSIONS):
+                        count += 1
+                        size += entry.size
+                        latest = max(latest, entry.server_modified) if latest else entry.server_modified
+                if not listing.has_more:
+                    break
+                listing = dbx.files_list_folder_continue(listing.cursor)
+            exists = True
+        except dropbox.exceptions.ApiError:
+            exists = False
+        folders.append({
+            "path": path, "count": count, "size_bytes": size, "size_human": _human_size(size),
+            "latest": latest.isoformat() if latest else None, "current": key == current.lower(), "exists": exists,
+        })
+    folders.sort(key=lambda f: (not f["current"], -(f["count"] or 0), f["path"].lower()))
+    return folders
+
+
+def _keep_last() -> int:
+    from .models import BackupPreference
+
+    return BackupPreference.get_solo().keep_last
+
+
+def apply_retention(progress=_noop_progress) -> list[str]:
+    """Delete the oldest backups beyond the "keep last" setting. Uploaded files are never removed."""
+    keep = _keep_last()
+    if not keep:
+        return []
+    clear_backup_list_cache()
+    backups = [b for b in DropboxBackupManager.list_backups() if b["kind"] in ("backup", "safety")]
+    removed = []
+    for old in backups[keep:]:  # newest first
+        progress("Removing old backups")
+        if DropboxBackupManager.delete_backup(old["filename"])["success"]:
+            removed.append(old["filename"])
+    return removed
+
+
+def set_keep_last(value) -> int:
+    from .models import BackupPreference
+
+    keep = int(value)
+    if keep < 0 or keep > 100:
+        raise ValueError("Choose between 0 (keep all) and 100.")
+    preference = BackupPreference.get_solo()
+    preference.keep_last = keep
+    preference.save()
+    return keep
+
+
+def set_backup_folder(folder: str) -> str:
+    """Make `folder` the backup folder (creating it in Dropbox if needed). Returns the normalised path."""
+    from .models import BackupPreference, DropboxConfiguration
+
+    folder = normalize_folder(folder)
+    dbx = _get_dbx()
+    try:
+        dbx.files_get_metadata(folder)
+    except Exception:
+        dbx.files_create_folder_v2(folder)
+    saved = DropboxConfiguration.objects.filter(is_active=True).first()
+    if saved:
+        saved.backup_folder = folder
+        saved.save(update_fields=["backup_folder", "updated_at"])
+    preference = BackupPreference.get_solo()
+    preference.folder = folder
+    preference.save()
+    clear_backup_list_cache()
+    return folder
 
 
 # ---------------------------------------------------------------------- #
@@ -407,12 +654,12 @@ def upload_finish(token: str, user_id: int) -> str:
     from .branding import brand
 
     state = _upload_state(token, user_id)
-    _, _, _, backup_folder = _credentials()
+    folder = backup_folder()
     stem = re.sub(r"[^A-Za-z0-9_-]+", "_", os.path.splitext(state["name"])[0]).strip("_")[:40] or "database"
     prefix = brand()["slug"].replace("-", "_")
     filename = f"{prefix}_uploaded_{datetime.now():%Y%m%d_%H%M%S}_{stem}.sqlite3"
     cursor = dropbox.files.UploadSessionCursor(session_id=state["sid"], offset=state["size"])
-    commit = dropbox.files.CommitInfo(path=f"{backup_folder}/{filename}", mode=WriteMode.add, autorename=True)
+    commit = dropbox.files.CommitInfo(path=f"{folder}/{filename}", mode=WriteMode.add, autorename=True)
     try:
         metadata = _get_dbx().files_upload_session_finish(b"", cursor, commit)
     except Exception as exc:

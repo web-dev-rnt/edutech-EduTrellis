@@ -333,6 +333,10 @@ class DropboxMediaStorage(DropboxStorage):
             link = self.client.sharing_create_shared_link_with_settings(path).url
         except dropbox.exceptions.AuthError as exc:
             cache.set(SHARING_UNAVAILABLE_KEY, True, self.SHARING_RETRY_SECONDS)
+            logger.warning(
+                "Dropbox refused to create a permanent link (%s). Enable the sharing.write permission for the "
+                "Dropbox app, then run `manage.py dropbox_auth` for a new DROPBOX_REFRESH_TOKEN.", exc,
+            )
             raise PermissionError("The Dropbox app is missing the sharing.write permission.") from exc
         except dropbox.exceptions.ApiError as exc:
             if not exc.error.is_shared_link_already_exists():
@@ -359,11 +363,18 @@ class DropboxMediaStorage(DropboxStorage):
         return path if path.is_file() else None
 
     def local_or_downloaded(self, name):
-        """A path on this server's disk holding the file: the local upload, or a fresh download from
-        Dropbox into the disk cache. None if the file is missing or too big to cache."""
-        if self.local.exists(name):
-            return Path(self.local.path(name))
-        metadata, response = self.client.files_download(self._clean_path(name))
+        """A path on this server's disk holding the file: a fresh download from Dropbox into the disk
+        cache, or the local upload when Dropbox does not have it. None if missing or too big to cache.
+
+        Dropbox wins over the local copy: files under MEDIA_ROOT can be stale (the repository ships an
+        older media/ folder, and replaced brand images keep their names).
+        """
+        try:
+            metadata, response = self.client.files_download(self._clean_path(name))
+        except dropbox.exceptions.ApiError:
+            if self.local.exists(name):
+                return Path(self.local.path(name))
+            raise
         try:
             if metadata.size > self.DISK_CACHE_MAX_BYTES:
                 return None

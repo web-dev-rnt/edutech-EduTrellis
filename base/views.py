@@ -187,114 +187,46 @@ def service_worker(request):
         return HttpResponse('Service worker not found', status=404, content_type='text/plain')
 
 @require_GET
-@cache_control(max_age=3600)  # Cache for 1 hour
+@cache_control(max_age=3600)  # pages link to it with ?v=<settings version>, so changes show up at once
 def manifest(request):
-    """Generate and serve the manifest.json dynamically"""
-    
-    # Build absolute URLs for icons
-    def build_icon_url(filename):
-        return request.build_absolute_uri(settings.STATIC_URL + f'img/{filename}')
+    """manifest.json for the installable app, from Website > App & Sharing (brand defaults when blank)."""
+    from adminpanel.app_profile import app_profile
 
-    from adminpanel.branding import brand
-    from adminpanel.models import ThemeSettings
-    theme_color = ThemeSettings.get_solo().primary_color
-    site_brand = brand()
+    app = app_profile()
+    absolute = request.build_absolute_uri
 
+    def icon(src, size, purpose):
+        return {"src": absolute(src), "sizes": f"{size}x{size}", "type": "image/png", "purpose": purpose}
+
+    shortcut_icon = [icon(app["icon_192"], 192, "any")]
     manifest_data = {
-        "name": f"{site_brand['full_name']} - Complete Learning Platform",
-        "short_name": site_brand['name'],
-        "description": f"Prepare smarter with {site_brand['name']}: online test series, mock tests and previous year papers for competitive and board exams.",
-        "start_url": "/",
+        "id": "/",
+        "name": app["app_name"],
+        "short_name": app["short_name"],
+        "description": app["description"],
+        "start_url": "/?source=pwa",
         "scope": "/",
         "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": theme_color,
+        "background_color": app["background_color"],
+        "theme_color": app["theme_color"],
         "orientation": "portrait-primary",
-        "categories": ["education", "learning", "productivity"],
+        "categories": ["education"],
         "lang": "en-IN",
         "dir": "ltr",
-        
-        # Icons - required for PWA
         "icons": [
-            {
-                "src": build_icon_url("icon-192.png"),
-                "sizes": "192x192",
-                "type": "image/png",
-                "purpose": "any maskable"
-            },
-            {
-                "src": build_icon_url("icon-512.png"),
-                "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any maskable"
-            }
+            icon(app["icon_192"], 192, "any"),
+            icon(app["icon_512"], 512, "any"),
+            icon(app["icon_maskable"], 512, "maskable"),
         ],
-        
-        # Shortcuts - quick actions from app icon (Android)
         "shortcuts": [
-            {
-                "name": "Video Courses",
-                "short_name": "Courses",
-                "description": "Browse all video courses",
-                "url": "/#video-courses",
-                "icons": [
-                    {
-                        "src": build_icon_url("icon-192.png"),
-                        "sizes": "192x192",
-                        "type": "image/png"
-                    }
-                ]
-            },
-            {
-                "name": "Live Classes",
-                "short_name": "Live",
-                "description": "Join live classes",
-                "url": "/#live-classes",
-                "icons": [
-                    {
-                        "src": build_icon_url("icon-192.png"),
-                        "sizes": "192x192",
-                        "type": "image/png"
-                    }
-                ]
-            },
-            {
-                "name": "Test Series",
-                "short_name": "Tests",
-                "description": "Take practice tests",
-                "url": "/#test-series",
-                "icons": [
-                    {
-                        "src": build_icon_url("icon-192.png"),
-                        "sizes": "192x192",
-                        "type": "image/png"
-                    }
-                ]
-            },
-            {
-                "name": "E-Library",
-                "short_name": "Library",
-                "description": "Access digital books",
-                "url": "/#e-library",
-                "icons": [
-                    {
-                        "src": build_icon_url("icon-192.png"),
-                        "sizes": "192x192",
-                        "type": "image/png"
-                    }
-                ]
-            }
+            {"name": "Test Series", "short_name": "Tests", "description": "Browse all test series",
+             "url": "/test-series/", "icons": shortcut_icon},
+            {"name": "My Results", "short_name": "Results", "description": "Your scores and ranks",
+             "url": "/my_results/", "icons": shortcut_icon},
         ],
-        
-        # Related applications - set to false to prefer PWA
         "prefer_related_applications": False,
-        
-        # Additional features
-        "iarc_rating_id": "",  # Add if you have IARC rating
-        "gcm_sender_id": "",   # Add if using push notifications later
     }
-    
-    return JsonResponse(manifest_data, json_dumps_params={'indent': 2})
+    return JsonResponse(manifest_data, json_dumps_params={"indent": 2})
 
 ROBOTS_DISALLOW = [
     '/admin/', '/api/', '/payment/', '/exam/', '/pdf/', '/dropbox-file/',
@@ -307,11 +239,40 @@ ROBOTS_DISALLOW = [
 @require_GET
 @cache_control(max_age=86400)
 def robots_txt(request):
-    """robots.txt pointing crawlers at the sitemap and away from private pages."""
-    lines = ['User-agent: *', 'Allow: /']
+    """robots.txt pointing crawlers at the sitemap and away from private pages.
+
+    Search engines and AI assistants (GPTBot, ClaudeBot, PerplexityBot, Google-Extended...) all follow the
+    "*" group, so public pages stay open to both; /llms.txt summarises the site for AI assistants.
+    """
+    lines = ['# AI assistants: a summary of this site is at ' + f'{settings.SITE_URL}/llms.txt',
+             'User-agent: *', 'Allow: /']
     lines += [f'Disallow: {path}' for path in ROBOTS_DISALLOW]
     lines += ['', f'Sitemap: {settings.SITE_URL}/sitemap.xml', '']
     return HttpResponse('\n'.join(lines), content_type='text/plain')
+
+@require_GET
+@cache_control(max_age=3600, public=True)
+def llms_txt(request):
+    """/llms.txt: what this site is, who runs it and its main pages, for AI assistants (llmstxt.org)."""
+    from .site_facts import llms_txt as build
+
+    text = cache.get("llms-txt-v1")
+    if text is None:
+        text = build()
+        cache.set("llms-txt-v1", text, 3600)
+    return HttpResponse(text, content_type="text/markdown; charset=utf-8")
+
+
+@require_GET
+@cache_control(max_age=86400, public=True)
+def favicon_ico(request):
+    """/favicon.ico, where browsers and Google look first (16, 32 and 48 px)."""
+    path = finders.find("img/brand/favicon.ico")
+    if not path:
+        raise Http404("favicon missing")
+    with open(path, "rb") as fh:
+        return HttpResponse(fh.read(), content_type="image/x-icon")
+
 
 @require_GET
 def offline(request):

@@ -1,4 +1,4 @@
-// Edutrellis brand kit: palette, contact details, emblem and logo lockups.
+// EduTrellis brand kit: palette, contact details, emblem and logo lockups.
 // Rendered to PNG by render.py; edit BRAND below and re-run to refresh every asset.
 
 const BRAND = {

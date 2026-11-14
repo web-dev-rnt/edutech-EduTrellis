@@ -1,5 +1,5 @@
 """
-WSGI config for the Edutrellis project.
+WSGI config for the EduTrellis project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

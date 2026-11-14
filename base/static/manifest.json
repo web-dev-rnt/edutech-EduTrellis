@@ -1,4 +1,4 @@
-// Service Worker for Edutrellis PWA
+// Service Worker for EduTrellis PWA
 const CACHE_VERSION = 'edutrellis-v3.0.0';
 const CACHE_NAME = `edutrellis-cache-${CACHE_VERSION}`;
 

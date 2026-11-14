@@ -125,7 +125,7 @@ ASSETS.banner_3_desktop = {
   draw: () => bannerBgLight() +
     markLine(320, 90, 40, 'Knowledge That Costs Nothing,', '') +
     markLine(320, 144, 40, '', 'Empowers Everything.') +
-    T(320, 180, 20, 'Trusted by 10,000+ students. Prepare smarter with Edutrellis.', { weight: 600, color: C.mute }) +
+    T(320, 180, 20, 'Trusted by 10,000+ students. Prepare smarter with EduTrellis.', { weight: 600, color: C.mute }) +
     contactRow(320, 206, 44, [['phone', BRAND.phone], ['mail', BRAND.email]]) +
     `<path d="M980 300 C1030 170 1470 170 1520 300 Z" fill="url(#gBrand)"/>
      ${rings(1250, 300, 260, 3, C.ink, 0.1, 2.5)}` +
@@ -589,6 +589,39 @@ ASSETS.auth_signup_mobile = {
     student(700, 230, 0.95, { skin: 'brown', hair: 'braid', top: C.navy, pose: 'books', mouth: 'open' }) +
     student(950, 230, 0.95, { skin: 'deep', hair: 'curly', top: C.coral, collar: 'hoodie', pose: 'wave', mouth: 'open' }) +
     student(820, 180, 1.05, { skin: 'light', hair: 'long', pose: 'grad', collar: 'gown', top: C.ink, cap: true, mouth: 'open' }),
+};
+
+/* ---------- link-sharing card 1200x630 (WhatsApp, Facebook, LinkedIn, X) ---------- */
+
+ASSETS.og_share = {
+  w: 1200, h: 630,
+  draw: () => {
+    const chips = ['SSC', 'Banking', 'Railways', 'UPSC', 'JEE', 'NEET', 'CBSE'];
+    let cx = 70;
+    const chipRow = chips.map((label) => {
+      const w = textW(label, 22, SANS, 800) + 34, x = cx;
+      cx += w + 10;
+      return `<rect x="${x}" y="430" width="${w}" height="42" rx="21" fill="#fff" stroke="${C.line}" stroke-width="2"/>
+        ${T(x + w / 2, 458, 22, label, { anchor: 'middle', color: C.logoNavy })}`;
+    }).join('');
+    return `<rect width="1200" height="630" fill="url(#bgOg)"/>
+      <defs><linearGradient id="bgOg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#FFF4F5"/><stop offset="1" stop-color="#FFE1E5"/></linearGradient></defs>
+      <rect x="600" y="40" width="200" height="120" fill="url(#pDots)" opacity=".35"/>
+      <circle cx="975" cy="430" r="250" fill="url(#gBrand)"/>
+      ${rings(975, 430, 300, 3, C.ink, 0.1, 3)}` +
+      student(840, 230, 1.0, { skin: 'light', hair: 'long', pose: 'grad', collar: 'gown', top: C.ink, cap: true, mouth: 'open' }) +
+      infoCard(770, 120, 250, 76, 'trophy', 'All-India Rank', 'Mock Test #12', { bar: 0.92 }) +
+      logoHorizontal(70, 56, 100) +
+      markLine(70, 268, 58, "India's Best Platform", '') +
+      markLine(70, 336, 58, 'for', 'Online Test Series') +
+      T(70, 392, 25, 'Mock tests · Previous year papers · Instant results', { weight: 600, color: C.mute }) +
+      chipRow +
+      `<rect x="70" y="512" width="${textW('10,000+ students trained', 26, SANS, 800) + 96}" height="62" rx="31" fill="${C.logoNavy}"/>
+       <circle cx="104" cy="543" r="20" fill="${C.logoRed}"/>${icon('check', 104, 543, 20, '#fff')}
+       ${T(136, 553, 26, '10,000+ students trained', { color: '#fff' })}` +
+      sparkle(700, 200, 14) + sparkle(1140, 90, 10, C.ink);
+  },
 };
 
 /* ---------- course thumbnail placeholder 800x450 ---------- */

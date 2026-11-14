@@ -73,7 +73,7 @@ class DeveloperPopup(models.Model):
     
     # Profile Information
     profile_image = models.ImageField(
-        upload_to='developer/',
+        upload_to='site/developer/',
         blank=True,
         null=True,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])],
@@ -274,14 +274,18 @@ class UserCoupon(models.Model):
 
 
 def banner_upload_path(instance, filename):
-    return f'banners/{filename}'
+    return f'site/banners/desktop/{filename}'
+
+
+def banner_mobile_upload_path(instance, filename):
+    return f'site/banners/mobile/{filename}'
 
 
 class Banner(models.Model):
     title = models.CharField(max_length=200)
     image = models.ImageField(upload_to=banner_upload_path, help_text="Recommended size: 1920x800px")
     mobile_image = models.ImageField(
-        upload_to=banner_upload_path,
+        upload_to=banner_mobile_upload_path,
         blank=True,
         null=True,
         help_text="Optional mobile-only banner. Recommended size: 750x400px. Falls back to the desktop image if left blank."
@@ -316,7 +320,7 @@ def stat_icon_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     # Create new filename using the label
     filename = f"stat_icon_{instance.label.lower().replace(' ', '_')}.{ext}"
-    return os.path.join('stat_icons/', filename)
+    return f'site/stat-icons/{filename}'
 
 class StatCard(models.Model):
     ICON_TYPE_CHOICES = [
@@ -407,7 +411,7 @@ class CTASection(models.Model):
         max_length=7, default='#D7263D', help_text="Hex color code for the CTA button (e.g., #D4AF37)"
     )
     background_image = models.ImageField(
-        upload_to='cta/', blank=True, null=True, help_text="Optional background image (recommended 1920x600px)"
+        upload_to='site/cta/', blank=True, null=True, help_text="Optional background image (recommended 1920x600px)"
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -433,10 +437,10 @@ class CTASection(models.Model):
 
 
 class AboutUsSection(models.Model):
-    company_name = models.CharField(max_length=200, default="Edutrellis")
-    heading = models.CharField(max_length=200, default="About Edutrellis")
+    company_name = models.CharField(max_length=200, default="EduTrellis")
+    heading = models.CharField(max_length=200, default="About EduTrellis")
     description = models.TextField(default="Online test series and mock tests for competitive and board exams. 10,000+ students trained.")
-    logo = models.ImageField(upload_to='about/', blank=True, help_text="Company logo image")
+    logo = models.ImageField(upload_to='site/about/', blank=True, help_text="Company logo image")
 
     # Contact Information
     address = models.TextField(default="P-109, Prembagh, Shahpur, Chinhat, Lucknow, Uttar Pradesh 226028")
@@ -504,12 +508,12 @@ class ThemeSettings(models.Model):
     """Site-wide brand name and color. The name is used in page titles, emails, SEO and the admin panel."""
     site_name = models.CharField(
         max_length=60,
-        default='Edutrellis',
+        default='EduTrellis',
         help_text="Short brand name shown in page titles, emails, the admin panel and search results."
     )
     site_full_name = models.CharField(
         max_length=120,
-        default='Edutrellis',
+        default='EduTrellis Test Series',
         help_text="Full or legal name, used in the homepage title, search results and structured data."
     )
     primary_color = models.CharField(
@@ -582,25 +586,25 @@ class ThemeSettings(models.Model):
 class AuthPageSettings(models.Model):
     """Side images shown on the login and signup pages."""
     login_image = models.ImageField(
-        upload_to='auth_pages/',
+        upload_to='site/auth-pages/',
         blank=True,
         null=True,
         help_text="Side image for the login page. Recommended size: 1000x1200px. Falls back to the default image if left blank."
     )
     signup_image = models.ImageField(
-        upload_to='auth_pages/',
+        upload_to='site/auth-pages/',
         blank=True,
         null=True,
         help_text="Side image for the signup page. Recommended size: 1000x1200px. Falls back to the default image if left blank."
     )
     login_image_mobile = models.ImageField(
-        upload_to='auth_pages/',
+        upload_to='site/auth-pages/',
         blank=True,
         null=True,
         help_text="Optional wide image shown above the login form on phones and tablets. Recommended size: 1200x480px."
     )
     signup_image_mobile = models.ImageField(
-        upload_to='auth_pages/',
+        upload_to='site/auth-pages/',
         blank=True,
         null=True,
         help_text="Optional wide image shown above the signup form on phones and tablets. Recommended size: 1200x480px."
@@ -639,8 +643,8 @@ class NavbarSettings(models.Model):
         ('call', 'Phone Call'),
     ]
     
-    logo = models.ImageField(upload_to='navbar/', blank=True, null=True, help_text="Website logo")
-    favicon = models.ImageField(upload_to='navbar/favicon/', blank=True, null=True, help_text="Website favicon (16x16 or 32x32 px)")
+    logo = models.ImageField(upload_to='site/navbar/logo/', blank=True, null=True, help_text="Website logo")
+    favicon = models.ImageField(upload_to='site/navbar/favicon/', blank=True, null=True, help_text="Website favicon (16x16 or 32x32 px)")
     logo_height = models.PositiveSmallIntegerField(
         default=34, validators=[MinValueValidator(16), MaxValueValidator(96)],
         help_text="Logo height on desktop, in pixels (16-96). Smaller laptop screens scale it down automatically.")
@@ -691,9 +695,9 @@ class NavbarSettings(models.Model):
 
 
 class FooterSettings(models.Model):
-    logo = models.ImageField(upload_to='footer/', blank=True, null=True, help_text="Footer logo image")
+    logo = models.ImageField(upload_to='site/footer/logo/', blank=True, null=True, help_text="Footer logo image")
     email = models.EmailField(default="support@edutrellis.in", help_text="Contact email")
-    copyright_text = models.CharField(max_length=200, default="Copyright © 2026 Edutrellis. All rights reserved.")
+    copyright_text = models.CharField(max_length=200, default="Copyright © 2026 EduTrellis. All rights reserved.")
 
     google_play_url = models.URLField(blank=True, default="https://play.google.com/store/apps", help_text="Google Play Store URL")
     app_store_url = models.URLField(blank=True, default="https://apps.apple.com/app", help_text="Apple App Store URL")
@@ -921,6 +925,87 @@ class RazorpayConfiguration(models.Model):
             return ""
         visible = self.key_secret[-4:] if len(self.key_secret) > 4 else ""
         return f"{'*' * 8}{visible}"
+
+
+class AppSettings(models.Model):
+    """The installable app (PWA) and the link-sharing preview. Blank fields use the brand defaults
+    (see adminpanel/app_profile.py)."""
+
+    app_name = models.CharField(
+        max_length=60, blank=True,
+        help_text="Shown when installing the app and in the app switcher, e.g. \"EduTrellis – Online Test Series\".")
+    short_name = models.CharField(
+        max_length=30, blank=True, help_text="Under the home-screen icon. 12 characters or fewer look best.")
+    description = models.TextField(max_length=300, blank=True, help_text="One or two sentences about the app.")
+    icon = models.ImageField(
+        upload_to="site/app/", blank=True, null=True,
+        help_text="Square PNG, at least 512 × 512 px. Every app icon size is made from it automatically.")
+    theme_color = models.CharField(
+        max_length=7, blank=True, help_text="Colour of the app's title bar. Blank uses the site's brand colour.")
+    background_color = models.CharField(max_length=7, default="#ffffff", help_text="Splash screen colour while the app opens.")
+    # Generated from `icon` when it is uploaded.
+    icon_192 = models.ImageField(upload_to="site/app/icons/", blank=True, null=True, editable=False)
+    icon_512 = models.ImageField(upload_to="site/app/icons/", blank=True, null=True, editable=False)
+    icon_maskable = models.ImageField(upload_to="site/app/icons/", blank=True, null=True, editable=False)
+    icon_apple = models.ImageField(upload_to="site/app/icons/", blank=True, null=True, editable=False)
+
+    share_title = models.CharField(
+        max_length=120, blank=True, help_text="Bold title of the preview card on WhatsApp, Facebook, LinkedIn and X.")
+    share_description = models.TextField(
+        max_length=300, blank=True, help_text="Text under the title. Around 150–200 characters reads best.")
+    share_image = models.ImageField(
+        upload_to="site/share/", blank=True, null=True,
+        help_text="Preview picture. Any size works: it is cropped to 1200 × 630 px automatically.")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    CACHE_KEY = "site-app-settings-v1"
+
+    class Meta:
+        verbose_name = "App & Sharing Settings"
+        verbose_name_plural = "App & Sharing Settings"
+
+    def __str__(self):
+        return "App & Sharing Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        cache.delete(self.CACHE_KEY)
+
+    @property
+    def version(self):
+        return int(self.updated_at.timestamp()) if self.updated_at else 0
+
+    @classmethod
+    def get_solo(cls):
+        obj = cache.get(cls.CACHE_KEY)
+        if obj is None:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            cache.set(cls.CACHE_KEY, obj, 3600)
+        return obj
+
+
+class BackupPreference(models.Model):
+    """The Dropbox folder backups go to when the server settings' credentials are used (blank = default).
+
+    Kept apart from DropboxConfiguration so choosing a folder never copies the Dropbox secrets into the
+    database (a new DROPBOX_REFRESH_TOKEN set on the server keeps working).
+    """
+    folder = models.CharField(max_length=255, blank=True)
+    keep_last = models.PositiveSmallIntegerField(
+        default=0, help_text="Keep only this many automatic backups (oldest are deleted after a new one); 0 keeps all.")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Backup Preference"
+
+    def __str__(self):
+        return self.folder or "Default backup folder"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 class DropboxConfiguration(models.Model):

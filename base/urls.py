@@ -84,6 +84,8 @@ path('notifications/clear-all/', views.clear_all_notifications, name='clear_all_
    # PWA URLs
     path('manifest.json', views.manifest, name='manifest1'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
+    path('llms.txt', views.llms_txt, name='llms_txt'),
+    path('favicon.ico', views.favicon_ico, name='favicon_ico'),
     path('sitemap.xml', cache_page(60 * 60)(sitemap), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('offline/', views.offline, name='offline'),
     path('page/<slug:slug>/', views.extra_page_detail, name='extra_page_detail'),

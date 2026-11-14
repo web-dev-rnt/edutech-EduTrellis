@@ -2466,3 +2466,49 @@ def tutor_admin(request):
         'env_key_in_use': not config.api_key and bool(settings.TUTOR_API_KEY),
     }
     return render(request, 'adminpanel/tutor_admin.html', context)
+
+
+
+# ======================== APP & SHARING (PWA + link previews) ========================
+
+@login_required
+def app_settings_edit(request):
+    """Website > App & Sharing: the installable app's name, icon and colours, and the link preview."""
+    import logging
+
+    from .app_profile import app_profile, build_icons, build_share_image
+    from .forms import AppSettingsForm
+    from .models import AppSettings
+
+    settings_obj, _ = AppSettings.objects.get_or_create(pk=1)
+    if request.method == "POST":
+        form = AppSettingsForm(request.POST, request.FILES, instance=settings_obj)
+        if form.is_valid():
+            icon_upload = request.FILES.get("icon")
+            share_upload = request.FILES.get("share_image")
+            obj = form.save(commit=False)
+            try:
+                if icon_upload:
+                    build_icons(obj, icon_upload)
+                elif form.cleaned_data.get("icon") is False:  # "Clear" ticked: back to the default icon
+                    for field in ("icon_192", "icon_512", "icon_maskable", "icon_apple"):
+                        setattr(obj, field, None)
+                elif "background_color" in form.changed_data and obj.icon:
+                    with obj.icon.open("rb") as source:
+                        build_icons(obj, source)
+                if share_upload:
+                    obj.share_image.save("share-preview.jpg", build_share_image(share_upload), save=False)
+                obj.save()
+            except Exception as exc:
+                logging.getLogger(__name__).exception("Saving App & Sharing settings failed")
+                messages.error(request, f"Could not save the images: {exc}")
+                return redirect("app_settings_edit")
+            messages.success(request, "App & sharing settings saved. Installed apps pick up the change the next time they open.")
+            return redirect("app_settings_edit")
+        messages.error(request, "Please correct the highlighted fields.")
+    else:
+        form = AppSettingsForm(instance=settings_obj)
+    return render(request, "app_settings_form.html", {
+        "form": form, "app": app_profile(), "settings_obj": settings_obj,
+        "site_url": settings.SITE_URL,
+    })

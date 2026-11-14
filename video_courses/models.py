@@ -68,7 +68,13 @@ class Category(TimestampedModel):
 # Upload paths
 def course_thumb_upload(instance, filename):
     slug = instance.slug or slugify(instance.name)[:220] or "course"
-    return f"video_courses/{slug}/thumbs/{filename}"
+    return f"video-courses/{slug}/thumbnail/{filename}"
+
+
+def video_thumb_upload(instance, filename):
+    course = getattr(instance, "course", None)
+    slug = (course and (course.slug or slugify(course.name)[:220])) or "course"
+    return f"video-courses/{slug}/video-thumbnails/{filename}"
 
 
 def course_video_upload(instance, filename):
@@ -90,7 +96,6 @@ class VideoCourse(TimestampedModel):
 
     thumbnail = models.ImageField(
         upload_to=course_thumb_upload,
-        storage=dropbox_storage,
         blank=True,
         null=True
     )
@@ -106,8 +111,7 @@ class VideoCourse(TimestampedModel):
     )
 
     instructor_avatar = models.ImageField(
-        upload_to="video_courses/instructors/",
-        storage=dropbox_storage,
+        upload_to="video-courses/instructors/",
         blank=True,
         null=True
     )
@@ -196,8 +200,7 @@ class CourseVideo(TimestampedModel):
     )
 
     thumb_image = models.ImageField(
-        upload_to="video_courses/video_thumbs/",
-        storage=dropbox_storage,
+        upload_to=video_thumb_upload,
         blank=True,
         null=True
     )

@@ -60,8 +60,7 @@ class ELibraryCourse(models.Model):
     # MEDIA (Stored in Dropbox)
 
     cover_image = models.ImageField(
-        upload_to='elibrary/courses/covers/',
-        storage=dropbox_storage,
+        upload_to='elibrary/covers/',
         blank=True,
         null=True
     )

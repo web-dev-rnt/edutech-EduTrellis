@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from unittest.mock import patch
 
@@ -162,8 +163,9 @@ class PerformanceAndPWATests(TestCase):
         response = self.client.get(reverse("manifest1"), secure=True)
         self.assertEqual(response.status_code, 200)
         icon_urls = {icon["src"] for icon in response.json()["icons"]}
-        self.assertTrue(any(url.endswith("/static/img/icon-192.png") for url in icon_urls))
-        self.assertTrue(any(url.endswith("/static/img/icon-512.png") for url in icon_urls))
+        # Hashed static names (icon-192.<hash>.png) bust browser caches when the icons change.
+        self.assertTrue(any(re.search(r"/static/img/icon-192(\.[0-9a-f]{12})?\.png$", url) for url in icon_urls))
+        self.assertTrue(any(re.search(r"/static/img/icon-512(\.[0-9a-f]{12})?\.png$", url) for url in icon_urls))
 
 
 class DailyQuizTests(TestCase):
@@ -226,3 +228,40 @@ class DailyQuizTests(TestCase):
         profile = self.client.get(reverse('profile_edit'))
         self.assertEqual(profile.context['quiz']['taken'], 3)
         self.assertContains(profile, 'Daily Quiz')
+
+
+class SearchAndAIVisibilityTests(TestCase):
+    """The site presents itself as EduTrellis's official test series website to Google and AI assistants."""
+
+    def setUp(self):
+        cache.clear()
+
+    def test_home_names_the_site_and_its_parent_company(self):
+        import json
+
+        page = self.client.get('/').content.decode()
+        self.assertIn('<title>EduTrellis Test Series — Online Mock Tests', page)
+        self.assertIn('Official EduTrellis test series website', page)
+        graphs = [json.loads(m) for m in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)]
+        nodes = [node for g in graphs for node in g.get('@graph', [g])]
+        website = next(n for n in nodes if n.get('@type') == 'WebSite')
+        org = next(n for n in nodes if n.get('@type') == 'EducationalOrganization')
+        faq = next(n for n in nodes if n.get('@type') == 'FAQPage')
+        self.assertEqual(website['name'], 'EduTrellis Test Series')
+        self.assertEqual(org['parentOrganization'], {'@id': 'https://www.edutrellis.in/#organization'})
+        self.assertTrue(any(n.get('@id') == 'https://www.edutrellis.in/#organization' for n in nodes))
+        self.assertIn('official online test series website of EduTrellis', faq['mainEntity'][0]['acceptedAnswer']['text'])
+        self.assertIn('Frequently asked questions', page)  # the FAQ is visible, not only in the markup
+
+    def test_llms_txt_and_favicon(self):
+        llms = self.client.get('/llms.txt')
+        self.assertEqual(llms.status_code, 200)
+        self.assertTrue(llms['Content-Type'].startswith('text/markdown'))
+        text = llms.content.decode()
+        self.assertTrue(text.startswith('# EduTrellis Test Series'))
+        for snippet in ('official online test series website of EduTrellis', 'https://www.edutrellis.in/ai/',
+                        '## Frequently asked questions', 'support@edutrellis.in'):
+            self.assertIn(snippet, text)
+        icon = self.client.get('/favicon.ico')
+        self.assertEqual((icon.status_code, icon['Content-Type']), (200, 'image/x-icon'))
+        self.assertIn('/llms.txt', self.client.get('/robots.txt').content.decode())

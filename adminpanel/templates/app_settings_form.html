@@ -1,0 +1,263 @@
+{% extends 'admin_dashboard.html' %}
+{% load static %}
+
+{% block title %}App & Sharing{% endblock %}
+
+{% block content %}
+<div class="ad-main-content app-set">
+  <div class="ad-page-header">
+    <h1><i class="fas fa-mobile-alt"></i>App &amp; Sharing</h1>
+    <p>How the installable app looks, and the preview people see when your link is shared on WhatsApp, Facebook, LinkedIn or X. Leave a field blank to use the default shown in grey.</p>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="app-alert {% if message.tags == 'error' %}is-error{% endif %}"><i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i> {{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="app-form">
+    {% csrf_token %}
+    <div class="app-grid">
+      <!-- ============ Installable app ============ -->
+      <section class="app-card">
+        <h2><i class="fas fa-download"></i> Installable app (PWA)</h2>
+        <p class="app-help">Shown when someone installs the site on a phone or computer, and on their home screen.</p>
+
+        {% for field in form %}{% if field.name == 'app_name' or field.name == 'short_name' or field.name == 'description' %}
+        <div class="app-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }} <span class="app-count" data-for="{{ field.id_for_label }}"></span></label>
+          {{ field }}
+          <small>{{ field.help_text }}</small>
+          {% if field.errors %}<div class="app-error">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+
+        <div class="app-field">
+          <label for="{{ form.icon.id_for_label }}">{{ form.icon.label }}</label>
+          <div class="app-icon-row">
+            <img src="{{ app.icon_512 }}" alt="Current app icon" class="app-icon-current" id="app-icon-current">
+            <div style="flex:1;min-width:0;">
+              {{ form.icon }}
+              <small>{{ form.icon.help_text }}{% if not app.custom_icons %} Currently the default {{ brand.name }} icon.{% endif %}</small>
+              {% if form.icon.errors %}<div class="app-error">{{ form.icon.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="app-row">
+          {% for field in form %}{% if field.name == 'theme_color' or field.name == 'background_color' %}
+          <div class="app-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <div class="app-color">
+              <input type="color" class="app-color-pick" data-target="{{ field.id_for_label }}" value="{% if field.value %}{{ field.value }}{% elif field.name == 'theme_color' %}{{ app.theme_color }}{% else %}#ffffff{% endif %}" aria-label="Pick {{ field.label|lower }}">
+              {{ field }}
+            </div>
+            <small>{{ field.help_text }}</small>
+            {% if field.errors %}<div class="app-error">{{ field.errors.0 }}</div>{% endif %}
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+      </section>
+
+      <!-- App preview -->
+      <aside class="app-card app-preview">
+        <h2><i class="fas fa-eye"></i> Preview</h2>
+        <p class="app-help">Install prompt on a computer</p>
+        <div class="pv-install">
+          <div class="pv-install__title">Install app</div>
+          <div class="pv-install__row">
+            <img src="{{ app.icon_192 }}" alt="" data-pv="icon">
+            <div><b data-pv="app_name">{{ app.app_name }}</b><span>{{ site_url|cut:'https://'|cut:'http://' }}</span></div>
+          </div>
+          <div class="pv-install__btns"><span>Cancel</span><span class="is-primary" data-pv-theme>Install</span></div>
+        </div>
+        <p class="app-help" style="margin-top:18px;">Phone home screen</p>
+        <div class="pv-phone" data-pv-bg>
+          <div class="pv-phone__bar" data-pv-theme></div>
+          <div class="pv-phone__apps">
+            <div class="pv-app"><img src="{{ app.icon_maskable }}" alt="" data-pv="icon" class="is-mask"><span data-pv="short_name">{{ app.short_name }}</span></div>
+            <div class="pv-app is-ghost"><i></i><span>Camera</span></div>
+            <div class="pv-app is-ghost"><i></i><span>Photos</span></div>
+            <div class="pv-app is-ghost"><i></i><span>Maps</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ============ Link sharing ============ -->
+      <section class="app-card">
+        <h2><i class="fas fa-share-alt"></i> Link sharing preview</h2>
+        <p class="app-help">The card shown when your website link is pasted in WhatsApp, Facebook, LinkedIn, X or Telegram.</p>
+        {% for field in form %}{% if field.name == 'share_title' or field.name == 'share_description' %}
+        <div class="app-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }} <span class="app-count" data-for="{{ field.id_for_label }}"></span></label>
+          {{ field }}
+          <small>{{ field.help_text }}</small>
+          {% if field.errors %}<div class="app-error">{{ field.errors.0 }}</div>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+        <div class="app-field">
+          <label for="{{ form.share_image.id_for_label }}">{{ form.share_image.label }}</label>
+          {{ form.share_image }}
+          <small>{{ form.share_image.help_text }}</small>
+          {% if form.share_image.errors %}<div class="app-error">{{ form.share_image.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="app-tip"><i class="fas fa-lightbulb"></i>
+          <span>WhatsApp and Facebook remember a link's preview for a while. To see a change straight away, share the link with something added, e.g. <code>{{ site_url }}/?v=2</code>, or refresh it in the <a href="https://developers.facebook.com/tools/debug/?q={{ site_url|urlencode }}" target="_blank" rel="noopener">Facebook Sharing Debugger</a>.</span></div>
+      </section>
+
+      <!-- Share preview -->
+      <aside class="app-card app-preview">
+        <h2><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp preview</h2>
+        <div class="pv-chat">
+          <div class="pv-bubble">
+            <div class="pv-card">
+              <img src="{{ app.share_image }}" alt="" data-pv="share_image">
+              <div class="pv-card__text">
+                <b data-pv="share_title">{{ app.share_title }}</b>
+                <span data-pv="share_description">{{ app.share_description }}</span>
+                <em>{{ site_url|cut:'https://'|cut:'http://' }}</em>
+              </div>
+            </div>
+            <a>{{ site_url }}/</a>
+            <small>12:24 PM <i class="fas fa-check-double"></i></small>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="app-actions">
+      <button type="submit" class="ad-btn ad-btn-primary"><i class="fa fa-save"></i> Save App &amp; Sharing</button>
+      <a href="{% url 'admindashboard' %}" class="ad-btn ad-btn-secondary"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+  </form>
+</div>
+
+<style>
+.app-set { --app-accent: var(--brand-primary, #D7263D); }
+.app-alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: .9rem; }
+.app-alert.is-error { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+.app-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.app-card { background: #fff; border: 1px solid #ece8ef; border-radius: 16px; padding: 22px; box-shadow: 0 4px 18px rgba(30, 20, 40, .05); }
+.app-card h2 { margin: 0 0 4px; font-size: 1.08rem; font-weight: 800; display: flex; align-items: center; gap: 9px; color: #1e1b26; }
+.app-card h2 i { color: var(--app-accent); }
+.app-help { margin: 0 0 16px; color: #6b6475; font-size: .84rem; }
+.app-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.app-field label { font-weight: 700; font-size: .86rem; color: #2a2433; display: flex; justify-content: space-between; gap: 8px; }
+.app-field small { color: #7a7286; font-size: .76rem; }
+.app-field .form-control { width: 100%; border: 1px solid #d9d3df; border-radius: 9px; padding: 9px 12px; font-size: .9rem; }
+.app-field .form-control:focus { outline: 0; border-color: var(--app-accent); box-shadow: 0 0 0 3px rgba(215, 38, 61, .12); }
+.app-field textarea.form-control { resize: vertical; }
+.app-count { font-weight: 600; color: #9a92a5; font-size: .74rem; }
+.app-count.is-over { color: #b45309; }
+.app-error { color: #be123c; font-size: .8rem; font-weight: 700; }
+.app-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.app-icon-row { display: flex; gap: 14px; align-items: center; }
+.app-icon-current { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; box-shadow: 0 4px 12px rgba(0, 0, 0, .12); flex: 0 0 72px; }
+.app-color { display: flex; gap: 8px; align-items: center; }
+.app-color-pick { width: 42px; height: 40px; padding: 2px; border: 1px solid #d9d3df; border-radius: 9px; background: #fff; cursor: pointer; flex: 0 0 42px; }
+.app-tip { display: flex; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 10px; padding: 11px 13px; font-size: .8rem; line-height: 1.5; }
+.app-tip code { background: #fff; padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+.app-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.app-preview { position: sticky; top: 16px; }
+
+/* install dialog mock (Chrome) */
+.pv-install { background: #2b2b2e; color: #e8e8ea; border-radius: 14px; padding: 18px; font-size: .84rem; }
+.pv-install__title { font-weight: 700; font-size: 1rem; margin-bottom: 14px; }
+.pv-install__row { display: flex; gap: 12px; align-items: center; }
+.pv-install__row img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+.pv-install__row b { display: block; color: #fff; font-size: .9rem; }
+.pv-install__row span { color: #a9a9ae; font-size: .78rem; }
+.pv-install__btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.pv-install__btns span { padding: 7px 16px; border-radius: 999px; border: 1px solid #5a5a60; font-weight: 600; font-size: .8rem; }
+.pv-install__btns .is-primary { border: 0; color: #fff; }
+
+/* phone home screen mock */
+.pv-phone { border-radius: 22px; padding: 0 0 22px; overflow: hidden; border: 6px solid #1b1b1f; background: linear-gradient(160deg, #3a3f6b, #a85c7c); max-width: 300px; }
+.pv-phone__bar { height: 18px; }
+.pv-phone__apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 18px 14px 0; }
+.pv-app { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; font-size: .68rem; text-align: center; min-width: 0; }
+.pv-app img, .pv-app i { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; display: block; }
+.pv-app span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-app.is-ghost i { background: rgba(255, 255, 255, .28); }
+.pv-app.is-ghost { opacity: .7; }
+
+/* WhatsApp chat mock */
+.pv-chat { background: #0b141a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='4' cy='4' r='1.5' fill='%23ffffff' fill-opacity='.05'/%3E%3C/svg%3E"); border-radius: 14px; padding: 18px 14px; }
+.pv-bubble { background: #005c4b; color: #e9edef; border-radius: 10px 0 10px 10px; padding: 4px; max-width: 330px; margin-left: auto; font-size: .82rem; }
+.pv-card { background: #025144; border-radius: 7px; overflow: hidden; }
+.pv-card img { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; display: block; }
+.pv-card__text { padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; }
+.pv-card__text b { color: #fff; font-size: .86rem; line-height: 1.3; }
+.pv-card__text span { color: #bcd6d0; font-size: .76rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pv-card__text em { color: #8fb3ab; font-style: normal; font-size: .72rem; }
+.pv-bubble a { display: block; color: #53bdeb; padding: 6px 6px 0; text-decoration: underline; word-break: break-all; }
+.pv-bubble small { display: block; text-align: right; color: #9fc5bd; font-size: .66rem; padding: 2px 6px 2px; }
+.pv-bubble small i { color: #53bdeb; }
+
+@media (max-width: 1100px) {
+  .app-grid { grid-template-columns: 1fr; }
+  .app-preview { position: static; }
+}
+@media (max-width: 600px) {
+  .app-row { grid-template-columns: 1fr; }
+  .app-card { padding: 16px; }
+}
+</style>
+
+<script>
+(function () {
+  var form = document.getElementById('app-form');
+  var themeDefault = '{{ app.theme_color|escapejs }}';
+
+  // Live text previews (blank field -> the default in its placeholder)
+  ['app_name', 'short_name', 'share_title', 'share_description'].forEach(function (name) {
+    var input = form.elements[name];
+    if (!input) return;
+    var update = function () {
+      var value = input.value.trim() || input.placeholder;
+      document.querySelectorAll('[data-pv="' + name + '"]').forEach(function (el) { el.textContent = value; });
+    };
+    input.addEventListener('input', update);
+  });
+
+  // Character counters
+  document.querySelectorAll('.app-count').forEach(function (counter) {
+    var input = document.getElementById(counter.dataset.for);
+    var limits = { id_short_name: 12, id_share_title: 70, id_share_description: 200, id_app_name: 45, id_description: 200 };
+    var update = function () {
+      var n = input.value.length, limit = limits[input.id];
+      counter.textContent = n ? n + (limit ? ' / ' + limit + ' recommended' : '') : '';
+      counter.classList.toggle('is-over', !!limit && n > limit);
+    };
+    input.addEventListener('input', update); update();
+  });
+
+  // Colour pickers <-> text fields, and the preview colours
+  function applyColors() {
+    var theme = (form.elements.theme_color.value.trim() || themeDefault);
+    var bg = form.elements.background_color.value.trim() || '#ffffff';
+    document.querySelectorAll('[data-pv-theme]').forEach(function (el) { el.style.background = theme; });
+    document.querySelectorAll('.pv-app img.is-mask').forEach(function (el) { el.style.background = bg; });
+  }
+  document.querySelectorAll('.app-color-pick').forEach(function (picker) {
+    var text = document.getElementById(picker.dataset.target);
+    picker.addEventListener('input', function () { text.value = picker.value.toUpperCase(); applyColors(); });
+    text.addEventListener('input', function () { if (/^#[0-9a-f]{6}$/i.test(text.value)) picker.value = text.value; applyColors(); });
+  });
+  applyColors();
+
+  // Show a newly chosen icon / share image before saving
+  function previewFile(input, selector) {
+    if (!input) return;
+    input.addEventListener('change', function () {
+      if (!input.files || !input.files[0]) return;
+      var url = URL.createObjectURL(input.files[0]);
+      document.querySelectorAll(selector).forEach(function (img) { img.src = url; });
+    });
+  }
+  previewFile(form.elements.icon, '[data-pv="icon"], #app-icon-current');
+  previewFile(form.elements.share_image, '[data-pv="share_image"]');
+})();
+</script>
+{% endblock %}

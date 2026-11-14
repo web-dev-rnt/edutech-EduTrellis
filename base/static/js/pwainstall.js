@@ -1,4 +1,4 @@
-// PWA Installation Handler for Edutrellis
+// PWA Installation Handler for EduTrellis
 (function() {
   'use strict';
 
@@ -121,7 +121,7 @@
     }
     
     setTimeout(() => {
-      alert('🎉 App installed successfully! You can now access Edutrellis from your home screen.');
+      alert('🎉 App installed successfully! You can now access EduTrellis from your home screen.');
     }, 500);
   });
 

@@ -39,12 +39,26 @@ SITE_POSTAL_ADDRESS = {
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Parent company: this site is powered by EduTrellis (footer band + structured data) ──
+PARENT_NAME = "EduTrellis"
+PARENT_URL = "https://www.edutrellis.in/"
+PARENT_SITES = [
+    # (name, url, Font Awesome icon, one-line description)
+    ("EduTrellis", "https://www.edutrellis.in/", "fa-solid fa-house", "Main website"),
+    ("EduTrellis AI", "https://www.edutrellis.in/ai/", "fa-solid fa-robot", "AI study tools"),
+    ("EduTrellis Store", "https://www.edutrellis.in/store/", "fa-solid fa-bag-shopping", "Official online store"),
+    ("EduChats", "https://www.edutrellis.in/educhats/", "fa-solid fa-comments", "Student community"),
+]
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── SEO defaults ─────────────────────────────────────────────────────────────
 # The brand name itself lives in the database (Brand & Theme settings); see adminpanel/branding.py.
-SEO_TITLE_SUFFIX = "Online Test Series & Mock Tests for Competitive and Board Exams"
+# Title: "<full name> — <suffix>". The suffix leads with the exams people search for.
+SEO_TITLE_SUFFIX = "Online Mock Tests for SSC, Banking, JEE, NEET & Board Exams"
+SEO_TITLE_SUFFIX_GENERIC = "Online Test Series & Mock Tests for SSC, Banking, JEE, NEET & Boards"
 SEO_DESCRIPTION_BODY = (
-    "online test series & mock tests for competitive and board exams, with PYQs, "
-    f"instant results and solutions. {SITE_STUDENTS_TRAINED} students trained."
+    "test series website: mock tests & PYQs with solutions for SSC, Banking, Railways, JEE, NEET and "
+    f"board exams. {SITE_STUDENTS_TRAINED} students trained."
 )
 SEO_KEYWORD_TOPICS = (
     "online test series, mock tests, online mock test, test series for competitive exams, "
@@ -58,10 +72,12 @@ def seo_texts(site_brand=None):
     """Default title, description and keywords built from the saved brand name."""
     site_brand = site_brand or brand()
     name, full_name = site_brand["name"], site_brand["full_name"]
-    names = list(dict.fromkeys([name, full_name, f"{name} test series"]))
+    names = list(dict.fromkeys([name, full_name, f"{name} test series", f"{name} exams", f"{name} mock test"]))
+    suffix = SEO_TITLE_SUFFIX if "test series" in full_name.lower() else SEO_TITLE_SUFFIX_GENERIC
     return {
-        "title": f"{full_name} | {SEO_TITLE_SUFFIX}",
-        "description": f"{full_name}: {SEO_DESCRIPTION_BODY}",
+        "title": f"{full_name} — {suffix}",
+        # "Official EduTrellis test series website: ..." makes the link to the parent brand explicit.
+        "description": f"Official {name} {SEO_DESCRIPTION_BODY}",
         "keywords": ", ".join(names) + ", " + SEO_KEYWORD_TOPICS,
     }
 SEO_DEFAULT_IMAGE = "img/brand/logo-horizontal.png"
@@ -89,7 +105,12 @@ def site_contact(request):
             "whatsapp_url": SITE_WHATSAPP_URL,
             "address": SITE_ADDRESS,
             "maps_url": SITE_MAPS_URL,
-        }
+        },
+        "parent_site": {
+            "name": PARENT_NAME,
+            "url": PARENT_URL,
+            "links": [{"name": n, "url": u, "icon": i, "note": d} for n, u, i, d in PARENT_SITES],
+        },
     }
 
 
@@ -100,11 +121,16 @@ def seo(request):
     alternate domains consolidate onto one indexed origin.
         {{ seo.title }}  {{ seo.description }}  {{ seo.canonical_url }}  {{ seo.image }}
     """
+    from .app_profile import app_profile
+
     site_url = settings.SITE_URL
     site_brand = brand()
     texts = seo_texts(site_brand)
+    app = app_profile()
+    share_image = app["share_image"]
     return {
         "brand": site_brand,
+        "app": app,
         "seo": {
             "site_name": site_brand["name"],
             "site_url": site_url,
@@ -112,7 +138,10 @@ def seo(request):
             "description": texts["description"],
             "keywords": texts["keywords"],
             "canonical_url": f"{site_url}{request.path}",
-            "image": f"{site_url}{static(SEO_DEFAULT_IMAGE)}",
+            # Link previews (WhatsApp, Facebook, LinkedIn, X): Website > App & Sharing.
+            "share_title": app["share_title"],
+            "share_description": app["share_description"],
+            "image": share_image if share_image.startswith("http") else f"{site_url}{share_image}",
         }
     }
 

@@ -9,9 +9,9 @@ class Command(BaseCommand):
         # Create default About Us section
         about_us, created = AboutUsSection.objects.get_or_create(
             defaults={
-                'company_name': 'Edutrellis',
-                'heading': 'About Edutrellis',
-                'description': '''Edutrellis is an online test series platform that has trained 10,000+ students for competitive and board exams.
+                'company_name': 'EduTrellis',
+                'heading': 'About EduTrellis',
+                'description': '''EduTrellis is an online test series platform that has trained 10,000+ students for competitive and board exams.
 Our exam-pattern mock tests, previous year papers, instant results and detailed solutions help students build speed, accuracy and confidence before the real exam.''',
                 'address': 'P-109, Prembagh, Shahpur, Chinhat, Lucknow, Uttar Pradesh 226028',
                 'email': 'support@edutrellis.in',

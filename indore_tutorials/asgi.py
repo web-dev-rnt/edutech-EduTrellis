@@ -1,5 +1,5 @@
 """
-ASGI config for the Edutrellis project.
+ASGI config for the EduTrellis project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

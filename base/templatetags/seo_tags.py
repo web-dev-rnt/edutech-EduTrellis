@@ -8,6 +8,8 @@ from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 
 from adminpanel.context_processors import (
+    PARENT_NAME,
+    PARENT_URL,
     SITE_CEO_EMAIL,
     SITE_EMAIL,
     SITE_PHONE,
@@ -45,12 +47,18 @@ def _organization(footer_settings=None):
         url for url in (getattr(footer_settings, f, "") for f in SOCIAL_FIELDS) if url
     ]
     site_brand = brand()
+    name, full_name = site_brand["name"], site_brand["full_name"]
     org = {
         "@type": "EducationalOrganization",
         "@id": f"{settings.SITE_URL}/#organization",
-        "name": site_brand["name"],
-        "legalName": site_brand["full_name"],
-        "alternateName": list(dict.fromkeys([site_brand["full_name"], f"{site_brand['name']} Test Series"])),
+        "name": full_name,
+        "legalName": PARENT_NAME,
+        "alternateName": [n for n in dict.fromkeys([f"{name} Test Series", f"{name} Exams", f"{name} Online Test Series", name])
+                          if n != full_name],
+        "brand": {"@type": "Brand", "name": name},
+        "slogan": "Learn • Build • Grow",
+        "knowsAbout": ["Online test series", "Mock tests", "Previous year papers", "SSC exams", "Banking exams",
+                       "Railway exams", "JEE", "NEET", "CBSE board exams", "State board exams"],
         "url": f"{settings.SITE_URL}/",
         "logo": _absolute(static("img/brand/logo-badge.png")),
         "image": _absolute(static("img/brand/logo-horizontal.png")),
@@ -77,26 +85,50 @@ def _organization(footer_settings=None):
             },
         ],
     }
+    org["parentOrganization"] = {"@id": PARENT_ORG_ID}
     if same_as:
         org["sameAs"] = same_as
     return org
 
 
+# The parent company, as its own site (www.edutrellis.in) identifies it in its structured data.
+PARENT_ORG_ID = f"{PARENT_URL.rstrip('/')}/#organization"
+
+
+def _parent_organization():
+    return {
+        "@type": "Organization",
+        "@id": PARENT_ORG_ID,
+        "name": PARENT_NAME,
+        "url": PARENT_URL,
+        "subOrganization": {"@id": f"{settings.SITE_URL}/#organization"},
+    }
+
+
 @register.simple_tag(takes_context=True)
 def site_jsonld(context):
-    """Organization + WebSite (with sitelinks search box) graph for every page."""
+    """Organization (+ parent company) + WebSite graph for every page.
+
+    WebSite.name is what Google shows as the site name above the result ("EduTrellis Test Series").
+    """
+    site_brand = brand()
     return _script({
         "@context": "https://schema.org",
         "@graph": [
             _organization(context.get("footer_settings")),
+            _parent_organization(),
             {
                 "@type": "WebSite",
                 "@id": f"{settings.SITE_URL}/#website",
-                "name": brand()["name"],
-                "alternateName": brand()["full_name"],
+                "name": site_brand["full_name"],
+                "alternateName": [n for n in dict.fromkeys([f"{site_brand['name']} Exams", site_brand["name"],
+                                                            settings.SITE_URL.split("://", 1)[-1]])
+                                  if n != site_brand["full_name"]],
                 "url": f"{settings.SITE_URL}/",
+                "description": seo_texts(site_brand)["description"],
                 "inLanguage": "en-IN",
                 "publisher": {"@id": f"{settings.SITE_URL}/#organization"},
+                "copyrightHolder": {"@id": PARENT_ORG_ID},
                 "potentialAction": {
                     "@type": "SearchAction",
                     "target": f"{settings.SITE_URL}/search/?q={{search_term_string}}",

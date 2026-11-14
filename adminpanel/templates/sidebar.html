@@ -194,6 +194,11 @@
       </a>
     </div>
 
+    <!-- App & Sharing (PWA + link previews) -->
+    <a href="{% url 'app_settings_edit' %}" class="{% if request.resolver_match.url_name == 'app_settings_edit' %}admin-active{% endif %}">
+      <span class="admin-ico" style="--ico: #0ea5e9;"><i class="fas fa-mobile-alt"></i></span><span>App &amp; Sharing</span>
+    </a>
+
     <!-- Developer Popup -->
     <a href="{% url 'developer_popup_manage' %}" class="{% if request.resolver_match.url_name in 'developer_popup_manage,developer_popup_create,developer_popup_edit' %}admin-active{% endif %}">
       <span class="admin-ico" style="--ico: #9c27b0;"><i class="fas fa-user-circle"></i></span><span>Developer Popup</span>

@@ -41,7 +41,7 @@ class TestSeries(models.Model):
         help_text="Competitive exam this series prepares for; matches an 'Explore Exams' category name (e.g. SSC CGL).",
     )
     description = models.TextField()
-    thumbnail = models.ImageField(upload_to='test_series/', blank=True, null=True)
+    thumbnail = models.ImageField(upload_to='test-series/thumbnails/', blank=True, null=True)
     
     # Pricing
     is_free = models.BooleanField(default=False)
@@ -225,7 +225,7 @@ class Question(models.Model):
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='medium')
     
     question_text = models.TextField()
-    question_image = models.ImageField(upload_to='questions/', blank=True, null=True)
+    question_image = models.ImageField(upload_to='test-series/questions/', blank=True, null=True)
     
     # Marking scheme
     marks = models.DecimalField(max_digits=6, decimal_places=2, default=1,
@@ -243,7 +243,7 @@ class Question(models.Model):
     correct_answer = models.JSONField(default=dict, help_text="Store correct answer(s)")
     
     explanation = models.TextField(blank=True, help_text="Explanation for the answer")
-    solution_image = models.ImageField(upload_to='solutions/', blank=True, null=True)
+    solution_image = models.ImageField(upload_to='test-series/solutions/', blank=True, null=True)
     solution_video_url = models.URLField(blank=True, null=True, help_text="YouTube or video URL")
     
     # Analytics

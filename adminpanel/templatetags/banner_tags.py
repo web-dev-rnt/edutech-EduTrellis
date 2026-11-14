@@ -110,5 +110,20 @@ def render_footer_section(context):
         'footer_legal_links': footer_legal_links,
         'footer_sections': footer_sections,
         'site_contact': context.get('site_contact', {}),
+        'parent_site': context.get('parent_site', {}),
         'brand': context.get('brand') or brand(),
     }
+
+
+
+@register.inclusion_tag('components/faq_section.html')
+def render_faq_section():
+    """Home page FAQ about the site; the same questions go into FAQPage structured data and /llms.txt."""
+    import json
+
+    from django.utils.safestring import mark_safe
+
+    from base.site_facts import faq, faq_jsonld
+
+    data = json.dumps(faq_jsonld(), ensure_ascii=False).replace("<", "\\u003c")
+    return {"faqs": faq(), "faq_jsonld": mark_safe(data), "brand": brand()}

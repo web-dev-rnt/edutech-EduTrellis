@@ -1,0 +1,48 @@
+{% if faqs %}
+<section class="faq-section" id="faq" aria-labelledby="faq-title">
+  <div class="faq-inner">
+    <div class="faq-head">
+      <span class="faq-eyebrow"><i class="fas fa-circle-question" aria-hidden="true"></i> FAQ</span>
+      <h2 id="faq-title">Frequently asked questions</h2>
+      <p>Everything about {{ brand.full_name }}, the official test series website of EduTrellis.</p>
+    </div>
+    <div class="faq-list">
+      {% for question, answer in faqs %}
+      <details class="faq-item"{% if forloop.first %} open{% endif %}>
+        <summary><span>{{ question }}</span><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <p>{{ answer }}</p>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<script type="application/ld+json">{{ faq_jsonld }}</script>
+
+<style>
+.faq-section { padding: clamp(36px, 5vw, 60px) 16px; }
+.faq-inner { max-width: 900px; margin: 0 auto; }
+.faq-head { text-align: center; margin-bottom: 26px; }
+.faq-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+  background: rgba(var(--brand-primary-rgb, 215, 38, 61), 0.12); color: var(--brand-primary-text, #D7263D);
+  font: 700 13px/1 var(--font-sans); letter-spacing: .4px; text-transform: uppercase;
+}
+.faq-head h2 { font: 800 clamp(24px, 3vw, 34px)/1.2 var(--font-sans); color: #14141b; margin: 14px 0 8px; letter-spacing: -.5px; }
+.faq-head p { color: #5b6474; margin: 0; font-size: 15px; }
+.faq-list { display: grid; gap: 12px; }
+.faq-item { background: #fff; border: 1px solid #eee5e8; border-radius: 14px; box-shadow: 0 6px 18px rgba(20, 10, 20, .04); }
+.faq-item[open] { border-color: rgba(var(--brand-primary-rgb, 215, 38, 61), .35); }
+.faq-item summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 16px 20px; font: 700 16px/1.4 var(--font-sans); color: #14141b;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary i { color: var(--brand-primary-text, #D7263D); transition: transform .2s ease; flex: 0 0 auto; }
+.faq-item[open] summary i { transform: rotate(180deg); }
+.faq-item p { margin: 0; padding: 0 20px 18px; color: #4b5162; font-size: 15px; line-height: 1.65; }
+@media (max-width: 480px) {
+  .faq-item summary { padding: 14px 16px; font-size: 15px; }
+  .faq-item p { padding: 0 16px 16px; font-size: 14px; }
+}
+</style>
+{% endif %}

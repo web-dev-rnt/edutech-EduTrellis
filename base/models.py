@@ -49,7 +49,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
     
     # Profile Image
-    profile_image = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    profile_image = models.ImageField(upload_to='users/profile-pictures/', null=True, blank=True)
     
     # Account Status
     is_active = models.BooleanField(default=True)

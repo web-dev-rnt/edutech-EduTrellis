@@ -786,7 +786,7 @@ select[name="gender"]:focus {
     padding: 12px 18px;
   }
 }
-/* ========== Edutrellis auth pages (login / signup) ==========
+/* ========== EduTrellis auth pages (login / signup) ==========
    Brand look from the logo: soft warm-to-red glow on the page, a card with the
    amber -> orange -> red -> crimson gradient along its top edge, and a red button. */
 :root {

@@ -1,4 +1,4 @@
-"""Render the Edutrellis brand assets to PNG with headless Chromium.
+"""Render the EduTrellis brand assets to PNG with headless Chromium.
 
 Usage:
     python design/brand_assets/render.py            # render everything into out/
